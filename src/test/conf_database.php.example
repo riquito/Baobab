@@ -1,0 +1,8 @@
+<?php
+
+$DB_CONFIG=array(
+  "host"=>"localhost",
+  "port"=>"3306",
+  "username"=>"foo",
+  "password"=>"bar"
+);
