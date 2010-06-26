@@ -155,7 +155,7 @@ class Baobab  {
     
     public function build() {
 
-        $sql=file_get_contents("schema_baobab.sql");
+        $sql=file_get_contents(dirname(__FILE__).DIRECTORY_SEPARATOR."schema_baobab.sql");
 
         if (!$this->conn->multi_query(str_replace("GENERIC",$this->tree_name,$sql))) {
             throw new sp_MySQL_Error($this->conn);
@@ -204,7 +204,13 @@ class Baobab  {
 
 
     /*
-     * Return the id of the first node of the tree
+     * .. method:: get_root()
+     *    
+     *    Return the id of the first node of the tree.
+     *
+     *    :return: id of the root, or NULL if empty
+     *    :rtype:  int or NULL
+     *
      */
     function get_root(){
 
@@ -219,7 +225,7 @@ class Baobab  {
         if ($result=$this->conn->query($query,MYSQLI_STORE_RESULT)) {
             if ($result->num_rows===0) {
                 $result->close();
-                throw new sp_Error("tree is empty");
+                return NULL;
             }
 
             $row = $result->fetch_row();
@@ -615,15 +621,24 @@ class Baobab  {
         $result = $this->conn->query($query,MYSQLI_STORE_RESULT);
         if (!$result) throw new sp_MySQL_Error($this->conn);
     }
-
-    function appendChild($id_parent,$attrs=NULL){
+    
+    /*
+     * .. method:: appendChild([$id_parent,[$attrs]])
+     *    
+     *    Create and append a node as last child of a parent node.
+     *
+     *    :param $id_parent: id of the parent node
+     *    :type $id_parent: int or NULL
+     *    :param $attrs: array fields=>values to assign to the new node
+     *    :type $attrs: array or NULL
+     *    :return: id of the root, or NULL if empty
+     *    :rtype:  int or NULL
+     *
+     */
+    function appendChild($id_parent=NULL,$attrs=NULL){
 
         if ($id_parent===NULL) $id_parent=0;
         else $this->check_id($id_parent);
-
-        echo "
-                CALL Baobab_AppendChild_$this->tree_name($id_parent,@new_id);
-                SELECT @new_id as id";
 
         if (!$this->conn->multi_query("
                 CALL Baobab_AppendChild_$this->tree_name($id_parent,@new_id);
