@@ -19,9 +19,11 @@
  */ 
 
 require_once('PHPUnit/Framework.php');
+require_once('../baobab.php');
  
 class BaobabTest extends PHPUnit_Framework_TestCase {
     protected static $db;
+    protected $baobab;
     
     public static function setUpBeforeClass() {
         require_once(dirname(__FILE__).DIRECTORY_SEPARATOR."conf_database.php");
@@ -43,6 +45,36 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         mysqli_close(self::$db);
         self::$db=NULL;
     }
+    
+    public function setUp(){
+        $this->baobab = new Baobab(self::$db,"GENERIC");
+        $this->baobab->destroy();
+        $this->baobab->build();
+    }
+    
+    public function testAppendChildAsRootInEmptyTree(){
+        $root_id=$this->baobab->appendChild();
+        $this->assertEquals(1,$root_id);
+    }
+    
+    public function testEmptyRoot(){
+        $root_id=$this->baobab->get_root();
+        $this->assertNull($root_id);
+    }
+    
+    /*
+     * @depends testAppendChildAsRootInEmptyTree
+     */
+    public function testRoot(){
+        $this->baobab->appendChild();
+        $this->assertEquals(1,$this->baobab->get_root());
+    }
+    
+    public function tearDown(){
+        //$baobab->destroy();
+    }
+    
+    
 }
 
 ?>
