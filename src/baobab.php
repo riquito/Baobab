@@ -196,8 +196,15 @@ class Baobab  {
 
     }
 
+    /**
+     * .. method:: clean()
+     *    
+     *    Delete all the record from the Baobab_{yoursuffix} table and
+     *      reset the index conter.
+     *
+     */
     function clean() {
-        if (!$this->conn->query("DELETE FROM Baobab_$this->tree_name")) {
+        if (!$this->conn->query("TRUNCATE TABLE Baobab_$this->tree_name")) {
             return sp_MySQL_Error($this->conn);
         }
     }
