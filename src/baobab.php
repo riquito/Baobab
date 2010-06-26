@@ -67,7 +67,28 @@ class BaobabNode {
     }
 }
 
+
 class Baobab  {
+    /**
+    * .. class:: Baobab($conn,$tree_name,$must_check_ids=TRUE)
+    *
+    *    This class lets you create, populate search and destroy a tree stored
+    *    using the Nested Set Model described by Joe Celko's
+    *
+    *    :param $conn: mysqli database connection
+    *    :type $conn: an instance of mysqli_connect
+    *    :param $tree_name: suffix to append to the table, wich will result in
+    *                       Baobab_{$tree_name}
+    *    :type $tree_name: string
+    *    :param $must_check_ids: whether to constantly check the id consistency or not
+    *    :type $must_check_ids: boolean
+    */
+    
+    public function __construct($conn,$tree_name,$must_check_ids=TRUE) {
+        $this->conn=$conn;
+        $this->tree_name=$tree_name;
+        $this->enableCheck($must_check_ids);
+    }
     
     /* transform an array in a valid SQL tuple
      * 
@@ -139,12 +160,6 @@ class Baobab  {
         throw new sp_Error("not a valid id: $id");
     }
 
-    public function __construct($conn,$tree_name,$must_check_ids=TRUE) {
-        $this->conn=$conn;
-        $this->tree_name=$tree_name;
-        $this->enableCheck($must_check_ids);
-    }
-
     public function enableCheck($bool) {
         $this->must_check_ids=$bool;
     }
@@ -195,7 +210,7 @@ class Baobab  {
 
 
     }
-
+    
     /**
      * .. method:: clean()
      *    
@@ -761,7 +776,12 @@ class Baobab  {
 
 
     /*
-     * Return a JSON dump of the tree
+     * .. method:: export()
+     *    
+     *    Create a JSON dump of the tree
+     *
+     *    :return: a dump of the tree in JSON format
+     *    :rtype:  string
      * 
      */
     function export() {
@@ -792,20 +812,27 @@ class Baobab  {
     }
 
     /*
-     * Load data previously exported via the export method
+     * .. method:: import($data)
+     *    
+     *    Load data previously exported via the export method.
      *
-     * $data can be either a json string or the decoded associative array
+     *    :param $data: data to import, a json string or his decoded equivalent
+     *    :type $data: string(json) or array
+     *    
+     *    :return: id of the root, or NULL if empty
+     *    :rtype:  int or NULL
      *
-     * Note: associative array format is
+     *    Associative array format is ::
      *
      *    array(
      *      "columns" => array("column1","column2", ... ),
-     *      "data" => array(
+     *      "values" => array(
      *          array("value1","value2","value3", ... ),
      *          array("value1","value2","value3", ... ),
      *          ...
      *      )
      *    )
+     *
      */
     function import($data){
         if (is_string($data)) $data=json_decode($data,true);
