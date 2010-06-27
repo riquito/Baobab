@@ -165,11 +165,8 @@ HER
     function testInsertNodeAfterRoot(){
         $root_id=$this->baobab->appendChild();
         
-        try {
-            $this->baobab->insertNodeAfter($root_id);
-        } catch (sp_Error $e) {
-            return;
-        }
+        try { $this->baobab->insertNodeAfter($root_id);
+        } catch (sp_Error $e) { return; }
         $this->fail("was expecting an sp_Error Exception to be raised");
     }
     
@@ -182,6 +179,14 @@ HER
      */
     function testInsertNodeAfter($whatToTest){
         $this->_useTreeTestData($whatToTest);
+    }
+    
+    function testInsertNodeAfterUnexistentId(){
+        $this->baobab->appendChild();
+        
+        try { $this->baobab->insertNodeAfter(100);
+        } catch (sp_Error $e) { return; }
+        $this->fail("was expecting an sp_Error Exception to be raised");
     }
     
     function testInsertNodeBeforeRoot(){
@@ -206,6 +211,14 @@ HER
         $this->_useTreeTestData($whatToTest);
     }
     
+    function testInsertNodeBeforeUnexistentId(){
+        $this->baobab->appendChild();
+        
+        try { $this->baobab->insertNodeBefore(100);
+        } catch (sp_Error $e) { return; }
+        $this->fail("was expecting an sp_Error Exception to be raised");
+    }
+    
     function _provider_insertChildAtIndexPositive(){
         return $this->_getTreeTestData("insertChildAtIndexPositive.php");
     }
@@ -226,6 +239,24 @@ HER
      */
     function testInsertChildAtIndexNegative($whatToTest){
         $this->_useTreeTestData($whatToTest);
+    }
+    
+    function testInsertChildAtIndexNotExistent(){
+        $root_id=$this->baobab->appendChild();
+        $this->baobab->appendChild($root_id);
+        $this->baobab->appendChild($root_id);
+        
+        try {
+            // index too high
+            $this->baobab->insertChildAtIndex(1,2);
+            $this->fail("was expecting an sp_Error Exception to be raised");
+        } catch (sp_Error $e) {}
+        
+        try {
+            // index too low
+            $this->baobab->insertChildAtIndex(1,-3);
+            $this->fail("was expecting an sp_Error Exception to be raised");
+        } catch (sp_Error $e) {}
     }
 }
 
