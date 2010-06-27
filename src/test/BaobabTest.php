@@ -170,6 +170,36 @@ HER
         $treeState=json_decode($this->baobab->export(),TRUE);
         $this->assertEquals($whatToTest["to"],$treeState["values"]);
     }
+    
+    function testInsertNodeBeforeRoot(){
+        $root_id=$this->baobab->appendChild();
+        
+        try {
+            $this->baobab->insertNodeBefore($root_id);
+        } catch (sp_Error $e) {
+            return;
+        }
+        $this->fail("was expecting an sp_Error Exception to be raised");
+    }
+    
+    function _insertNodeBefore_provider(){
+        require_once(dirname(__FILE__).DS."data".DS."insertNodeBefore.php");
+        $ar_out=array();
+        foreach($data["insertNodeBefore"] as $data) {
+            $ar_out[]=array($data);
+        }
+        return $ar_out;
+    }
+    
+    /**
+     * @dataProvider _insertNodeBefore_provider
+     */
+    function testInsertNodeBefore($whatToTest){
+        $this->baobab->import(array("fields"=>array("id","lft","rgt"),"values"=>$whatToTest["from"]));
+        call_user_func_array(array($this->baobab,"insertNodeBefore"),$whatToTest["params"]);
+        $treeState=json_decode($this->baobab->export(),TRUE);
+        $this->assertEquals($whatToTest["to"],$treeState["values"]);
+    }
 }
 
 ?>
