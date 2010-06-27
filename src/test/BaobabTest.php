@@ -152,6 +152,24 @@ HER
         $this->fail("was expecting an sp_Error Exception to be raised");
     }
     
+    function _insertNodeAfter_provider(){
+        require_once(dirname(__FILE__).DS."data".DS."insertNodeAfter.php");
+        $ar_out=array();
+        foreach($data["insertNodeAfter"] as $data) {
+            $ar_out[]=array($data);
+        }
+        return $ar_out;
+    }
+    
+    /**
+     * @dataProvider _insertNodeAfter_provider
+     */
+    function testInsertNodeAfter($whatToTest){
+        $this->baobab->import(array("fields"=>array("id","lft","rgt"),"values"=>$whatToTest["from"]));
+        call_user_func_array(array($this->baobab,"insertNodeAfter"),$whatToTest["params"]);
+        $treeState=json_decode($this->baobab->export(),TRUE);
+        $this->assertEquals($whatToTest["to"],$treeState["values"]);
+    }
 }
 
 ?>

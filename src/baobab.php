@@ -730,6 +730,21 @@ class Baobab  {
         return $new_id;
     }
     
+    /**!
+     * .. method:: insertNodeAfter($id_sibling[,$attrs=NULL])
+     *
+     *    Create a new node and insert it as the next sibling of the node
+     *      chosen (which can not be root)
+     *
+     *    :param $id_sibling: id of a node in the tree (can not be root)
+     *    :type $id_sibling:  int
+     *    :param $attrs: additional fields of the new node, as fieldName=>value
+     *    :type $attrs:  array
+     *
+     *    :return: id of the new node
+     *    :rtype:  int
+     * 
+     */
     function insertNodeAfter($id_sibling,$attrs=NULL) {
         $this->check_id($id_sibling);
 
