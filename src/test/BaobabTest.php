@@ -122,23 +122,44 @@ HER
         $this->assertEquals(json_encode($data),$this->baobab->export());
     }
     
-    function _appendChild_provider(){
-        require_once(dirname(__FILE__).DS."data".DS."appendChild.php");
+    /**
+     * Retrieve the data to make a test from a correctly formatted file
+     *   and return it formatted as a result for a provider
+     **/
+    function _getTreeTestData($fname,$dir="data"){
+        require_once(dirname(__FILE__).DS.$dir.DS.$fname);
+        // ensure we pass each case as a single parameter
+        
+        $methodName=current(array_keys($data));
+        $real_data=current(array_values($data));
         $ar_out=array();
-        foreach($data["appendChild"] as $data) {
-            $ar_out[]=array($data);
+        foreach($real_data as $single_test_info) {
+            $single_test_info["methodName"]=$methodName;
+            $ar_out[]=array($single_test_info);
         }
         return $ar_out;
     }
     
+    function _useTreeTestData($whatToTest){
+        // load the data
+        $this->baobab->import(array("fields"=>array("id","lft","rgt"),"values"=>$whatToTest["from"]));
+        // call the func to test
+        call_user_func_array(array($this->baobab,$whatToTest["methodName"]),$whatToTest["params"]);
+        // get the current tree state
+        $treeState=json_decode($this->baobab->export(),TRUE);
+        // check that the tree state is what we expected
+        $this->assertEquals($whatToTest["to"],$treeState["values"]);
+    }
+    
+    function _provider_appendChild(){
+        return $this->_getTreeTestData("appendChild.php");
+    }
+    
     /**
-     * @dataProvider _appendChild_provider
+     * @dataProvider _provider_appendChild
      */
     function testAppendChild($whatToTest){
-        $this->baobab->import(array("fields"=>array("id","lft","rgt"),"values"=>$whatToTest["from"]));
-        call_user_func_array(array($this->baobab,"appendChild"),$whatToTest["params"]);
-        $treeState=json_decode($this->baobab->export(),TRUE);
-        $this->assertEquals($whatToTest["to"],$treeState["values"]);
+        $this->_useTreeTestData($whatToTest);
     }
     
     function testInsertNodeAfterRoot(){
@@ -152,23 +173,15 @@ HER
         $this->fail("was expecting an sp_Error Exception to be raised");
     }
     
-    function _insertNodeAfter_provider(){
-        require_once(dirname(__FILE__).DS."data".DS."insertNodeAfter.php");
-        $ar_out=array();
-        foreach($data["insertNodeAfter"] as $data) {
-            $ar_out[]=array($data);
-        }
-        return $ar_out;
+    function _provider_insertNodeAfter(){
+        return $this->_getTreeTestData("insertNodeAfter.php");
     }
     
     /**
-     * @dataProvider _insertNodeAfter_provider
+     * @dataProvider _provider_insertNodeAfter
      */
     function testInsertNodeAfter($whatToTest){
-        $this->baobab->import(array("fields"=>array("id","lft","rgt"),"values"=>$whatToTest["from"]));
-        call_user_func_array(array($this->baobab,"insertNodeAfter"),$whatToTest["params"]);
-        $treeState=json_decode($this->baobab->export(),TRUE);
-        $this->assertEquals($whatToTest["to"],$treeState["values"]);
+        $this->_useTreeTestData($whatToTest);
     }
     
     function testInsertNodeBeforeRoot(){
@@ -182,61 +195,37 @@ HER
         $this->fail("was expecting an sp_Error Exception to be raised");
     }
     
-    function _insertNodeBefore_provider(){
-        require_once(dirname(__FILE__).DS."data".DS."insertNodeBefore.php");
-        $ar_out=array();
-        foreach($data["insertNodeBefore"] as $data) {
-            $ar_out[]=array($data);
-        }
-        return $ar_out;
+    function _provider_insertNodeBefore(){
+        return $this->_getTreeTestData("insertNodeBefore.php");
     }
     
     /**
-     * @dataProvider _insertNodeBefore_provider
+     * @dataProvider _provider_insertNodeBefore
      */
     function testInsertNodeBefore($whatToTest){
-        $this->baobab->import(array("fields"=>array("id","lft","rgt"),"values"=>$whatToTest["from"]));
-        call_user_func_array(array($this->baobab,"insertNodeBefore"),$whatToTest["params"]);
-        $treeState=json_decode($this->baobab->export(),TRUE);
-        $this->assertEquals($whatToTest["to"],$treeState["values"]);
+        $this->_useTreeTestData($whatToTest);
     }
     
-    function _insertChildAtIndexPositive_provider(){
-        require_once(dirname(__FILE__).DS."data".DS."insertChildAtIndexPositive.php");
-        $ar_out=array();
-        foreach($data["insertChildAtIndex"] as $data) {
-            $ar_out[]=array($data);
-        }
-        return $ar_out;
+    function _provider_insertChildAtIndexPositive(){
+        return $this->_getTreeTestData("insertChildAtIndexPositive.php");
     }
     
     /**
-     * @dataProvider _insertChildAtIndexPositive_provider
+     * @dataProvider _provider_insertChildAtIndexPositive
      */
     function testInsertChildAtIndexPositive($whatToTest){
-        $this->baobab->import(array("fields"=>array("id","lft","rgt"),"values"=>$whatToTest["from"]));
-        call_user_func_array(array($this->baobab,"insertChildAtIndex"),$whatToTest["params"]);
-        $treeState=json_decode($this->baobab->export(),TRUE);
-        $this->assertEquals($whatToTest["to"],$treeState["values"]);
+        $this->_useTreeTestData($whatToTest);
     }
     
-    function _insertChildAtIndexNegative_provider(){
-        require_once(dirname(__FILE__).DS."data".DS."insertChildAtIndexNegative.php");
-        $ar_out=array();
-        foreach($data["insertChildAtIndex"] as $data) {
-            $ar_out[]=array($data);
-        }
-        return $ar_out;
+    function _provider_insertChildAtIndexNegative(){
+        return $this->_getTreeTestData("insertChildAtIndexNegative.php");
     }
     
     /**
-     * @dataProvider _insertChildAtIndexNegative_provider
+     * @dataProvider _provider_insertChildAtIndexNegative
      */
     function testInsertChildAtIndexNegative($whatToTest){
-        $this->baobab->import(array("fields"=>array("id","lft","rgt"),"values"=>$whatToTest["from"]));
-        call_user_func_array(array($this->baobab,"insertChildAtIndex"),$whatToTest["params"]);
-        $treeState=json_decode($this->baobab->export(),TRUE);
-        $this->assertEquals($whatToTest["to"],$treeState["values"]);
+        $this->_useTreeTestData($whatToTest);
     }
 }
 
