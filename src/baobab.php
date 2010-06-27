@@ -30,27 +30,100 @@ class sp_MySQL_Error extends sp_Error {
    }
 }
 
+
 /**!
- * ..class:: BaobabNode($id,$lft,$rgt,$parentId,$attrs=NULL)
- * 
- *     Node of a Baobab tree
+ * .. class:: sp_SQLUtil
+ *    
+ *    Class with helpers to work with SQL
+ */
+class sp_SQLUtil {
+    /**!
+     * .. method:: vector_to_sql_tuple($ar)
+     *    
+     *    Transform an array in a valid SQL tuple. The array can contain only
+     *      values of type int,float,boolean,string.
+     *
+     *    :param $ar: an array to convert (only array values are used)
+     *    :type $ar:  array
+     *
+     *    :return: the generated SQL snippet
+     *    :rtype:  string
+     * 
+     *    Example:
+     *    .. code-block:: php
+     *       php> echo sp_SQLUtil::vector_to_sql_tuple(array("i'm a string",28,NULL,FALSE));
+     *       ( 'i\'m a string','28',NULL,FALSE )
+     * 
+     */
+    static function vector_to_sql_tuple($ar) {
+        $tmp=array();
+        foreach($ar as $value) {
+            if ($value===NULL) $tmp[]="NULL";
+            else if (is_bool($value)) $tmp[]=($value ? "TRUE" : "FALSE");
+            else $tmp[]="'".addslashes($value)."'";
+        }
+        return sprintf("( %s )",join(",",$tmp));
+    }
+    
+    /**!
+     * .. method:: array_to_sql_assignments($ar[,$sep=","])
+     *    
+     *    Convert an associative array in a series of "columnName = value" expressions
+     *     as valid SQL.
+     *    The expressions are separated using the parameter $sep (defaults to ",").
+     *    The array can contain only values of type int,float,boolean,string.
+     *
+     *    :param $ar: an associative array to convert
+     *    :type $ar: array
+     *    :param $sep: expression separator
+     *    :type $sep: string
+     *
+     *    :return: the generated SQL snippet
+     *    :rtype:  string
+     *
+     *    Example:
+     *    .. code-block:: php
+     *       php> $myArray=array("city address"=>"main street","married"=>false);
+     *       php> echo sp_SQLUtil::array_to_sql_assignments($myArray);
+     *        `city address` = 'main street' , `married` = FALSE
+     *       php> echo sp_SQLUtil::array_to_sql_assignments($myArray,"AND");
+     *        `city address` = 'main street' AND `married` = FALSE 
+     */
+    static function array_to_sql_assignments($ar,$sep=",") {
+        $tmp=array();
+        foreach($ar as $key=>$value) {
+            if ($value===NULL) $value="NULL";
+            else if (is_bool($value)) $value=($value ? "TRUE" : "FALSE");
+            else $value= "'".addslashes($value)."'";
+            
+            $tmp[]=sprintf(" `%s` = %s ",str_replace("`","``",$key),$value);
+        }
+        return join($sep,$tmp);
+    }
+}
+
+
+/**!
+ * .. class:: BaobabNode($id,$lft,$rgt,$parentId[,$attrs=NULL])
+ *    
+ *    Node of a Baobab tree
  *
- *     :param $id: the node id
- *     :type $id: int
- *     :param $lft: the node left bound
- *     :type $lft: int
- *     :param $rgt: the node right bound
- *     :type $rgt: int
- *     :param $parentId: the parent's node id, if any
- *     :type $parentId: int or NULL
- *     :param $attrs: additional fields of the node, as fieldName=>value
- *     :type $attrs: array or NULL
+ *    :param $id: the node id
+ *    :type $id: int
+ *    :param $lft: the node left bound
+ *    :type $lft: int
+ *    :param $rgt: the node right bound
+ *    :type $rgt: int
+ *    :param $parentId: the parent's node id, if any
+ *    :type $parentId: int or NULL
+ *    :param $attrs: additional fields of the node, as fieldName=>value
+ *    :type $attrs: array or NULL
  *
- *     ..note: this class doesn't involve database interaction, its purposes is
- *         just to have a runtime representation of a Baobab tree
+ *    ..note: this class doesn't involve database interaction, its purposes is
+ *        just to have a runtime representation of a Baobab tree
  *
- *     ..note: this class doesn't has any kind of data control, so it expects
- *         that the data used makes sense in a Baobab tree
+ *    ..note: this class doesn't has any kind of data control, so it expects
+ *        that the data used makes sense in a Baobab tree
  * 
  */
 class BaobabNode {
@@ -73,12 +146,12 @@ class BaobabNode {
     }
     
     /**!
-     * ..method:: add_child($child)
+     * .. method:: add_child($child)
      *
-     *     Add a child to the node
+     *    Add a child to the node
      *
-     *     :param $child: append a node to the list of this node children
-     *     :type $child: :class:`BaobabNode`
+     *    :param $child: append a node to the list of this node children
+     *    :type $child: :class:`BaobabNode`
      *
      **/
     public function add_child($child) {
@@ -97,72 +170,23 @@ class BaobabNode {
 class Baobab  {
     /**
     * .. class:: Baobab($conn,$tree_name,$must_check_ids=TRUE)
+    *   
+    *   This class lets you create, populate search and destroy a tree stored
+    *   using the Nested Set Model described by Joe Celko's
     *
-    *    This class lets you create, populate search and destroy a tree stored
-    *    using the Nested Set Model described by Joe Celko's
-    *
-    *    :param $conn: mysqli database connection
-    *    :type $conn: an instance of mysqli_connect
-    *    :param $tree_name: suffix to append to the table, wich will result in
+    *   :param $conn: mysqli database connection
+    *   :type $conn: an instance of mysqli_connect
+    *   :param $tree_name: suffix to append to the table, wich will result in
     *                       Baobab_{$tree_name}
-    *    :type $tree_name: string
-    *    :param $must_check_ids: whether to constantly check the id consistency or not
-    *    :type $must_check_ids: boolean
+    *   :type $tree_name: string
+    *   :param $must_check_ids: whether to constantly check the id consistency or not
+    *   :type $must_check_ids: boolean
     */
     
     public function __construct($conn,$tree_name,$must_check_ids=TRUE) {
         $this->conn=$conn;
         $this->tree_name=$tree_name;
         $this->enableCheck($must_check_ids);
-    }
-    
-    /* transform an array in a valid SQL tuple
-     * 
-     * e.g
-     *      echo vector_to_sql_tuple(array("i'm a string",28,NULL,FALSE));
-     *       => ('i''m a string', 28, NULL, FALSE)
-     * 
-     */
-    private static function vector_to_sql_tuple($ar) {
-        $tmp="";
-        for($i=0,$il=count($ar);$i<$il;$i++) {
-            if ($ar[$i]===NULL) $tmp.="NULL";
-            else if (is_bool($ar[$i])) $tmp.=($ar[$i] ? "TRUE" : "FALSE");
-            else $tmp.= "'".addslashes($ar[$i])."'";
-
-            if ($i+1!==$il) $tmp.=", ";
-        }
-        return "( ".$tmp." )";
-    }
-
-    /*
-     * Convert an associative array in a series of "columnName = value" expressions
-     *  as valid SQL.
-     * The expressions are separeted using the parameter $sep, defaults to ","
-     *
-     * e.g.
-     *   echo assoc_to_sql_assignments(array("city address"=>"main street","married"=>false));
-     *   => `city address` = 'main street' , `married` = FALSE
-     *
-     *   echo assoc_to_sql_assignments(array("city address"=>"main street","married"=>false),"AND"); // <-- notice the AND
-     *   => `city address` = 'main street' AND `married` = FALSE
-     */
-    private static function assoc_to_sql_assignments($ar,$sep=",") {
-        $tmp="";
-        $i=0;
-        $il=count($ar);
-        foreach($ar as $key=>$value) {
-
-            if ($value===NULL) $value="NULL";
-            else if (is_bool($value)) $value=($value ? "TRUE" : "FALSE");
-            else $value= "'".addslashes($value)."'";
-
-            $tmp.=sprintf(" `%s` = %s ",str_replace("`","``",$key),$value);
-
-            if ($i+1!==$il) $tmp.=$sep;
-            $i++;
-        }
-        return $tmp;
     }
 
     /*
@@ -663,7 +687,7 @@ class Baobab  {
 
         $query="".
          " UPDATE Baobab_$this->tree_name".
-         " SET ".( Baobab::assoc_to_sql_assignments($attrs) ).
+         " SET ".( sp_SQLUtil::array_to_sql_assignments($attrs) ).
          " WHERE id = @new_id";
         
         $result = $this->conn->query($query,MYSQLI_STORE_RESULT);
@@ -853,15 +877,17 @@ class Baobab  {
      *    :return: id of the root, or NULL if empty
      *    :rtype:  int or NULL
      *    
-     *    Associative array format is something like::
+     *    Associative array format is something like
+     *
+     *    .. code-block:: php
      *    
-     *    array(
-     *      "fields" => array("id","lft", "rgt"),
-     *      "values" => array(
-     *          array(1,1,4),
-     *          array(2,2,3)
-     *      )
-     *    )
+     *       array(
+     *         "fields" => array("id","lft", "rgt"),
+     *         "values" => array(
+     *             array(1,1,4),
+     *             array(2,2,3)
+     *         )
+     *       )
      *    
      *    .. note::
      *      If "id" in used and not NULL, there must not be any record on the
@@ -890,7 +916,7 @@ class Baobab  {
         
         $result=$this->conn->query(
                 "INSERT INTO Baobab_{$this->tree_name}(".join(",",$data["fields"]).") VALUES ".
-                join(", ",array_map("Baobab::vector_to_sql_tuple",$data["values"]))
+                join(", ",array_map("sp_SQLUtil::vector_to_sql_tuple",$data["values"]))
             ,MYSQLI_STORE_RESULT);
         if (!$result)  throw new sp_MySQL_Error($this->conn);
         
