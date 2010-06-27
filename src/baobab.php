@@ -45,7 +45,7 @@ class BaobabNode {
     public $parentId;
     public $children;
 
-    function __construct($id,$lft,$rgt,$parentId,$attrs=NULL) {
+    public function __construct($id,$lft,$rgt,$parentId,$attrs=NULL) {
         $this->id=$id;
         $this->lft=$lft;
         $this->rgt=$rgt;
@@ -55,12 +55,12 @@ class BaobabNode {
         $this->children=array();
     }
 
-    function add_child($child) {
+    public function add_child($child) {
         array_push($this->children,$child);
     }
     
-    function __toString($indent="",$deep=True) {
-        $out.=$indent."node ($this->id) [$this->lft,$this->rgt]";
+    public function __toString($indent="",$deep=True) {
+        $out.=$indent."($this->id) [$this->lft,$this->rgt]";
         if (!$deep) return $out;
         foreach($this->children as $child) $out.="\n".$child->__toString($indent."    ");
         return $out;
@@ -838,12 +838,29 @@ class Baobab  {
         if (is_string($data)) $data=json_decode($data,true);
         if (!$data) return;
         
+        // retrieve the column names
+
+        $result=$this->conn->query("SHOW COLUMNS FROM Baobab_GENERIC;",MYSQLI_STORE_RESULT);
+        if (!$result)  throw new sp_MySQL_Error($this->conn);
+        
+        $real_cols=array();
+        while($row = $result->fetch_array(MYSQLI_ASSOC)) {
+            $real_cols[$row["Field"]]=TRUE;
+        }
+        $result->close();
+        
+        // check that the requested columns exist
+        foreach($data["columns"] as $colName) {
+            if (!isset($real_cols[$colName])) throw new sp_Error("`{$colName}` wrong field name for table Baobab_{$this->tree_name}");
+        }
+        
+        
         $result=$this->conn->query(
-                "INSERT INTO Baobab_$this->tree_name VALUES ".
+                "INSERT INTO Baobab_{$this->tree_name}(".join(",",$data["columns"]).") VALUES ".
                 join(", ",array_map("Baobab::vector_to_sql_tuple",$data["values"]))
             ,MYSQLI_STORE_RESULT);
         if (!$result)  throw new sp_MySQL_Error($this->conn);
-
+        
     }
 
 
