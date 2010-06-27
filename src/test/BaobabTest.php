@@ -200,6 +200,44 @@ HER
         $treeState=json_decode($this->baobab->export(),TRUE);
         $this->assertEquals($whatToTest["to"],$treeState["values"]);
     }
+    
+    function _insertChildAtIndexPositive_provider(){
+        require_once(dirname(__FILE__).DS."data".DS."insertChildAtIndexPositive.php");
+        $ar_out=array();
+        foreach($data["insertChildAtIndex"] as $data) {
+            $ar_out[]=array($data);
+        }
+        return $ar_out;
+    }
+    
+    /**
+     * @dataProvider _insertChildAtIndexPositive_provider
+     */
+    function testInsertChildAtIndexPositive($whatToTest){
+        $this->baobab->import(array("fields"=>array("id","lft","rgt"),"values"=>$whatToTest["from"]));
+        call_user_func_array(array($this->baobab,"insertChildAtIndex"),$whatToTest["params"]);
+        $treeState=json_decode($this->baobab->export(),TRUE);
+        $this->assertEquals($whatToTest["to"],$treeState["values"]);
+    }
+    
+    function _insertChildAtIndexNegative_provider(){
+        require_once(dirname(__FILE__).DS."data".DS."insertChildAtIndexNegative.php");
+        $ar_out=array();
+        foreach($data["insertChildAtIndex"] as $data) {
+            $ar_out[]=array($data);
+        }
+        return $ar_out;
+    }
+    
+    /**
+     * @dataProvider _insertChildAtIndexNegative_provider
+     */
+    function testInsertChildAtIndexNegative($whatToTest){
+        $this->baobab->import(array("fields"=>array("id","lft","rgt"),"values"=>$whatToTest["from"]));
+        call_user_func_array(array($this->baobab,"insertChildAtIndex"),$whatToTest["params"]);
+        $treeState=json_decode($this->baobab->export(),TRUE);
+        $this->assertEquals($whatToTest["to"],$treeState["values"]);
+    }
 }
 
 ?>

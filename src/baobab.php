@@ -802,11 +802,30 @@ class Baobab  {
         return $new_id;
     }
 
+    /**!
+     * .. method:: insertChildAtIndex($id_parent,$index)
+     *
+     *    Create a new node and insert it as the nth child of the parent node
+     *      chosen
+     *
+     *    :param $id_parent: id of a node in the tree
+     *    :type $id_parent:  int
+     *    :param $index: new child position between his siblings (0 is first).
+     *                   Negative indexes are allowed.
+     *    :type $index:  int
+     *
+     *    :return: id of the new node
+     *    :rtype:  int
+     *
+     *    .. note::
+     *       Using -1 will cause the node to be inserted before the last sibling
+     * 
+     */
     function insertChildAtIndex($id_parent,$index) {
         $this->check_id($id_parent);
 
         if (!$this->conn->multi_query("
-                CALL Baobab_InsertChildAtIndex_$this->tree_name($id_parent,$index,@new_id);
+                CALL Baobab_InsertChildAtIndex_{$this->tree_name}({$id_parent},{$index},@new_id);
                 SELECT @new_id as id"))
             throw new sp_MySQL_Error($this->conn);
 
