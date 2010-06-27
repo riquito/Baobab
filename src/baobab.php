@@ -30,11 +30,28 @@ class sp_MySQL_Error extends sp_Error {
    }
 }
 
-/*
- * Static representation of a baobab node.
+/**!
+ * ..class:: BaobabNode($id,$lft,$rgt,$parentId,$attrs=NULL)
+ * 
+ *     Node of a Baobab tree
  *
- * The add_child method doesn't affect the database, it's meant only
- *   for tree construction and his use should be avoided
+ *     :param $id: the node id
+ *     :type $id: int
+ *     :param $lft: the node left bound
+ *     :type $lft: int
+ *     :param $rgt: the node right bound
+ *     :type $rgt: int
+ *     :param $parentId: the parent's node id, if any
+ *     :type $parentId: int or NULL
+ *     :param $attrs: additional fields of the node, as fieldName=>value
+ *     :type $attrs: array or NULL
+ *
+ *     ..note: this class doesn't involve database interaction, its purposes is
+ *         just to have a runtime representation of a Baobab tree
+ *
+ *     ..note: this class doesn't has any kind of data control, so it expects
+ *         that the data used makes sense in a Baobab tree
+ * 
  */
 class BaobabNode {
     public $id;
@@ -54,9 +71,18 @@ class BaobabNode {
         
         $this->children=array();
     }
-
+    
+    /**!
+     * ..method:: add_child($child)
+     *
+     *     Add a child to the node
+     *
+     *     :param $child: append a node to the list of this node children
+     *     :type $child: :class:`BaobabNode`
+     *
+     **/
     public function add_child($child) {
-        array_push($this->children,$child);
+        $this->children[]=$child;
     }
     
     public function __toString($indent="",$deep=True) {
@@ -775,71 +801,78 @@ class Baobab  {
     }
 
 
-    /*
+    /**!
      * .. method:: export()
      *    
      *    Create a JSON dump of the tree
-     *
+     *    
      *    :return: a dump of the tree in JSON format
      *    :rtype:  string
      * 
      */
     function export() {
 
-        $ar_out=array("columns"=>array(),"values"=>array());
-
-        // retrieve the column names
-
-        $result=$this->conn->query("SHOW COLUMNS FROM Baobab_GENERIC;",MYSQLI_STORE_RESULT);
-        if (!$result)  throw new sp_MySQL_Error($this->conn);
-
-        while($row = $result->fetch_array(MYSQLI_ASSOC)) {
-            array_push($ar_out["columns"],$row["Field"]);
-        }
-        $result->close();
-
+        $ar_out=array("fields"=>array(),"values"=>array());
+        
         // retrieve the data
-
         $result=$this->conn->query("SELECT * FROM Baobab_$this->tree_name ORDER BY lft ASC",MYSQLI_STORE_RESULT);
         if (!$result)  throw new sp_MySQL_Error($this->conn);
         
-        while($row = $result->fetch_array(MYSQLI_NUM)) {
-            array_push($ar_out["values"],$row);
+        // retrieve the column names
+        $fieldFlags=array();
+        while ($finfo = mysqli_fetch_field($result)) {
+            $ar_out["fields"][]=$finfo->name;
+            $fieldFlags[]=$finfo->flags;
         }
+        
+        // fill the value array
+        while($row = $result->fetch_array(MYSQLI_NUM)) {
+            $i=0;
+            $tmp_ar=array();
+            foreach($row as $fieldValue) {
+                if ($fieldFlags[$i]&MYSQLI_NUM_FLAG!=0) $fieldValue=floatval($fieldValue);
+                $tmp_ar[]=$fieldValue;
+                $i++;
+            }
+            $ar_out["values"][]=$tmp_ar;
+        }
+        
         $result->close();
         
-        return strtolower(json_encode($ar_out));
+        return json_encode($ar_out);
     }
 
-    /*
+    /**!
      * .. method:: import($data)
      *    
      *    Load data previously exported via the export method.
-     *
+     *    
      *    :param $data: data to import, a json string or his decoded equivalent
      *    :type $data: string(json) or array
      *    
      *    :return: id of the root, or NULL if empty
      *    :rtype:  int or NULL
-     *
-     *    Associative array format is ::
-     *
+     *    
+     *    Associative array format is something like::
+     *    
      *    array(
-     *      "columns" => array("column1","column2", ... ),
+     *      "fields" => array("id","lft", "rgt"),
      *      "values" => array(
-     *          array("value1","value2","value3", ... ),
-     *          array("value1","value2","value3", ... ),
-     *          ...
+     *          array(1,1,4),
+     *          array(2,2,3)
      *      )
      *    )
-     *
+     *    
+     *    .. note::
+     *      If "id" in used and not NULL, there must not be any record on the
+     *        table with that same value.
      */
     function import($data){
         if (is_string($data)) $data=json_decode($data,true);
-        if (!$data) return;
+        if (!$data || empty($data["values"])) return;
         
         // retrieve the column names
-
+        
         $result=$this->conn->query("SHOW COLUMNS FROM Baobab_GENERIC;",MYSQLI_STORE_RESULT);
         if (!$result)  throw new sp_MySQL_Error($this->conn);
         
@@ -849,14 +882,14 @@ class Baobab  {
         }
         $result->close();
         
-        // check that the requested columns exist
-        foreach($data["columns"] as $colName) {
-            if (!isset($real_cols[$colName])) throw new sp_Error("`{$colName}` wrong field name for table Baobab_{$this->tree_name}");
+        // check that the requested fields exist
+        foreach($data["fields"] as $fieldName) {
+            if (!isset($real_cols[$fieldName])) throw new sp_Error("`{$fieldName}` wrong field name for table Baobab_{$this->tree_name}");
         }
         
         
         $result=$this->conn->query(
-                "INSERT INTO Baobab_{$this->tree_name}(".join(",",$data["columns"]).") VALUES ".
+                "INSERT INTO Baobab_{$this->tree_name}(".join(",",$data["fields"]).") VALUES ".
                 join(", ",array_map("Baobab::vector_to_sql_tuple",$data["values"]))
             ,MYSQLI_STORE_RESULT);
         if (!$result)  throw new sp_MySQL_Error($this->conn);
