@@ -16,17 +16,21 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */ 
+ */
+
+if (!defined("DS")) define("DS",DIRECTORY_SEPARATOR);
 
 require_once('PHPUnit/Framework.php');
-require_once('../baobab.php');
- 
+require_once(dirname(__FILE__).DS.'../baobab.php');
+
+
+
 class BaobabTest extends PHPUnit_Framework_TestCase {
     protected static $db;
     protected $baobab;
     
     public static function setUpBeforeClass() {
-        require_once(dirname(__FILE__).DIRECTORY_SEPARATOR."conf_database.php");
+        require_once(dirname(__FILE__).DS."conf_database.php");
         if (!isset($DB_CONFIG)) self::fail("Missing or misconfigured conf_database.php");
         
         self::$db=@mysqli_connect(
@@ -52,6 +56,10 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         $this->baobab->build();
     }
     
+    public function tearDown(){
+        //$baobab->destroy();
+    }
+    
     public function testAppendChildAsRootInEmptyTree(){
         $root_id=$this->baobab->appendChild();
         $this->assertEquals(1,$root_id);
@@ -70,11 +78,68 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals(1,$this->baobab->get_root());
     }
     
-    public function tearDown(){
-        //$baobab->destroy();
+    public function testImport(){
+        
+        $this->baobab->import(array(
+            "fields"=>array("id","lft","rgt"),
+            "values"=>array()
+        ));
+        
+        $this->assertEquals(NULL,$this->baobab->get_tree());
+        
+        
+        $this->baobab->import(array(
+            "fields"=>array("id","lft","rgt"),
+            "values"=>array(
+                array(1,1,8),
+                array(2,2,3),
+                array(3,4,5),
+                array(4,6,7)
+            )
+        ));
+        
+        $this->assertEquals(<<<HER
+(1) [1,8]
+    (2) [2,3]
+    (3) [4,5]
+    (4) [6,7]
+HER
+,(string)$this->baobab->get_tree());
+        
     }
     
+    public function testExport(){
+        $data=array(
+            "fields"=>array("id","lft","rgt"),
+            "values"=>array(
+                array(1,1,8),
+                array(2,2,3),
+                array(3,4,5),
+                array(4,6,7)
+            )
+        );
+        $this->baobab->import($data);
+        $this->assertEquals(json_encode($data),$this->baobab->export());
+    }
     
+    function _appendChild_provider(){
+        require_once(dirname(__FILE__).DS."data".DS."appendchild.php");
+        $ar_out=array();
+        foreach($data["appendChild"] as $data) {
+            $ar_out[]=array($data);
+        }
+        return $ar_out;
+    }
+    
+    /**
+     * @dataProvider _appendChild_provider
+     */
+    function testAppendChild($whatToTest){
+        $this->baobab->import(array("fields"=>array("id","lft","rgt"),"values"=>$whatToTest["from"]));
+        call_user_func_array(array($this->baobab,"appendChild"),$whatToTest["params"]);
+        $treeState=json_decode($this->baobab->export(),TRUE);
+        $this->assertEquals($whatToTest["to"],$treeState["values"]);
+    }
 }
 
 ?>
