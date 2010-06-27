@@ -62,7 +62,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     
     public function testAppendChildAsRootInEmptyTree(){
         $root_id=$this->baobab->appendChild();
-        $this->assertEquals(1,$root_id);
+        $this->assertTrue(1===$root_id);
     }
     
     public function testEmptyRoot(){
@@ -75,7 +75,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
      */
     public function testRoot(){
         $this->baobab->appendChild();
-        $this->assertEquals(1,$this->baobab->get_root());
+        $this->assertTrue(1===$this->baobab->get_root());
     }
     
     public function testImport(){
@@ -123,7 +123,7 @@ HER
     }
     
     function _appendChild_provider(){
-        require_once(dirname(__FILE__).DS."data".DS."appendchild.php");
+        require_once(dirname(__FILE__).DS."data".DS."appendChild.php");
         $ar_out=array();
         foreach($data["appendChild"] as $data) {
             $ar_out[]=array($data);
@@ -140,6 +140,18 @@ HER
         $treeState=json_decode($this->baobab->export(),TRUE);
         $this->assertEquals($whatToTest["to"],$treeState["values"]);
     }
+    
+    function testInsertNodeAfterRoot(){
+        $root_id=$this->baobab->appendChild();
+        
+        try {
+            $this->baobab->insertNodeAfter($root_id);
+        } catch (sp_Error $e) {
+            return;
+        }
+        $this->fail("was expecting an sp_Error Exception to be raised");
+    }
+    
 }
 
 ?>

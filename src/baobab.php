@@ -301,7 +301,7 @@ class Baobab  {
             }
 
             $row = $result->fetch_row();
-            $out=$row[0];
+            $out=intval($row[0]);
             $result->close();
 
         } else throw new sp_MySQL_Error($this->conn);
@@ -703,6 +703,7 @@ class Baobab  {
      *    :type $id_parent: int or NULL
      *    :param $attrs: array fields=>values to assign to the new node
      *    :type $attrs: array or NULL
+     *    
      *    :return: id of the root, or NULL if empty
      *    :rtype:  int or NULL
      *
@@ -720,7 +721,7 @@ class Baobab  {
         // reach the last result and read it
         while($this->conn->more_results()) $this->conn->next_result();
         $result = $this->conn->use_result();
-        $new_id=array_pop($result->fetch_row());
+        $new_id=intval(array_pop($result->fetch_row()));
         $result->close();
 
         //update the node if needed
@@ -733,16 +734,16 @@ class Baobab  {
         $this->check_id($id_sibling);
 
         if (!$this->conn->multi_query("
-                CALL Baobab_InsertNodeAfter_$this->tree_name($id_sibling,@new_id);
+                CALL Baobab_InsertNodeAfter_{$this->tree_name}({$id_sibling},@new_id);
                 SELECT @new_id as id"))
                 throw new sp_MySQL_Error($this->conn);
 
         $this->conn->next_result();
         $result = $this->conn->use_result();
-        $new_id=array_pop($result->fetch_row());
+        $new_id=intval(array_pop($result->fetch_row()));
         $result->close();
         
-        if ($new_id===0) return new sp_Error("Can't add to root");
+        if ($new_id===0) throw new sp_Error("Can't add to root");
 
         //update the node if needed
         if ($attrs!==NULL) $this->updateNode($new_id,$attrs,TRUE);
@@ -760,10 +761,10 @@ class Baobab  {
 
         $this->conn->next_result();
         $result = $this->conn->use_result();
-        $new_id=array_pop($result->fetch_row());
+        $new_id=intval(array_pop($result->fetch_row()));
         $result->close();
         
-        if ($new_id===0) return new sp_Error("Can't add to root");
+        if ($new_id===0) throw new sp_Error("Can't add to root");
 
         //update the node if needed
         if ($attrs!==NULL) $this->updateNode($new_id,$attrs,TRUE);
@@ -781,7 +782,7 @@ class Baobab  {
 
         $this->conn->next_result();
         $result = $this->conn->use_result();
-        $new_id=array_pop($result->fetch_row());
+        $new_id=intval(array_pop($result->fetch_row()));
         $result->close();
 
         if ($new_id===0) throw new sp_Error("Index out of range (parent[$id_parent],index[$index])");
