@@ -23,7 +23,7 @@ class sp_Error extends Exception { }
 
 class sp_MySQL_Error extends sp_Error {
 
-    function __construct($db,$err_str=NULL,$err_code=NULL) {
+    public function __construct($db,$err_str=NULL,$err_code=NULL) {
         if (!$err_str) $err_str=$db->error;
         if (!$err_code) $err_code=$db->errno;
         parent::__construct($err_str,$err_code);
@@ -55,7 +55,7 @@ class sp_SQLUtil {
      *       ( 'i\'m a string','28',NULL,FALSE )
      * 
      */
-    static function vector_to_sql_tuple($ar) {
+    public static function vector_to_sql_tuple($ar) {
         $tmp=array();
         foreach($ar as $value) {
             if ($value===NULL) $tmp[]="NULL";
@@ -89,7 +89,7 @@ class sp_SQLUtil {
      *       php> echo sp_SQLUtil::array_to_sql_assignments($myArray,"AND");
      *        `city address` = 'main street' AND `married` = FALSE 
      */
-    static function array_to_sql_assignments($ar,$sep=",") {
+    public static function array_to_sql_assignments($ar,$sep=",") {
         $tmp=array();
         foreach($ar as $key=>$value) {
             if ($value===NULL) $value="NULL";
@@ -316,7 +316,7 @@ class Baobab  {
      *      reset the index conter.
      *
      */
-    function clean() {
+    public function clean() {
         if (!$this->conn->query("TRUNCATE TABLE Baobab_$this->tree_name")) {
             return sp_MySQL_Error($this->conn);
         }
@@ -332,7 +332,7 @@ class Baobab  {
      *    :rtype:  int or NULL
      *
      */
-    function get_root(){
+    public function get_root(){
 
         $query="
           SELECT id AS root
@@ -365,7 +365,7 @@ class Baobab  {
      * If $id_node is NULL (default) the nodes are counted starting
      *   from the root of the tree
      */
-    function get_tree_size($id_node=NULL) {
+    public function get_tree_size($id_node=NULL) {
         if ($id_node!==NULL) $this->_check_id($id_node);
 
         $query="
@@ -386,7 +386,7 @@ class Baobab  {
 
     }
 
-    function get_descendants($id_node=NULL) {
+    public function get_descendants($id_node=NULL) {
 
         if ($id_node===NULL) {
             // we search for descendants of root
@@ -415,7 +415,7 @@ class Baobab  {
 
     }
 
-    function get_leaves($id_node=NULL){
+    public function get_leaves($id_node=NULL){
         if ($id_node!==NULL) $this->_check_id($id_node);
 
         $query="
@@ -444,7 +444,7 @@ class Baobab  {
         return $ar_out;
     }
     
-    function get_levels(){
+    public function get_levels(){
     
         $query="
           SELECT T2.id as id, (COUNT(T1.id) - 1) AS level
@@ -470,7 +470,7 @@ class Baobab  {
     /*
      *
      */
-    function get_path($id_node,$attrName="id"){
+    public function get_path($id_node,$attrName="id"){
         $this->_check_id($id_node);
 
         $query="".
@@ -491,7 +491,7 @@ class Baobab  {
         return $ar_out;
     }
 
-    function get_children($id_node) {
+    public function get_children($id_node) {
         $this->_check_id($id_node);
 
         $query="SELECT child FROM Baobab_AdjTree_$this->tree_name WHERE parent = $id_node";
@@ -508,7 +508,7 @@ class Baobab  {
         return $ar_out;
     }
 
-    function get_first_child($id_node) {
+    public function get_first_child($id_node) {
         $this->_check_id($id_node);
         
         $query="
@@ -525,7 +525,7 @@ class Baobab  {
         return $out;
     }
     
-    function get_last_child($id_node) {
+    public function get_last_child($id_node) {
         $this->_check_id($id_node);
 
         $query="
@@ -543,7 +543,7 @@ class Baobab  {
     }
 
     // O(n)
-    function get_tree($className="BaobabNode") {
+    public function get_tree($className="BaobabNode") {
 
         // this is a specialized versione of the query found in get_level()
 
@@ -642,7 +642,7 @@ class Baobab  {
     /* Delete $id_node and all of his children
      * If $update_numbering is true (default), keep the Modified Preorder Tree consistent closing gaps
      */
-    function delete_subtree($id_node,$update_numbering=True) {
+    public function delete_subtree($id_node,$update_numbering=True) {
         $this->_check_id($id_node);
         
         if ($update_numbering) {
@@ -660,7 +660,7 @@ class Baobab  {
         }
     }
 
-    function update_numbering() {
+    public function update_numbering() {
 
         $query="
           UPDATE Baobab_$this->tree_name
@@ -695,7 +695,7 @@ class Baobab  {
      * If $id_node is NULL use tree root to start calculating the height
      * 
      */
-    function get_tree_height($id_node=NULL){
+    public function get_tree_height($id_node=NULL){
         if ($id_node!==NULL) $this->_check_id($id_node);
 
         $query="
@@ -728,7 +728,7 @@ class Baobab  {
      *      $this->enableIdCheck($tmpValue);
      *
      */
-    function updateNode($id_node,$attrs,$disableCheck=False){
+    public function updateNode($id_node,$attrs,$disableCheck=False){
         if (!$disableCheck) $this->_check_id($id_node);
 
         if (!$attrs) throw new sp_Error("\$attrs must be a non empty array");
@@ -756,7 +756,7 @@ class Baobab  {
      *    :rtype:  int or NULL
      *
      */
-    function appendChild($id_parent=NULL,$attrs=NULL){
+    public function appendChild($id_parent=NULL,$attrs=NULL){
 
         if ($id_parent===NULL) $id_parent=0;
         else $this->_check_id($id_parent);
@@ -793,7 +793,7 @@ class Baobab  {
      *    :rtype:  int
      * 
      */
-    function insertNodeAfter($id_sibling,$attrs=NULL) {
+    public function insertNodeAfter($id_sibling,$attrs=NULL) {
         $this->_check_id($id_sibling);
 
         if (!$this->conn->multi_query("
@@ -829,7 +829,7 @@ class Baobab  {
      *    :rtype:  int
      * 
      */
-    function insertNodeBefore($id_sibling,$attrs=NULL) {
+    public function insertNodeBefore($id_sibling,$attrs=NULL) {
         $this->_check_id($id_sibling);
 
         if (!$this->conn->multi_query("
@@ -869,7 +869,7 @@ class Baobab  {
      *       Using -1 will cause the node to be inserted before the last sibling
      * 
      */
-    function insertChildAtIndex($id_parent,$index) {
+    public function insertChildAtIndex($id_parent,$index) {
         $this->_check_id($id_parent);
 
         if (!$this->conn->multi_query("
@@ -887,7 +887,7 @@ class Baobab  {
         return $new_id;
     }
     
-    function moveSubTreeAfter($id_to_move,$reference_node) {
+    public function moveSubTreeAfter($id_to_move,$reference_node) {
         $this->_check_id($id_to_move);
         $this->_check_id($reference_node);
 
@@ -896,7 +896,7 @@ class Baobab  {
             throw new sp_MySQL_Error($this->conn);
     }
 
-    function moveSubTreeBefore($id_to_move,$reference_node) {
+    public function moveSubTreeBefore($id_to_move,$reference_node) {
         $this->_check_id($id_to_move);
         $this->_check_id($reference_node);
 
@@ -905,7 +905,7 @@ class Baobab  {
             throw new sp_MySQL_Error($this->conn);
     }
 
-    function moveSubTreeAtIndex($id_to_move,$id_parent,$index) {
+    public function moveSubTreeAtIndex($id_to_move,$id_parent,$index) {
         $this->_check_id($id_to_move);
         $this->_check_id($id_parent);
         
@@ -932,7 +932,7 @@ class Baobab  {
      *    :rtype:  string
      * 
      */
-    function export() {
+    public function export() {
 
         $ar_out=array("fields"=>array(),"values"=>array());
         
@@ -991,7 +991,7 @@ class Baobab  {
      *      If "id" in used and not NULL, there must not be any record on the
      *        table with that same value.
      */
-    function import($data){
+    public function import($data){
         if (is_string($data)) $data=json_decode($data,true);
         if (!$data || empty($data["values"])) return;
         
