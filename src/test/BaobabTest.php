@@ -258,6 +258,46 @@ HER
             $this->fail("was expecting an sp_Error Exception to be raised");
         } catch (sp_Error $e) {}
     }
+    
+    // require import to be yet tested
+    function _fillGenericTree(){
+        $this->baobab->import(array(
+            "fields"=>array("id","lft","rgt"),
+            "values"=>array(
+                array(5,1,14),
+                    array(3,2,7),
+                        array(4,3,4),
+                        array(6,5,6),
+                    array(1,8,13),
+                        array(2,9,10),
+                        array(7,11,12)
+            )
+        ));
+    }
+    
+    function testGetTreeSize(){
+        $this->_fillGenericTree();
+        
+        $this->assertTrue(7===$this->baobab->get_tree_size());
+        $this->assertTrue(3===$this->baobab->get_tree_size(1));
+        $this->assertTrue(0===$this->baobab->get_tree_size(-1));
+    }
+    
+    function testGetDescendants(){
+        $this->_fillGenericTree();
+        
+        $this->assertEquals(array(1,2,3,4,6,7),$this->baobab->get_descendants());
+        $this->assertEquals(array(4,6),$this->baobab->get_descendants(3));
+        $this->assertEquals(array(),$this->baobab->get_descendants(-1));
+    }
+    
+    function testGetLeaves(){
+        $this->_fillGenericTree();
+        
+        $this->assertEquals(array(4,6,2,7),$this->baobab->get_leaves());
+        $this->assertEquals(array(4,6),$this->baobab->get_leaves(3));
+        $this->assertEquals(array(),$this->baobab->get_leaves(-1));
+    }
 }
 
 ?>

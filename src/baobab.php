@@ -358,26 +358,31 @@ class Baobab  {
     }
 
 
-    /*
-     * Return the number of nodes of the subtree starting at $id_node,
-     *  counting $id_node too.
-     *
-     * If $id_node is NULL (default) the nodes are counted starting
-     *   from the root of the tree
+    /**!
+     * .. method:: get_tree_size([$id_node=NULL])
+     *    
+     *    Retrieve the number of nodes of the subtree starting at $id_node (or
+     *      at tree root if $id_node is NULL).
+     *    
+     *    :param $id_node: id of the node to count from (or NULL to count from root)
+     *    :type $id_node:  int or NULL
+     *    
+     *    :return: the number of nodes in the selected subtree
+     *    :rtype:  int
      */
     public function get_tree_size($id_node=NULL) {
         if ($id_node!==NULL) $this->_check_id($id_node);
 
         $query="
           SELECT (rgt-lft+1) DIV 2
-          FROM Baobab_$this->tree_name
-          WHERE ". ($id_node!==NULL ? "id = ".addslashes($id_node) : "lft = 1");
+          FROM Baobab_{$this->tree_name}
+          WHERE ". ($id_node!==NULL ? "id = ".intval($id_node) : "lft = 1");
         
-        $out=NULL;
+        $out=0;
 
         if ($result = $this->db->query($query,MYSQLI_STORE_RESULT)) {
             $row = $result->fetch_row();
-            $out=$row[0];
+            $out=intval($row[0]);
             $result->close();
 
         } else throw new sp_MySQL_Error($this->db);
@@ -385,19 +390,35 @@ class Baobab  {
         return $out;
 
     }
-
+    
+    /**!
+     * .. method:: get_descendants([$id_node=NULL])
+     *    
+     *    Retrieve all the descendants of a node
+     *    
+     *    :param $id_node: id of the node whose descendants we're searching for,
+     *                       or NULL to start from the tree root.
+     *    :type $id_node:  int or NULL
+     *    
+     *    :return: the ids of node's descendants, in ascending order
+     *    :rtype:  array
+     *
+     **/
     public function get_descendants($id_node=NULL) {
 
         if ($id_node===NULL) {
             // we search for descendants of root
-            $query="SELECT id FROM Baobab_$this->tree_name WHERE lft <> 1";
+            $query="SELECT id FROM Baobab_{$this->tree_name} WHERE lft <> 1 ORDER BY id";
         } else {
             // we search for a node descendants
+            $id_node=intval($id_node);
+            
             $query="
               SELECT id
-              FROM Baobab_$this->tree_name
-              WHERE lft > (SELECT lft FROM Baobab_$this->tree_name WHERE id = $id_node)
-                AND rgt < (SELECT rgt FROM Baobab_$this->tree_name WHERE id = $id_node)
+              FROM Baobab_{$this->tree_name}
+              WHERE lft > (SELECT lft FROM Baobab_{$this->tree_name} WHERE id = {$id_node})
+                AND rgt < (SELECT rgt FROM Baobab_{$this->tree_name} WHERE id = {$id_node})
+              ORDER BY id
             ";
         }
         
@@ -405,7 +426,7 @@ class Baobab  {
 
         if ($result = $this->db->query($query,MYSQLI_STORE_RESULT)) {
             while($row = $result->fetch_row()) {
-                array_push($ar_out,$row[0]);
+                array_push($ar_out,intval($row[0]));
             }
             $result->close();
 
@@ -414,31 +435,45 @@ class Baobab  {
         return $ar_out;
 
     }
-
+    
+    /**!
+     * .. method:: get_leaves([$id_node=NULL])
+     *
+     *    Find the leaves of a subtree.
+     *    
+     *    :param $id_node: id of a node or NULL to start from the tree root
+     *    :type $id_node:  int or NULL
+     *
+     *    :return: the ids of the leaves, ordered from left to right
+     *    :rtype:  array
+     */
     public function get_leaves($id_node=NULL){
         if ($id_node!==NULL) $this->_check_id($id_node);
-
+        
         $query="
           SELECT id AS leaf
-          FROM Baobab_$this->tree_name
-          WHERE lft = (rgt - 1) ";
-
+          FROM Baobab_{$this->tree_name}
+          WHERE lft = (rgt - 1)";
+        
         if ($id_node!==NULL) {
             // check only leaves of a subtree adding a "where" condition
-
-            $query.=" AND lft > (SELECT lft FROM Baobab_$this->tree_name WHERE id = $id_node) ".
-                    " AND rgt < (SELECT rgt FROM Baobab_$this->tree_name WHERE id = $id_node) ";
+            
+            $id_node=intval($id_node);
+        
+            $query.=" AND lft > (SELECT lft FROM Baobab_{$this->tree_name} WHERE id = {$id_node}) ".
+                    " AND rgt < (SELECT rgt FROM Baobab_{$this->tree_name} WHERE id = {$id_node}) ";
         }
-
-
+        
+        $query.=" ORDER BY lft";
+        
         $ar_out=array();
-
+        
         if ($result = $this->db->query($query,MYSQLI_STORE_RESULT)) {
             while($row = $result->fetch_row()) {
-                array_push($ar_out,$row[0]);
+                array_push($ar_out,intval($row[0]));
             }
             $result->close();
-
+            
         } else throw new sp_MySQL_Error($this->db);
 
         return $ar_out;
