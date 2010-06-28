@@ -276,6 +276,9 @@ HER
     }
     
     function testGetTreeSize(){
+        // test empty tree
+        $this->assertTrue(0===$this->baobab->get_tree_size());
+        
         $this->_fillGenericTree();
         
         $this->assertTrue(7===$this->baobab->get_tree_size());
@@ -284,6 +287,9 @@ HER
     }
     
     function testGetDescendants(){
+        // test empty tree
+        $this->assertEquals(array(),$this->baobab->get_descendants());
+        
         $this->_fillGenericTree();
         
         $this->assertEquals(array(1,2,3,4,6,7),$this->baobab->get_descendants());
@@ -292,11 +298,37 @@ HER
     }
     
     function testGetLeaves(){
+        // test empty tree
+        $this->assertEquals(array(),$this->baobab->get_leaves());
+        
         $this->_fillGenericTree();
         
         $this->assertEquals(array(4,6,2,7),$this->baobab->get_leaves());
         $this->assertEquals(array(4,6),$this->baobab->get_leaves(3));
         $this->assertEquals(array(),$this->baobab->get_leaves(-1));
+    }
+    
+    function testGetLevels(){
+        // test empty tree
+        $this->assertEquals(array(),$this->baobab->get_levels());
+        
+        $this->_fillGenericTree();
+        
+        $res=$this->baobab->get_levels();
+        
+        $ordered_ar=array();
+        foreach($res as $item) $ordered_ar[$item["id"]]=$item;
+        ksort($ordered_ar);
+        
+        $this->assertEquals(array(
+            1=>array("id"=>1,"level"=>1),
+            2=>array("id"=>2,"level"=>2),
+            3=>array("id"=>3,"level"=>1),
+            4=>array("id"=>4,"level"=>2),
+            5=>array("id"=>5,"level"=>0),
+            6=>array("id"=>6,"level"=>2),
+            7=>array("id"=>7,"level"=>2)
+          ),$ordered_ar);
     }
 }
 

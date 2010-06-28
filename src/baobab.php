@@ -479,11 +479,25 @@ class Baobab  {
         return $ar_out;
     }
     
+    /**!
+     * .. method:: get_levels()
+     *
+     *    Find at what level of the tree each node is.
+     *    
+     *    :param $id_node: id of a node or NULL to start from the tree root
+     *    :type $id_node:  int or NULL
+     *
+     *    :return: associative arrays with id=>number,level=>number, unordered
+     *    :rtype:  array
+     *
+     *    .. note::
+     *       tree root is at level 0
+     */
     public function get_levels(){
     
         $query="
           SELECT T2.id as id, (COUNT(T1.id) - 1) AS level
-          FROM Baobab_$this->tree_name AS T1, Baobab_$this->tree_name AS T2
+          FROM Baobab_{$this->tree_name} AS T1, Baobab_{$this->tree_name} AS T2
           WHERE T2.lft BETWEEN T1.lft AND T1.rgt
           GROUP BY T2.lft
           ORDER BY T2.lft ASC;
@@ -493,7 +507,7 @@ class Baobab  {
 
         if ($result = $this->db->query($query,MYSQLI_STORE_RESULT)) {
             while($row = $result->fetch_assoc()) {
-                array_push($ar_out,array("id"=>$row["id"],"level"=>$row["level"]));
+                array_push($ar_out,array("id"=>intval($row["id"]),"level"=>intval($row["level"])));
             }
             $result->close();
 
