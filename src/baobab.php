@@ -172,20 +172,20 @@ class Baobab  {
     protected $tree_name;
     private $_must_check_ids=FALSE;
     
-    /**
-    * .. class:: Baobab($conn,$tree_name,$must_check_ids=FALSE)
-    *   
-    *   This class lets you create, populate search and destroy a tree stored
-    *   using the Nested Set Model described by Joe Celko's
-    *
-    *   :param $conn: mysqli database connection
-    *   :type $conn: an instance of mysqli_connect
-    *   :param $tree_name: suffix to append to the table, wich will result in
-    *                       Baobab_{$tree_name}
-    *   :type $tree_name: string
-    *   :param $must_check_ids: whether to constantly check the id consistency or not
-    *   :type $must_check_ids: boolean
-    */
+    /**!
+     * .. class:: Baobab($conn,$tree_name,$must_check_ids=FALSE)
+     *    
+     *    This class lets you create, populate search and destroy a tree stored
+     *    using the Nested Set Model described by Joe Celko's
+     *
+     *    :param $conn: mysqli database connection
+     *    :type $conn: an instance of mysqli_connect
+     *    :param $tree_name: suffix to append to the table, wich will result in
+     *                       Baobab_{$tree_name}
+     *    :type $tree_name: string
+     *    :param $must_check_ids: whether to constantly check the id consistency or not
+     *    :type $must_check_ids: boolean
+     */
     public function __construct($conn,$tree_name,$must_check_ids=FALSE) {
         $this->conn=$conn;
         $this->tree_name=$tree_name;
@@ -242,6 +242,18 @@ class Baobab  {
         return $this->_must_check_ids;
     }
     
+    /**!
+     * .. method:: build()
+     *
+     *    Apply the database schema.
+     *
+     *    .. warning::
+     *
+     *       Running this method on a database which has yet loaded the schema
+     *         for the same tree name will end up in errors. The table
+     *         Baobab_{tree_name} will remain intact thought.
+     *    
+     */
     public function build() {
 
         $sql=file_get_contents(dirname(__FILE__).DIRECTORY_SEPARATOR."schema_baobab.sql");
@@ -257,7 +269,19 @@ class Baobab  {
         }
         
     }
-
+    
+    /**!
+     * .. method:: destroy()
+     *
+     *    Remove every table, procedure or view that were created via
+     *      :class:`Baobab.build` for the current tree name
+     *
+     *    .. warning::
+     *
+     *       You're going to loose all the data in the table
+     *         Baobab_{tree_name} too.
+     *    
+     */
     public function destroy() {
         if (!$this->conn->multi_query("
                 DROP PROCEDURE IF EXISTS Baobab_getNthChild_$this->tree_name;
@@ -285,7 +309,7 @@ class Baobab  {
 
     }
     
-    /**
+    /**!
      * .. method:: clean()
      *    
      *    Delete all the record from the Baobab_{yoursuffix} table and
@@ -299,7 +323,7 @@ class Baobab  {
     }
 
 
-    /*
+    /**!
      * .. method:: get_root()
      *    
      *    Return the id of the first node of the tree.
@@ -718,7 +742,7 @@ class Baobab  {
         if (!$result) throw new sp_MySQL_Error($this->conn);
     }
     
-    /*
+    /**!
      * .. method:: appendChild([$id_parent,[$attrs]])
      *    
      *    Create and append a node as last child of a parent node.
