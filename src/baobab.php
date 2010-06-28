@@ -168,26 +168,26 @@ class BaobabNode {
 
 
 class Baobab  {
-    protected $conn;
+    protected $db;
     protected $tree_name;
     private $_must_check_ids=FALSE;
     
     /**!
-     * .. class:: Baobab($conn,$tree_name,$must_check_ids=FALSE)
+     * .. class:: Baobab($db,$tree_name,$must_check_ids=FALSE)
      *    
      *    This class lets you create, populate search and destroy a tree stored
      *    using the Nested Set Model described by Joe Celko's
      *
-     *    :param $conn: mysqli database connection
-     *    :type $conn: an instance of mysqli_connect
+     *    :param $db: mysqli database connection
+     *    :type $db:  an instance of mysqli_connect
      *    :param $tree_name: suffix to append to the table, wich will result in
      *                       Baobab_{$tree_name}
      *    :type $tree_name: string
      *    :param $must_check_ids: whether to constantly check the id consistency or not
      *    :type $must_check_ids: boolean
      */
-    public function __construct($conn,$tree_name,$must_check_ids=FALSE) {
-        $this->conn=$conn;
+    public function __construct($db,$tree_name,$must_check_ids=FALSE) {
+        $this->db=$db;
         $this->tree_name=$tree_name;
         $this->enableIdCheck($must_check_ids);
     }
@@ -206,7 +206,7 @@ class Baobab  {
         if (!$this->_must_check_ids) return;
 
         $id=intVal($id);
-        if ($id>0 && ($result = $this->conn->query("SELECT id FROM Baobab_{$this->tree_name} WHERE id = {$id}",MYSQLI_STORE_RESULT))) {
+        if ($id>0 && ($result = $this->db->query("SELECT id FROM Baobab_{$this->tree_name} WHERE id = {$id}",MYSQLI_STORE_RESULT))) {
             if ($result->num_rows) {
                 $result->close();
                 return;
@@ -258,14 +258,14 @@ class Baobab  {
 
         $sql=file_get_contents(dirname(__FILE__).DIRECTORY_SEPARATOR."schema_baobab.sql");
 
-        if (!$this->conn->multi_query(str_replace("GENERIC",$this->tree_name,$sql))) {
-            throw new sp_MySQL_Error($this->conn);
+        if (!$this->db->multi_query(str_replace("GENERIC",$this->tree_name,$sql))) {
+            throw new sp_MySQL_Error($this->db);
         }
 
-        while($this->conn->more_results()) {
-            $result = $this->conn->use_result();
+        while($this->db->more_results()) {
+            $result = $this->db->use_result();
             if ($result) $result->close();
-            $this->conn->next_result();
+            $this->db->next_result();
         }
         
     }
@@ -283,7 +283,7 @@ class Baobab  {
      *    
      */
     public function destroy() {
-        if (!$this->conn->multi_query("
+        if (!$this->db->multi_query("
                 DROP PROCEDURE IF EXISTS Baobab_getNthChild_$this->tree_name;
                 DROP PROCEDURE IF EXISTS Baobab_MoveSubtree_real_$this->tree_name;
                 DROP PROCEDURE IF EXISTS Baobab_MoveSubtreeAtIndex_$this->tree_name;
@@ -296,13 +296,13 @@ class Baobab  {
                 DROP PROCEDURE IF EXISTS Baobab_DropTree_$this->tree_name;
                 DROP VIEW IF EXISTS Baobab_AdjTree_$this->tree_name;
                 DROP TABLE IF EXISTS Baobab_$this->tree_name")) {
-            throw new sp_MySQL_Error($this->conn);
+            throw new sp_MySQL_Error($this->db);
         }
 
-        while($this->conn->more_results()) {
-            $result = $this->conn->use_result();
+        while($this->db->more_results()) {
+            $result = $this->db->use_result();
             if ($result) $result->close();
-            $this->conn->next_result();
+            $this->db->next_result();
         }
 
 
@@ -317,8 +317,8 @@ class Baobab  {
      *
      */
     public function clean() {
-        if (!$this->conn->query("TRUNCATE TABLE Baobab_$this->tree_name")) {
-            return sp_MySQL_Error($this->conn);
+        if (!$this->db->query("TRUNCATE TABLE Baobab_$this->tree_name")) {
+            return sp_MySQL_Error($this->db);
         }
     }
 
@@ -342,7 +342,7 @@ class Baobab  {
 
         $out=NULL;
 
-        if ($result=$this->conn->query($query,MYSQLI_STORE_RESULT)) {
+        if ($result=$this->db->query($query,MYSQLI_STORE_RESULT)) {
             if ($result->num_rows===0) {
                 $result->close();
                 return NULL;
@@ -352,7 +352,7 @@ class Baobab  {
             $out=intval($row[0]);
             $result->close();
 
-        } else throw new sp_MySQL_Error($this->conn);
+        } else throw new sp_MySQL_Error($this->db);
 
         return $out;
     }
@@ -375,12 +375,12 @@ class Baobab  {
         
         $out=NULL;
 
-        if ($result = $this->conn->query($query,MYSQLI_STORE_RESULT)) {
+        if ($result = $this->db->query($query,MYSQLI_STORE_RESULT)) {
             $row = $result->fetch_row();
             $out=$row[0];
             $result->close();
 
-        } else throw new sp_MySQL_Error($this->conn);
+        } else throw new sp_MySQL_Error($this->db);
 
         return $out;
 
@@ -403,13 +403,13 @@ class Baobab  {
         
         $ar_out=array();
 
-        if ($result = $this->conn->query($query,MYSQLI_STORE_RESULT)) {
+        if ($result = $this->db->query($query,MYSQLI_STORE_RESULT)) {
             while($row = $result->fetch_row()) {
                 array_push($ar_out,$row[0]);
             }
             $result->close();
 
-        } else throw new sp_MySQL_Error($this->conn);
+        } else throw new sp_MySQL_Error($this->db);
 
         return $ar_out;
 
@@ -433,13 +433,13 @@ class Baobab  {
 
         $ar_out=array();
 
-        if ($result = $this->conn->query($query,MYSQLI_STORE_RESULT)) {
+        if ($result = $this->db->query($query,MYSQLI_STORE_RESULT)) {
             while($row = $result->fetch_row()) {
                 array_push($ar_out,$row[0]);
             }
             $result->close();
 
-        } else throw new sp_MySQL_Error($this->conn);
+        } else throw new sp_MySQL_Error($this->db);
 
         return $ar_out;
     }
@@ -456,13 +456,13 @@ class Baobab  {
 
         $ar_out=array();
 
-        if ($result = $this->conn->query($query,MYSQLI_STORE_RESULT)) {
+        if ($result = $this->db->query($query,MYSQLI_STORE_RESULT)) {
             while($row = $result->fetch_assoc()) {
                 array_push($ar_out,array("id"=>$row["id"],"level"=>$row["level"]));
             }
             $result->close();
 
-        } else throw new sp_MySQL_Error($this->conn);
+        } else throw new sp_MySQL_Error($this->db);
 
         return $ar_out;
     }
@@ -479,8 +479,8 @@ class Baobab  {
         " WHERE ( SELECT lft FROM Baobab_$this->tree_name WHERE id = $id_node ) BETWEEN lft AND rgt".
         " ORDER BY lft";
 
-        $result = $this->conn->query($query,MYSQLI_STORE_RESULT);
-        if (!$result) throw new sp_MySQL_Error($this->conn);
+        $result = $this->db->query($query,MYSQLI_STORE_RESULT);
+        if (!$result) throw new sp_MySQL_Error($this->db);
 
         $ar_out=array();
         while($row = $result->fetch_row()) {
@@ -496,8 +496,8 @@ class Baobab  {
 
         $query="SELECT child FROM Baobab_AdjTree_$this->tree_name WHERE parent = $id_node";
 
-        $result = $this->conn->query($query,MYSQLI_STORE_RESULT);
-        if (!$result) throw new sp_MySQL_Error($this->conn);
+        $result = $this->db->query($query,MYSQLI_STORE_RESULT);
+        if (!$result) throw new sp_MySQL_Error($this->db);
 
         $ar_out=array();
         while($row = $result->fetch_row()) {
@@ -515,8 +515,8 @@ class Baobab  {
           SELECT child
           FROM Baobab_AdjTree_$this->tree_name
           WHERE parent = $id_node AND lft = (SELECT min(lft) FROM Baobab_AdjTree_$this->tree_name WHERE PARENT = $id_node )";
-        $result = $this->conn->query($query,MYSQLI_STORE_RESULT);
-        if (!$result) throw new sp_MySQL_Error($this->conn);
+        $result = $this->db->query($query,MYSQLI_STORE_RESULT);
+        if (!$result) throw new sp_MySQL_Error($this->db);
 
         $row = $result->fetch_row();
         $out=$row[0];
@@ -532,8 +532,8 @@ class Baobab  {
           SELECT child
           FROM Baobab_AdjTree_$this->tree_name
           WHERE parent = $id_node AND lft = (SELECT max(lft) FROM Baobab_AdjTree_$this->tree_name WHERE PARENT = $id_node )";
-        $result = $this->conn->query($query,MYSQLI_STORE_RESULT);
-        if (!$result) throw new sp_MySQL_Error($this->conn);
+        $result = $this->db->query($query,MYSQLI_STORE_RESULT);
+        if (!$result) throw new sp_MySQL_Error($this->db);
 
         $row = $result->fetch_row();
         $out=$row[0];
@@ -560,7 +560,7 @@ class Baobab  {
         $root=NULL;
         $parents=array();
 
-        if ($result = $this->conn->query($query,MYSQLI_STORE_RESULT)) {
+        if ($result = $this->db->query($query,MYSQLI_STORE_RESULT)) {
             while($row = $result->fetch_assoc()) {
 
 
@@ -600,7 +600,7 @@ class Baobab  {
             }
             $result->close();
 
-        } else throw new sp_MySQL_Error($this->conn);
+        } else throw new sp_MySQL_Error($this->db);
 
         return $root;
 
@@ -647,13 +647,13 @@ class Baobab  {
         
         if ($update_numbering) {
             
-            if (!$this->conn->multi_query("CALL Baobab_DropTree_$this->tree_name($id_node)"))
-                throw new sp_MySQL_Error($this->conn);
+            if (!$this->db->multi_query("CALL Baobab_DropTree_$this->tree_name($id_node)"))
+                throw new sp_MySQL_Error($this->db);
 
-            while($this->conn->more_results()) {
-                $result = $this->conn->use_result();
+            while($this->db->more_results()) {
+                $result = $this->db->use_result();
                 if ($result) $result->close();
-                $this->conn->next_result();
+                $this->db->next_result();
             }
         } else {
             throw new Error("unimplemented"); // XXX TODO Add or remove functionality
@@ -683,8 +683,8 @@ class Baobab  {
         
         ";
 
-        if(!$this->conn->query($query)) {
-            throw new sp_MySQL_Error($this->conn);
+        if(!$this->db->query($query)) {
+            throw new sp_MySQL_Error($this->db);
         }
         
 
@@ -708,8 +708,8 @@ class Baobab  {
         ".($id_node!==NULL ?
            "WHERE id = $id_node" : "");
         
-        $result = $this->conn->query($query,MYSQLI_STORE_RESULT);
-        if (!$result) throw new sp_MySQL_Error($this->conn);
+        $result = $this->db->query($query,MYSQLI_STORE_RESULT);
+        if (!$result) throw new sp_MySQL_Error($this->db);
 
         $row = $result->fetch_row();
         $out=$row[0];
@@ -738,8 +738,8 @@ class Baobab  {
          " SET ".( sp_SQLUtil::array_to_sql_assignments($attrs) ).
          " WHERE id = @new_id";
         
-        $result = $this->conn->query($query,MYSQLI_STORE_RESULT);
-        if (!$result) throw new sp_MySQL_Error($this->conn);
+        $result = $this->db->query($query,MYSQLI_STORE_RESULT);
+        if (!$result) throw new sp_MySQL_Error($this->db);
     }
     
     /**!
@@ -761,14 +761,14 @@ class Baobab  {
         if ($id_parent===NULL) $id_parent=0;
         else $this->_check_id($id_parent);
 
-        if (!$this->conn->multi_query("
+        if (!$this->db->multi_query("
                 CALL Baobab_AppendChild_$this->tree_name($id_parent,@new_id);
                 SELECT @new_id as id"))
-                throw new sp_MySQL_Error($this->conn);
+                throw new sp_MySQL_Error($this->db);
 
         // reach the last result and read it
-        while($this->conn->more_results()) $this->conn->next_result();
-        $result = $this->conn->use_result();
+        while($this->db->more_results()) $this->db->next_result();
+        $result = $this->db->use_result();
         $new_id=intval(array_pop($result->fetch_row()));
         $result->close();
 
@@ -796,13 +796,13 @@ class Baobab  {
     public function insertNodeAfter($id_sibling,$attrs=NULL) {
         $this->_check_id($id_sibling);
 
-        if (!$this->conn->multi_query("
+        if (!$this->db->multi_query("
                 CALL Baobab_InsertNodeAfter_{$this->tree_name}({$id_sibling},@new_id);
                 SELECT @new_id as id"))
-                throw new sp_MySQL_Error($this->conn);
+                throw new sp_MySQL_Error($this->db);
 
-        $this->conn->next_result();
-        $result = $this->conn->use_result();
+        $this->db->next_result();
+        $result = $this->db->use_result();
         $new_id=intval(array_pop($result->fetch_row()));
         $result->close();
         
@@ -832,13 +832,13 @@ class Baobab  {
     public function insertNodeBefore($id_sibling,$attrs=NULL) {
         $this->_check_id($id_sibling);
 
-        if (!$this->conn->multi_query("
+        if (!$this->db->multi_query("
                 CALL Baobab_InsertNodeBefore_{$this->tree_name}({$id_sibling},@new_id);
                 SELECT @new_id as id"))
-                throw new sp_MySQL_Error($this->conn);
+                throw new sp_MySQL_Error($this->db);
 
-        $this->conn->next_result();
-        $result = $this->conn->use_result();
+        $this->db->next_result();
+        $result = $this->db->use_result();
         $new_id=intval(array_pop($result->fetch_row()));
         $result->close();
         
@@ -872,13 +872,13 @@ class Baobab  {
     public function insertChildAtIndex($id_parent,$index) {
         $this->_check_id($id_parent);
 
-        if (!$this->conn->multi_query("
+        if (!$this->db->multi_query("
                 CALL Baobab_InsertChildAtIndex_{$this->tree_name}({$id_parent},{$index},@new_id);
                 SELECT @new_id as id"))
-            throw new sp_MySQL_Error($this->conn);
+            throw new sp_MySQL_Error($this->db);
 
-        $this->conn->next_result();
-        $result = $this->conn->use_result();
+        $this->db->next_result();
+        $result = $this->db->use_result();
         $new_id=intval(array_pop($result->fetch_row()));
         $result->close();
 
@@ -891,31 +891,31 @@ class Baobab  {
         $this->_check_id($id_to_move);
         $this->_check_id($reference_node);
 
-        if (!$this->conn->multi_query("
+        if (!$this->db->multi_query("
                 CALL Baobab_MoveSubtreeAfter_$this->tree_name($id_to_move,$reference_node)"))
-            throw new sp_MySQL_Error($this->conn);
+            throw new sp_MySQL_Error($this->db);
     }
 
     public function moveSubTreeBefore($id_to_move,$reference_node) {
         $this->_check_id($id_to_move);
         $this->_check_id($reference_node);
 
-        if (!$this->conn->multi_query("
+        if (!$this->db->multi_query("
                 CALL Baobab_MoveSubtreeBefore_$this->tree_name($id_to_move,$reference_node)"))
-            throw new sp_MySQL_Error($this->conn);
+            throw new sp_MySQL_Error($this->db);
     }
 
     public function moveSubTreeAtIndex($id_to_move,$id_parent,$index) {
         $this->_check_id($id_to_move);
         $this->_check_id($id_parent);
         
-        if (!$this->conn->multi_query("
+        if (!$this->db->multi_query("
                 CALL Baobab_MoveSubtreeAtIndex_$this->tree_name($id_to_move,$id_parent,$index,@error_code);
                 SELECT @error_code as error_id"))
-            throw new sp_MySQL_Error($this->conn);
+            throw new sp_MySQL_Error($this->db);
 
-        $this->conn->next_result();
-        $result = $this->conn->use_result();
+        $this->db->next_result();
+        $result = $this->db->use_result();
         $error_code=intVal(array_pop($result->fetch_row()));
         $result->close();
         
@@ -937,8 +937,8 @@ class Baobab  {
         $ar_out=array("fields"=>array(),"values"=>array());
         
         // retrieve the data
-        $result=$this->conn->query("SELECT * FROM Baobab_$this->tree_name ORDER BY lft ASC",MYSQLI_STORE_RESULT);
-        if (!$result)  throw new sp_MySQL_Error($this->conn);
+        $result=$this->db->query("SELECT * FROM Baobab_$this->tree_name ORDER BY lft ASC",MYSQLI_STORE_RESULT);
+        if (!$result)  throw new sp_MySQL_Error($this->db);
         
         // retrieve the column names
         $fieldFlags=array();
@@ -997,8 +997,8 @@ class Baobab  {
         
         // retrieve the column names
         
-        $result=$this->conn->query("SHOW COLUMNS FROM Baobab_GENERIC;",MYSQLI_STORE_RESULT);
-        if (!$result)  throw new sp_MySQL_Error($this->conn);
+        $result=$this->db->query("SHOW COLUMNS FROM Baobab_GENERIC;",MYSQLI_STORE_RESULT);
+        if (!$result)  throw new sp_MySQL_Error($this->db);
         
         $real_cols=array();
         while($row = $result->fetch_array(MYSQLI_ASSOC)) {
@@ -1012,11 +1012,11 @@ class Baobab  {
         }
         
         
-        $result=$this->conn->query(
+        $result=$this->db->query(
                 "INSERT INTO Baobab_{$this->tree_name}(".join(",",$data["fields"]).") VALUES ".
                 join(", ",array_map("sp_SQLUtil::vector_to_sql_tuple",$data["values"]))
             ,MYSQLI_STORE_RESULT);
-        if (!$result)  throw new sp_MySQL_Error($this->conn);
+        if (!$result)  throw new sp_MySQL_Error($this->db);
         
     }
 
@@ -1029,8 +1029,8 @@ class BaobabNamed extends Baobab {
     public function build() {
         parent::build();
 
-        $result = $this->conn->query("ALTER TABLE Baobab_$this->tree_name ADD COLUMN label TEXT DEFAULT '' NOT NULL",MYSQLI_STORE_RESULT);
-        if (!$result) throw new sp_MySQL_Error($this->conn);
+        $result = $this->db->query("ALTER TABLE Baobab_$this->tree_name ADD COLUMN label TEXT DEFAULT '' NOT NULL",MYSQLI_STORE_RESULT);
+        if (!$result) throw new sp_MySQL_Error($this->db);
     }
     
 
