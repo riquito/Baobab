@@ -330,6 +330,44 @@ HER
             7=>array("id"=>7,"level"=>2)
           ),$ordered_ar);
     }
+    
+    function testGetPath(){
+        // test empty tree
+        $this->assertEquals(array(),$this->baobab->get_path(-1));
+        
+        $this->_fillGenericTree();
+        
+        // test root
+        $this->assertEquals(array(array("id"=>5)),$this->baobab->get_path(5));
+        $this->assertEquals(array(5),$this->baobab->get_path(5,NULL,TRUE));
+        
+        // test generic node
+        $this->assertEquals(array(array("id"=>5),array("id"=>3),array("id"=>4)),$this->baobab->get_path(4));
+        $this->assertEquals(array(5,3,4),$this->baobab->get_path(4,NULL,TRUE));
+        $this->assertEquals(array(5,3,4),$this->baobab->get_path(4,array(),TRUE));
+        $this->assertEquals(array(5,3,4),$this->baobab->get_path(4,array("id"),TRUE));
+        
+        $this->assertEquals(array(
+                array("id"=>5,"lft"=>1),
+                array("id"=>3,"lft"=>2),
+                array("id"=>4,"lft"=>3)
+                ),
+                $this->baobab->get_path(4,"lft"));
+        
+        $this->assertEquals(array(
+                array("id"=>5,"lft"=>1),
+                array("id"=>3,"lft"=>2),
+                array("id"=>4,"lft"=>3)
+                ),
+                $this->baobab->get_path(4,array("lft")));
+        
+        $this->assertEquals(array(
+                array("id"=>5,"lft"=>1),
+                array("id"=>3,"lft"=>2),
+                array("id"=>4,"lft"=>3)
+                ),
+                $this->baobab->get_path(4,array("lft","id")));
+    }
 }
 
 ?>

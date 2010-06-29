@@ -516,25 +516,81 @@ class Baobab  {
         return $ar_out;
     }
 
-    /*
+    /**!
+     * .. method:: get_path($id_node[,$fields=NULL[,$squash=FALSE]])
+     *    
+     *    Find all the nodes between tree root and a node.
+     *    
+     *    :param $id_node: id of the node used to calculate the path to
+     *    :type $id_node:  int
+     *    :param $fields: if not NULL, a string with a Baobab tree field name or 
+     *                      an array of field names
+     *    :type $fields:  mixed
+     *    :param $squash: if TRUE the method will return an array with just the 
+     *                      values of the first field in $fields (if $fields is
+     *                      empty it will default to "id" )
+     *    :type $squash:  boolean
      *
+     *    :return: sequence of associative arrays mapping for each node
+     *               fieldName=>value, where field names are the one present
+     *               in $fields plus the field "id" (unless $squash was set),
+     *               ordered from root to $id_node
+     *    :rtype:  array
+     *
+     *    Example (considering a tree with two elements and a field 'name'):
+     *    .. code-block:: php
+     *       
+     *       php> $tree->get_path(2,"name")
+     *       array([0]=>array([id]=>1,[name]=>'rootName'),array([id]=>2,[name]=>'secondNodeName']))
+     *       php> join("/",$tree->get_path(2,array("name"),TRUE))
+     *       "rootName/secondNodeName"
+     * 
      */
-    public function get_path($id_node,$attrName="id"){
+    public function get_path($id_node,$fields=NULL,$squash=FALSE){
         $this->_check_id($id_node);
-
+        
+        $id_node=intval($id_node);
+        
+        if (empty($fields)) {
+            if ($squash) $fields=array("id");
+            else $fields=array(); // ensure it is not NULL
+        }
+        else if (is_string($fields)) $fields=array($fields);
+        
+        // append the field "id" if missing
+        if (FALSE===array_search("id",$fields)) $fields[]="id";
+        
+        $fields_escaped=array();
+        foreach($fields as $fieldName) {
+            // XXX at present $fields are not checked and SQL injections are possible
+            $fields_escaped[]=sprintf("`%s`", str_replace("`","``",$fieldName));
+        }
+        
         $query="".
-        " SELECT id".sprintf(", `%s`", str_replace("`","``",$attrName)).
-        " FROM Baobab_$this->tree_name".
-        " WHERE ( SELECT lft FROM Baobab_$this->tree_name WHERE id = $id_node ) BETWEEN lft AND rgt".
+        " SELECT ".join(",",$fields_escaped).
+        " FROM Baobab_{$this->tree_name}".
+        " WHERE ( SELECT lft FROM Baobab_{$this->tree_name} WHERE id = {$id_node} ) BETWEEN lft AND rgt".
         " ORDER BY lft";
 
         $result = $this->db->query($query,MYSQLI_STORE_RESULT);
         if (!$result) throw new sp_MySQL_Error($this->db);
 
         $ar_out=array();
-        while($row = $result->fetch_row()) {
-            array_push($ar_out,array($row[0],$row[1]));
+        if ($squash) {
+            reset($fields);
+            $fieldName=current($fields);
+            while($rowAssoc = $result->fetch_assoc()) $ar_out[]=$rowAssoc[$fieldName];
+            
+        } else {
+            while($rowAssoc = $result->fetch_assoc()) {
+                $tmp_ar=array();
+                foreach($fields as $fieldName) {
+                    $tmp_ar[$fieldName]=$rowAssoc[$fieldName];
+                }
+                $ar_out[]=$tmp_ar;
+            }
         }
+        
         $result->close();
 
         return $ar_out;
