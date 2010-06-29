@@ -178,7 +178,7 @@ class Baobab  {
      *    This class lets you create, populate search and destroy a tree stored
      *    using the Nested Set Model described by Joe Celko's
      *
-     *    :param $db: mysqli database connection
+     *    :param $db: mysqli database connection in object oriented style
      *    :type $db:  an instance of mysqli_connect
      *    :param $tree_name: suffix to append to the table, wich will result in
      *                       Baobab_{$tree_name}
@@ -1047,7 +1047,7 @@ class Baobab  {
         
         // retrieve the column names
         $fieldFlags=array();
-        while ($finfo = mysqli_fetch_field($result)) {
+        while ($finfo = $result->fetch_field()) {
             $ar_out["fields"][]=$finfo->name;
             $fieldFlags[]=$finfo->flags;
         }
