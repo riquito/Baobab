@@ -368,6 +368,14 @@ HER
                 ),
                 $this->baobab->get_path(4,array("lft","id")));
     }
+    
+    function testGetChildren(){
+        // test empty tree
+        $this->assertEquals(array(),$this->baobab->get_children(-1));
+        
+        $this->_fillGenericTree();
+        $this->assertEquals(array(2,7),$this->baobab->get_children(1));
+    }
 }
 
 ?>

@@ -595,18 +595,33 @@ class Baobab  {
 
         return $ar_out;
     }
-
+    
+    /**!
+     *  .. method:: get_children($id_node)
+     *
+     *     Find the children of a node
+     *
+     *     :param $id_node: id of the parent node
+     *     :type $id_node:  int
+     *     
+     *     :return: ids of the children nodes, ordered from left to right
+     *     :rtype:  array
+     *
+     */
     public function get_children($id_node) {
         $this->_check_id($id_node);
-
-        $query="SELECT child FROM Baobab_AdjTree_$this->tree_name WHERE parent = $id_node";
+        
+        $id_node=intval($id_node);
+        
+        $query="SELECT child FROM Baobab_AdjTree_{$this->tree_name}
+                WHERE parent = {$id_node} ORDER BY lft";
 
         $result = $this->db->query($query,MYSQLI_STORE_RESULT);
         if (!$result) throw new sp_MySQL_Error($this->db);
 
         $ar_out=array();
         while($row = $result->fetch_row()) {
-            array_push($ar_out,$row[0]);
+            $ar_out[]=intval($row[0]);
         }
         $result->close();
 
