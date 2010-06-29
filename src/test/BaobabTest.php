@@ -376,6 +376,32 @@ HER
         $this->_fillGenericTree();
         $this->assertEquals(array(2,7),$this->baobab->get_children(1));
     }
+    
+    function testGetFirstChild(){
+        $this->_fillGenericTree();
+        
+        // find first child of a node with children
+        $this->assertTrue(2===$this->baobab->get_first_child(1));
+        
+        // find first child of unexistent node
+        $this->assertTrue(0===$this->baobab->get_first_child(-1));
+        
+        // find first child of a node without children
+        $this->assertTrue(0===$this->baobab->get_first_child(2));
+    }
+    
+    function testGetLastChild(){
+        $this->_fillGenericTree();
+        
+        // find last child of a node with children
+        $this->assertTrue(7===$this->baobab->get_last_child(1));
+        
+        // find last child of unexistent node
+        $this->assertTrue(0===$this->baobab->get_last_child(-1));
+        
+        // find last child of a node without children
+        $this->assertTrue(0===$this->baobab->get_last_child(2));
+    }
 }
 
 ?>

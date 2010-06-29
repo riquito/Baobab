@@ -599,7 +599,7 @@ class Baobab  {
     /**!
      *  .. method:: get_children($id_node)
      *
-     *     Find the children of a node
+     *     Find a node's children
      *
      *     :param $id_node: id of the parent node
      *     :type $id_node:  int
@@ -627,27 +627,55 @@ class Baobab  {
 
         return $ar_out;
     }
-
+    
+    /**!
+     *  .. method:: get_first_child($id_node)
+     *
+     *     Find the leftmost child of a node
+     *
+     *     :param $id_node: id of the parent node
+     *     :type $id_node:  int
+     *     
+     *     :return: id of the leftmost child node, or 0 if not found
+     *     :rtype:  int
+     *
+     */
     public function get_first_child($id_node) {
         $this->_check_id($id_node);
         
+        $id_node=intval($id_node);
+        
         $query="
           SELECT child
-          FROM Baobab_AdjTree_$this->tree_name
-          WHERE parent = $id_node AND lft = (SELECT min(lft) FROM Baobab_AdjTree_$this->tree_name WHERE PARENT = $id_node )";
+          FROM Baobab_AdjTree_{$this->tree_name}
+          WHERE parent = {$id_node} AND lft = (SELECT min(lft) FROM Baobab_AdjTree_$this->tree_name WHERE PARENT = $id_node )";
         $result = $this->db->query($query,MYSQLI_STORE_RESULT);
         if (!$result) throw new sp_MySQL_Error($this->db);
 
         $row = $result->fetch_row();
-        $out=$row[0];
+        $out=intval($row[0]);
 
         $result->close();
         return $out;
     }
     
+    /**!
+     *  .. method:: get_last_child($id_node)
+     *
+     *     Find the rightmost child of a node
+     *
+     *     :param $id_node: id of the parent node
+     *     :type $id_node:  int
+     *     
+     *     :return: id of the rightmost child node, or 0 if not found
+     *     :rtype:  int
+     *
+     */
     public function get_last_child($id_node) {
         $this->_check_id($id_node);
-
+        
+        $id_node=intval($id_node);
+        
         $query="
           SELECT child
           FROM Baobab_AdjTree_$this->tree_name
@@ -656,7 +684,7 @@ class Baobab  {
         if (!$result) throw new sp_MySQL_Error($this->db);
 
         $row = $result->fetch_row();
-        $out=$row[0];
+        $out=intval($row[0]);
 
         $result->close();
         return $out;
