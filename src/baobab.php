@@ -173,7 +173,7 @@ class Baobab  {
     private $_must_check_ids=FALSE;
     
     /**!
-     * .. class:: Baobab($db,$tree_name,$must_check_ids=FALSE)
+     * .. class:: Baobab($db,$tree_name[,$must_check_ids=FALSE])
      *    
      *    This class lets you create, populate search and destroy a tree stored
      *    using the Nested Set Model described by Joe Celko's
@@ -597,97 +597,93 @@ class Baobab  {
     }
     
     /**!
-     *  .. method:: get_children($id_node)
+     *  .. method:: get_some_children($id_parent[,$howMany=NULL[,$fromLeftToRight=TRUE]])
      *
-     *     Find a node's children
+     *     Find all node's children
      *
-     *     :param $id_node: id of the parent node
-     *     :type $id_node:  int
+     *     :param $id_parent: id of the parent node
+     *     :type $id_parent:  int
+     *     :param $howMany: maximum number of children to retrieve
+     *     :type $howMany:  int or NULL
+     *     :param $fromLeftToRight: what order the children must follow
+     *     :type $fromLeftToRight:  boolean
      *     
      *     :return: ids of the children nodes, ordered from left to right
      *     :rtype:  array
      *
      */
-    public function get_children($id_node) {
-        $this->_check_id($id_node);
+    public function get_some_children($id_parent,$howMany=NULL,$fromLeftToRight=TRUE){
+        $this->_check_id($id_parent);
         
-        $id_node=intval($id_node);
+        // ensure we have numbers
+        $id_parent=intval($id_parent);
+        $howMany=intval($howMany);
         
-        $query="SELECT child FROM Baobab_AdjTree_{$this->tree_name}
-                WHERE parent = {$id_node} ORDER BY lft";
-
+        $query=" SELECT child FROM Baobab_AdjTree_{$this->tree_name} ".
+               " WHERE parent = {$id_parent} ".
+               " ORDER BY lft ".($fromLeftToRight ? 'ASC' : 'DESC').
+               ($howMany ? " LIMIT $howMany" : "");
+        
         $result = $this->db->query($query,MYSQLI_STORE_RESULT);
         if (!$result) throw new sp_MySQL_Error($this->db);
-
+        
         $ar_out=array();
         while($row = $result->fetch_row()) {
             $ar_out[]=intval($row[0]);
         }
         $result->close();
-
+        
         return $ar_out;
     }
     
     /**!
-     *  .. method:: get_first_child($id_node)
+     *  .. method:: get_children($id_parent)
+     *
+     *     Find all node's children
+     *
+     *     :param $id_parent: id of the parent node
+     *     :type $id_parent:  int
+     *     
+     *     :return: ids of the children nodes, ordered from left to right
+     *     :rtype:  array
+     *
+     */
+    public function get_children($id_parent) {
+        return $this->get_some_children($id_parent);
+    }
+    
+    /**!
+     *  .. method:: get_first_child($id_parent)
      *
      *     Find the leftmost child of a node
      *
-     *     :param $id_node: id of the parent node
-     *     :type $id_node:  int
+     *     :param $id_parent: id of the parent node
+     *     :type $id_parent:  int
      *     
      *     :return: id of the leftmost child node, or 0 if not found
      *     :rtype:  int
      *
      */
-    public function get_first_child($id_node) {
-        $this->_check_id($id_node);
-        
-        $id_node=intval($id_node);
-        
-        $query="
-          SELECT child
-          FROM Baobab_AdjTree_{$this->tree_name}
-          WHERE parent = {$id_node} AND lft = (SELECT min(lft) FROM Baobab_AdjTree_$this->tree_name WHERE PARENT = $id_node )";
-        $result = $this->db->query($query,MYSQLI_STORE_RESULT);
-        if (!$result) throw new sp_MySQL_Error($this->db);
-
-        $row = $result->fetch_row();
-        $out=intval($row[0]);
-
-        $result->close();
-        return $out;
+    public function get_first_child($id_parent) {
+        $res=$this->get_some_children($id_parent,1,TRUE);
+        return empty($res) ? 0 : current($res);
     }
     
     /**!
-     *  .. method:: get_last_child($id_node)
+     *  .. method:: get_last_child($id_parent)
      *
      *     Find the rightmost child of a node
      *
-     *     :param $id_node: id of the parent node
-     *     :type $id_node:  int
+     *     :param $id_parent: id of the parent node
+     *     :type $id_parent:  int
      *     
      *     :return: id of the rightmost child node, or 0 if not found
      *     :rtype:  int
      *
      */
-    public function get_last_child($id_node) {
-        $this->_check_id($id_node);
-        
-        $id_node=intval($id_node);
-        
-        $query="
-          SELECT child
-          FROM Baobab_AdjTree_$this->tree_name
-          WHERE parent = $id_node AND lft = (SELECT max(lft) FROM Baobab_AdjTree_$this->tree_name WHERE PARENT = $id_node )";
-        $result = $this->db->query($query,MYSQLI_STORE_RESULT);
-        if (!$result) throw new sp_MySQL_Error($this->db);
-
-        $row = $result->fetch_row();
-        $out=intval($row[0]);
-
-        $result->close();
-        return $out;
+    public function get_last_child($id_parent) {
+        $res=$this->get_some_children($id_parent,1,FALSE);
+        return empty($res) ? 0 : current($res);
     }
 
     // O(n)
