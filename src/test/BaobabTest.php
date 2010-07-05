@@ -60,6 +60,36 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         //$baobab->destroy();
     }
     
+    public function testGetTree(){
+        
+        $this->assertTrue(NULL===$this->baobab->get_tree());
+        
+        $this->_fillComplexTree();
+        
+        $this->assertEquals(<<<HER
+(8) [1,38]
+    (15) [2,15]
+        (14) [3,8]
+            (2) [4,7]
+                (16) [5,6]
+        (12) [9,14]
+            (10) [10,13]
+                (7) [11,12]
+    (9) [16,23]
+        (1) [17,20]
+            (17) [18,19]
+        (4) [21,22]
+    (18) [24,37]
+        (11) [25,30]
+            (3) [26,29]
+                (6) [27,28]
+        (13) [31,36]
+            (5) [32,35]
+                (19) [33,34]
+HER
+,$this->baobab->get_tree()->stringify());
+    }
+    
     public function testAppendChildAsRootInEmptyTree(){
         $root_id=$this->baobab->appendChild();
         $this->assertTrue(1===$root_id);
@@ -104,7 +134,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     (3) [4,5]
     (4) [6,7]
 HER
-,(string)$this->baobab->get_tree());
+,$this->baobab->get_tree()->stringify());
         
     }
     
@@ -401,6 +431,34 @@ HER
         
         // find last child of a node without children
         $this->assertTrue(0===$this->baobab->get_last_child(2));
+    }
+    
+    // require import to be yet tested
+    function _fillComplexTree(){
+        $this->baobab->import(array(
+            "fields"=>array("id","lft","rgt"),
+            "values"=>array(
+                array(8,1,38),
+                    array(15,2,15),
+                        array(14,3,8),
+                            array(2,4,7),
+                                array(16,5,6),
+                        array(12,9,14),
+                            array(10,10,13),
+                                array(7,11,12),
+                    array(9,16,23),
+                        array(1,17,20),
+                            array(17,18,19),
+                        array(4,21,22),
+                    array(18,24,37),
+                        array(11,25,30),
+                            array(3,26,29),
+                                array(6,27,28),
+                        array(13,31,36),
+                            array(5,32,35),
+                                array(19,33,34)
+            )
+        ));
     }
 }
 

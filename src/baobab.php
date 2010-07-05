@@ -130,17 +130,18 @@ class BaobabNode {
     public $id;
     public $lft;
     public $rgt;
-    public $attrs;
+    public $parentNode;
+    public $fields;
 
-    public $parentId;
+    
     public $children;
 
-    public function __construct($id,$lft,$rgt,$parentId,$attrs=NULL) {
+    public function __construct($id,$lft,$rgt,&$parentNode,$fields=NULL) {
         $this->id=$id;
         $this->lft=$lft;
         $this->rgt=$rgt;
-        $this->attrs=$attrs;
-        $this->parentId=$parentId;
+        $this->parentNode=&$parentNode;
+        $this->fields=$fields;
         
         $this->children=array();
     }
@@ -158,11 +159,17 @@ class BaobabNode {
         $this->children[]=$child;
     }
     
-    public function __toString($indent="",$deep=True) {
-        $out.=$indent."($this->id) [$this->lft,$this->rgt]";
+    public function stringify($indent="",$deep=True) {
+        $out.=$indent."({$this->id}) [{$this->lft},{$this->rgt}]";
         if (!$deep) return $out;
-        foreach($this->children as $child) $out.="\n".$child->__toString($indent."    ");
+        foreach($this->children as $child) $out.="\n".$child->stringify($indent."    ");
         return $out;
+    }
+    
+    public function is_rightmost(){
+        if (!$this->parentNode) return TRUE;
+        
+        return $this->parentNode->children[count($this->parentNode->children)-1]->id===$this->id;
     }
 }
 
@@ -685,102 +692,97 @@ class Baobab  {
         $res=$this->get_some_children($id_parent,1,FALSE);
         return empty($res) ? 0 : current($res);
     }
-
-    // O(n)
-    public function get_tree($className="BaobabNode") {
-
-        // this is a specialized versione of the query found in get_level()
-
+    
+    /**!
+     * .. method: get_tree([$className="BaobabNode"[,$addChild="add_child"]])
+     *
+     *    Create a tree from the database data.
+     *    It's possible to use a default tree or use cusom classes/functions
+     *      (it must have the same constructor and public members of class
+     *      :class:`BaobabNode`)
+     *
+     *    :param $className: name of the class holding a node's information
+     *    :type $className:  string
+     *    :param $addChild: method of $className to call to append a node
+     *    :type $addChild:  string
+     *
+     *    :return: a node instance
+     *    :rtype:  instance of $className
+     *
+     */
+    public function get_tree($className="BaobabNode",$addChild="add_child") {
+        
+        // this is a specialized version of the query found in get_level()
+        //   (the difference lying in the fact that here we retrieve all the
+        //    fields of the table)
         $query="
           SELECT (COUNT(T1.id) - 1) AS level ,T2.*
-          FROM Baobab_$this->tree_name AS T1, Baobab_$this->tree_name AS T2
+          FROM Baobab_{$this->tree_name} AS T1, Baobab_{$this->tree_name} AS T2
           WHERE T2.lft BETWEEN T1.lft AND T1.rgt
           GROUP BY T2.lft
           ORDER BY T2.lft ASC;
         ";
-
-
-
-        $root=NULL;
-        $parents=array();
-
-        if ($result = $this->db->query($query,MYSQLI_STORE_RESULT)) {
-            while($row = $result->fetch_assoc()) {
-
-
-
-
-                $tmp_node=new $className($row["id"],$row["lft"],$row["rgt"],NULL);
-                
-                $attrs=array();
-                foreach($row as $key=>$value) {
-                    if (! in_array($key,array("id","lft","rgt","level")))
-                        $attrs[$key]=$value;
-                }
-                $tmp_node->attrs=$attrs;
-
-                if ($root===NULL) {
-                    $root=$tmp_node;
-                    array_push($parents,array($tmp_node,0));
-                    continue;
-                }
-
-                // previous parent is the first one with a level minor than ours
-                if ($parents[count($parents)-1][1]>=$row["level"]) {
-                    // remove all the previous subtree "parents" until our real parent
-                    for($i=count($parents)-1;$parents[$i--][1]>=$row["level"];)
-                        array_pop($parents);
-
-                }
-
-                $idx=count($parents)-1;
-                $tmp->node->parent=$parents[$idx][0];
-                $parents[$idx][0]->add_child($tmp_node);
-                array_push($parents,array($tmp_node,$row["level"]));
-
-                $tmp_node->parentId=$parents[$idx][0]->id;
-
-
-            }
-            $result->close();
-
-        } else throw new sp_MySQL_Error($this->db);
-
-        return $root;
-
-
-
-        return;
-        ////////////////////////////////////////////
-
+        
         $root=NULL;
         $parents=array();
         
-        foreach($this->get_levels() as $tmp_ar) {
-
-            $tmp_node=new $className($tmp_ar["id"], NULL);
-            if ($root===NULL) {
-                $root=$tmp_node;
-                array_push($parents,array($tmp_node,0));
-                continue;
+        if ($result = $this->db->query($query,MYSQLI_STORE_RESULT)) {
+            
+            while($row = $result->fetch_assoc()) {
+                
+                $numParents=count($parents);
+                
+                $id=$row["id"];
+                $lft=$row["lft"];
+                $rgt=$row["rgt"];
+                $level=$row["level"];
+                $parentNode=count($parents) ? $parents[$numParents-1] : NULL;
+                
+                unset($row["id"]);
+                unset($row["lft"]);
+                unset($row["rgt"]);
+                unset($row["level"]);
+                
+                $node=new $className($id,$lft,$rgt,$parentNode,$row);
+                
+                $parentsList=array();
+                foreach($parents as $key=>$abc) {
+                    $parentsList[]="{$key}^".$abc->id;
+                }
+                $parentsList=array_reverse($parentsList);
+                
+                if (!$root) $root=$node;
+                else $parents[$numParents-1]->$addChild($node);
+                
+                if ($rgt-$lft!=1) {
+                    $parents[$numParents]=$node;
+                }
+                else if ($rgt+1==$parents[$numParents-1]->rgt) {
+                    
+                    $k=$numParents-1;
+                    $me=$node;
+                    while ($me->rgt+1 == $parents[$k]->rgt) {
+                        $me=$parents[$k];
+                        unset($parents[$k--]);
+                    }
+                    
+                    /*
+                    // alternative way using levels ($parents would have both the parent node and his level)
+                    
+                    // previous parent is the first one with a level minor than ours
+                    if ($parents[count($parents)-1][1]>=$level) {
+                        // remove all the previous subtree "parents" until our real parent
+                        for($i=count($parents)-1;$parents[$i--][1]>=$level;)
+                            array_pop($parents);
+                    }
+                    */
+                }
             }
-
-            // previous parent is the first one with a level minor than ours
-            if ($parents[count($parents)-1][1]>=$tmp_ar["level"]) {
-                // remove all the previous subtree "parents" until our real parent
-                for($i=count($parents)-1;$parents[$i--][1]>=$tmp_ar["level"];)
-                    array_pop($parents);
-
-            }
-
-            $idx=count($parents)-1;
-            $tmp->node->parent=$parents[$idx][0];
-            $parents[$idx][0]->add_child($tmp_node);
-            array_push($parents,array($tmp_node,$tmp_ar["level"]));
-        }
-
+            $result->close();
+            
+        } else throw new sp_MySQL_Error($this->db);
+        
         return $root;
-
     }
 
     /* Delete $id_node and all of his children
