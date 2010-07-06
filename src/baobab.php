@@ -270,8 +270,7 @@ class Baobab  {
         }
         
         while($this->db->more_results()) {
-            $result = $this->db->use_result();
-            if ($result) $result->close();
+            if ($result = $this->db->use_result()) $result->close();
             $this->db->next_result();
         }
         
@@ -290,26 +289,25 @@ class Baobab  {
      *    
      */
     public function destroy() {
-        if (!$this->db->multi_query("
-                DROP PROCEDURE IF EXISTS Baobab_getNthChild_$this->tree_name;
-                DROP PROCEDURE IF EXISTS Baobab_MoveSubtree_real_$this->tree_name;
-                DROP PROCEDURE IF EXISTS Baobab_MoveSubtreeAtIndex_$this->tree_name;
-                DROP PROCEDURE IF EXISTS Baobab_MoveSubtreeBefore_$this->tree_name;
-                DROP PROCEDURE IF EXISTS Baobab_MoveSubtreeAfter_$this->tree_name;
-                DROP PROCEDURE IF EXISTS Baobab_InsertChildAtIndex_$this->tree_name;
-                DROP PROCEDURE IF EXISTS Baobab_InsertNodeBefore_$this->tree_name;
-                DROP PROCEDURE IF EXISTS Baobab_InsertNodeAfter_$this->tree_name;
-                DROP PROCEDURE IF EXISTS Baobab_AppendChild_$this->tree_name;
-                DROP PROCEDURE IF EXISTS Baobab_DropTree_$this->tree_name;
-                DROP PROCEDURE IF EXISTS Baobab_Close_Gaps_$this->tree_name;
-                DROP VIEW IF EXISTS Baobab_AdjTree_$this->tree_name;
-                DROP TABLE IF EXISTS Baobab_$this->tree_name")) {
+        if (!$this->db->multi_query(str_replace("GENERIC",$this->tree_name,"
+                DROP PROCEDURE IF EXISTS Baobab_getNthChild_GENERIC;
+                DROP PROCEDURE IF EXISTS Baobab_MoveSubtree_real_GENERIC;
+                DROP PROCEDURE IF EXISTS Baobab_MoveSubtreeAtIndex_GENERIC;
+                DROP PROCEDURE IF EXISTS Baobab_MoveSubtreeBefore_GENERIC;
+                DROP PROCEDURE IF EXISTS Baobab_MoveSubtreeAfter_GENERIC;
+                DROP PROCEDURE IF EXISTS Baobab_InsertChildAtIndex_GENERIC;
+                DROP PROCEDURE IF EXISTS Baobab_InsertNodeBefore_GENERIC;
+                DROP PROCEDURE IF EXISTS Baobab_InsertNodeAfter_GENERIC;
+                DROP PROCEDURE IF EXISTS Baobab_AppendChild_GENERIC;
+                DROP PROCEDURE IF EXISTS Baobab_DropTree_GENERIC;
+                DROP PROCEDURE IF EXISTS Baobab_Close_Gaps_GENERIC;
+                DROP VIEW IF EXISTS Baobab_AdjTree_GENERIC;
+                DROP TABLE IF EXISTS Baobab_GENERIC"))) {
             throw new sp_MySQL_Error($this->db);
         }
         
         while($this->db->more_results()) {
-            $result = $this->db->use_result();
-            if ($result) $result->close();
+            if ($result = $this->db->use_result()) $result->close();
             $this->db->next_result();
         }
     }
@@ -811,8 +809,7 @@ class Baobab  {
             throw new sp_MySQL_Error($this->db);
         
         while($this->db->more_results()) {
-            $result = $this->db->use_result();
-            if ($result) $result->close();
+            if ($result = $this->db->use_result()) $result->close();
             $this->db->next_result();
         }
         
@@ -835,8 +832,7 @@ class Baobab  {
             throw new sp_MySQL_Error($this->db);
         
         while($this->db->more_results()) {
-            $result = $this->db->use_result();
-            if ($result) $result->close();
+            if ($result = $this->db->use_result()) $result->close();
             $this->db->next_result();
         }
 
