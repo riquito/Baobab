@@ -27,7 +27,7 @@ class sp_MySQL_Error extends sp_Error {
         if (!$err_str) $err_str=$db->error;
         if (!$err_code) $err_code=$db->errno;
         parent::__construct($err_str,$err_code);
-   }
+    }
 }
 
 
@@ -268,7 +268,7 @@ class Baobab  {
         if (!$this->db->multi_query(str_replace("GENERIC",$this->tree_name,$sql))) {
             throw new sp_MySQL_Error($this->db);
         }
-
+        
         while($this->db->more_results()) {
             $result = $this->db->use_result();
             if ($result) $result->close();
@@ -301,31 +301,30 @@ class Baobab  {
                 DROP PROCEDURE IF EXISTS Baobab_InsertNodeAfter_$this->tree_name;
                 DROP PROCEDURE IF EXISTS Baobab_AppendChild_$this->tree_name;
                 DROP PROCEDURE IF EXISTS Baobab_DropTree_$this->tree_name;
+                DROP PROCEDURE IF EXISTS Baobab_Close_Gaps_$this->tree_name;
                 DROP VIEW IF EXISTS Baobab_AdjTree_$this->tree_name;
                 DROP TABLE IF EXISTS Baobab_$this->tree_name")) {
             throw new sp_MySQL_Error($this->db);
         }
-
+        
         while($this->db->more_results()) {
             $result = $this->db->use_result();
             if ($result) $result->close();
             $this->db->next_result();
         }
-
-
-
     }
     
     /**!
      * .. method:: clean()
      *    
-     *    Delete all the record from the Baobab_{yoursuffix} table and
+     *    Delete all the record from the table Baobab_{yoursuffix} and
      *      reset the index conter.
      *
      */
     public function clean() {
-        if (!$this->db->query("TRUNCATE TABLE Baobab_$this->tree_name")) {
-            return sp_MySQL_Error($this->db);
+        if (!$this->db->query("TRUNCATE TABLE Baobab_{$this->tree_name}")) {
+            if ($this->db->errno!==1146) // do not count "missing table" as an error
+                throw new sp_MySQL_Error($this->db);
         }
     }
 
@@ -818,34 +817,28 @@ class Baobab  {
         }
         
     }
-
-    public function update_numbering() {
-
-        $query="
-          UPDATE Baobab_$this->tree_name
-          SET lft = (SELECT COUNT(*)
-                     FROM (
-                           SELECT lft as seq_nbr FROM Baobab_$this->tree_name
-                           UNION ALL
-                           SELECT rgt FROM Baobab_$this->tree_name
-                          ) AS LftRgt
-                     WHERE seq_nbr <= lft
-                    ),
-              rgt = (SELECT COUNT(*)
-                     FROM (
-                           SELECT lft as seq_nbr FROM Baobab_$this->tree_name
-                           UNION ALL
-                           SELECT rgt FROM Baobab_$this->tree_name
-                          ) AS LftRgt
-                     WHERE seq_nbr <= rgt
-                    );
+    
+    /**!
+     * .. method:: close_gaps
+     *    
+     *    Update right and left values of each node to ensure there are no
+     *      gaps in the tree.
+     *
+     *    .. warning::
+     *       
+     *       This is a really slow function, use it only if needed (e.g.
+     *         to delete multiple subtrees and close gaps just once)
+     */
+    public function close_gaps() {
         
-        ";
-
-        if(!$this->db->query($query)) {
+        if (!$this->db->multi_query("CALL Baobab_Close_Gaps_{$this->tree_name}()"))
             throw new sp_MySQL_Error($this->db);
-        }
         
+        while($this->db->more_results()) {
+            $result = $this->db->use_result();
+            if ($result) $result->close();
+            $this->db->next_result();
+        }
 
     }
 

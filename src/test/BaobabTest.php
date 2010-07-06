@@ -43,6 +43,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         if (mysqli_connect_error()) {
             self::fail(sprintf('Connect Error (%s): %s',mysqli_connect_errno(),mysqli_connect_error()));
         }
+        
     }
     
     public static function tearDownAfterClass(){
@@ -57,7 +58,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     }
     
     public function tearDown(){
-        //$baobab->destroy();
+        $this->baobab->destroy();
     }
     
     public function testGetTree(){
@@ -582,6 +583,17 @@ HER
      * @dataProvider _provider_deleteSubtreeAndNotUpdateNumbering
      */
     function testDeleteSubtreeAndNotUpdateNumbering($whatToTest){
+        $this->_useTreeTestData($whatToTest);
+    }
+    
+    function _provider_closeGaps(){
+        return $this->_getTreeTestData("close_gaps.php");
+    }
+    
+    /**
+     * @dataProvider _provider_closeGaps
+     */
+    function testCloseGaps($whatToTest){
         $this->_useTreeTestData($whatToTest);
     }
 }

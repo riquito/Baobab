@@ -609,7 +609,36 @@ DETERMINISTIC
 
     COMMIT;
     
+  END;
+
+
+CREATE PROCEDURE Baobab_Close_Gaps_GENERIC()
+LANGUAGE SQL
+DETERMINISTIC
+
+  BEGIN
+  
+    UPDATE Baobab_GENERIC
+    SET lft = (SELECT COUNT(*)
+               FROM (
+                     SELECT lft as seq_nbr FROM Baobab_GENERIC
+                     UNION ALL
+                     SELECT rgt FROM Baobab_GENERIC
+                    ) AS LftRgt
+               WHERE seq_nbr <= lft
+              ),
+        rgt = (SELECT COUNT(*)
+               FROM (
+                     SELECT lft as seq_nbr FROM Baobab_GENERIC
+                     UNION ALL
+                     SELECT rgt FROM Baobab_GENERIC
+                    ) AS LftRgt
+               WHERE seq_nbr <= rgt
+              );
   END
+
+
+
 
 /*
 
@@ -620,7 +649,6 @@ DETERMINISTIC
   BEGIN
 
     DROP PROCEDURE IF EXISTS Baobab_getNthChild_GENERIC;
-    DROP PROCEDURE IF EXISTS Baobab_MoveSubtreeAfterXXX_GENERIC;
     DROP PROCEDURE IF EXISTS Baobab_MoveSubtree_real_GENERIC;
     DROP PROCEDURE IF EXISTS Baobab_MoveSubtreeAtIndex_GENERIC;
     DROP PROCEDURE IF EXISTS Baobab_MoveSubtreeBefore_GENERIC;
@@ -630,6 +658,7 @@ DETERMINISTIC
     DROP PROCEDURE IF EXISTS Baobab_InsertNodeAfter_GENERIC;
     DROP PROCEDURE IF EXISTS Baobab_AppendChild_GENERIC;
     DROP PROCEDURE IF EXISTS Baobab_DropTree_GENERIC;
+    DROP PROCEDURE IF EXISTS Baobab_Close_Gaps_GENERIC;
     DROP VIEW IF EXISTS Baobab_AdjTree_GENERIC;
     DROP TABLE IF EXISTS Baobab_GENERIC;
 
