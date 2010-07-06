@@ -46,7 +46,9 @@ CREATE VIEW Baobab_AdjTree_GENERIC (parent, child, lft)
 /* ######## DROP TREE ####### */
 /* ########################## */
 
-CREATE PROCEDURE Baobab_DropTree_GENERIC (IN node INTEGER UNSIGNED)
+CREATE PROCEDURE Baobab_DropTree_GENERIC (
+                    IN node INTEGER UNSIGNED,
+                    IN update_numbers INTEGER)
 LANGUAGE SQL
 DETERMINISTIC
 MODIFIES SQL DATA
@@ -78,17 +80,20 @@ MODIFIES SQL DATA
 
     DELETE FROM Baobab_GENERIC
     WHERE lft BETWEEN drop_lft and drop_rgt;
-
-    /* close up the gap left by the subtree */
-
-    UPDATE Baobab_GENERIC
-    SET lft = CASE WHEN lft > drop_lft
-            THEN lft - (drop_rgt - drop_lft + 1)
-            ELSE lft END,
-      rgt = CASE WHEN rgt > drop_lft
-            THEN rgt - (drop_rgt - drop_lft + 1)
-            ELSE rgt END
-    WHERE lft > drop_lft OR rgt > drop_lft;
+    
+    IF update_numbers = 1 THEN
+        /* close up the gap left by the subtree */
+        
+        UPDATE Baobab_GENERIC
+        SET lft = CASE WHEN lft > drop_lft
+                THEN lft - (drop_rgt - drop_lft + 1)
+                ELSE lft END,
+          rgt = CASE WHEN rgt > drop_lft
+                THEN rgt - (drop_rgt - drop_lft + 1)
+                ELSE rgt END
+        WHERE lft > drop_lft OR rgt > drop_lft;
+        
+    END IF;
 
     COMMIT;
 

@@ -291,6 +291,7 @@ HER
     
     // require import to be yet tested
     function _fillGenericTree(){
+        $this->baobab->clean();
         $this->baobab->import(array(
             "fields"=>array("id","lft","rgt"),
             "values"=>array(
@@ -435,6 +436,7 @@ HER
     
     // require import to be yet tested
     function _fillComplexTree(){
+        $this->baobab->clean();
         $this->baobab->import(array(
             "fields"=>array("id","lft","rgt"),
             "values"=>array(
@@ -459,6 +461,128 @@ HER
                                 array(19,33,34)
             )
         ));
+    }
+    
+    function testDeleteSubtree(){
+        
+        // drop root
+        $this->_fillComplexTree();
+        $this->baobab->delete_subtree(8);
+        $this->assertTrue(NULL===$this->baobab->get_tree());
+        
+        // drop leaf
+        $this->_fillComplexTree();
+        $this->baobab->delete_subtree(7);
+        $this->assertEquals(<<<HER
+(8) [1,36]
+    (15) [2,13]
+        (14) [3,8]
+            (2) [4,7]
+                (16) [5,6]
+        (12) [9,12]
+            (10) [10,11]
+    (9) [14,21]
+        (1) [15,18]
+            (17) [16,17]
+        (4) [19,20]
+    (18) [22,35]
+        (11) [23,28]
+            (3) [24,27]
+                (6) [25,26]
+        (13) [29,34]
+            (5) [30,33]
+                (19) [31,32]
+HER
+,$this->baobab->get_tree()->stringify());
+        
+        // drop parent single child
+        $this->_fillComplexTree();
+        $this->baobab->delete_subtree(1);
+        $this->assertEquals(<<<HER
+(8) [1,34]
+    (15) [2,15]
+        (14) [3,8]
+            (2) [4,7]
+                (16) [5,6]
+        (12) [9,14]
+            (10) [10,13]
+                (7) [11,12]
+    (9) [16,19]
+        (4) [17,18]
+    (18) [20,33]
+        (11) [21,26]
+            (3) [22,25]
+                (6) [23,24]
+        (13) [27,32]
+            (5) [28,31]
+                (19) [29,30]
+HER
+,$this->baobab->get_tree()->stringify());
+        
+        // drop parent multiple children (or drop right sibling with children)
+        $this->_fillComplexTree();
+        $this->baobab->delete_subtree(18);
+        $this->assertEquals(<<<HER
+(8) [1,24]
+    (15) [2,15]
+        (14) [3,8]
+            (2) [4,7]
+                (16) [5,6]
+        (12) [9,14]
+            (10) [10,13]
+                (7) [11,12]
+    (9) [16,23]
+        (1) [17,20]
+            (17) [18,19]
+        (4) [21,22]
+HER
+,$this->baobab->get_tree()->stringify());
+        
+        // drop left sibling with children
+        $this->_fillComplexTree();
+        $this->baobab->delete_subtree(15);
+        $this->assertEquals(<<<HER
+(8) [1,24]
+    (9) [2,9]
+        (1) [3,6]
+            (17) [4,5]
+        (4) [7,8]
+    (18) [10,23]
+        (11) [11,16]
+            (3) [12,15]
+                (6) [13,14]
+        (13) [17,22]
+            (5) [18,21]
+                (19) [19,20]
+HER
+,$this->baobab->get_tree()->stringify());
+        
+        // drop unexistent node
+        $this->_fillGenericTree();
+        $this->baobab->delete_subtree(600);
+        $this->assertEquals(<<<HER
+(5) [1,14]
+    (3) [2,7]
+        (4) [3,4]
+        (6) [5,6]
+    (1) [8,13]
+        (2) [9,10]
+        (7) [11,12]
+HER
+,$this->baobab->get_tree()->stringify());
+        
+    
+    }
+    
+    function _provider_deleteSubtreeAndNotUpdateNumbering(){
+        return $this->_getTreeTestData("delete_subtree.php");
+    }
+    
+    /**
+     * @dataProvider _provider_deleteSubtreeAndNotUpdateNumbering
+     */
+    function testDeleteSubtreeAndNotUpdateNumbering($whatToTest){
+        $this->_useTreeTestData($whatToTest);
     }
 }
 

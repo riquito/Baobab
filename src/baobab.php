@@ -785,25 +785,38 @@ class Baobab  {
         return $root;
     }
 
-    /* Delete $id_node and all of his children
-     * If $update_numbering is true (default), keep the Modified Preorder Tree consistent closing gaps
+    /**!
+     * .. method:: delete_subtree($id_node[,$close_gaps=True])
+     *
+     *    Delete a node and all of his children. If $close_gaps is TRUE, mantains
+     *      the Modified Preorder Tree consistent closing gaps.
+     *
+     *    :param $id_node: id of the node to drop
+     *    :type $id_node:  int
+     *    :param $close_gaps: whether to close the gaps in the tree or not (default TRUE)
+     *    :type $close_gaps:  boolean
+     *
+     *    .. warning::
+     *       If the gaps are not closed, you can't use most of the API. Usually
+     *         you want to avoid closing gaps when you're delete different
+     *         subtrees and want to update the numbering just once
+     *         (see :Baobab:`update_numbering`)
      */
-    public function delete_subtree($id_node,$update_numbering=True) {
+    public function delete_subtree($id_node,$close_gaps=TRUE) {
         $this->_check_id($id_node);
         
-        if ($update_numbering) {
-            
-            if (!$this->db->multi_query("CALL Baobab_DropTree_$this->tree_name($id_node)"))
-                throw new sp_MySQL_Error($this->db);
-
-            while($this->db->more_results()) {
-                $result = $this->db->use_result();
-                if ($result) $result->close();
-                $this->db->next_result();
-            }
-        } else {
-            throw new Error("unimplemented"); // XXX TODO Add or remove functionality
+        $id_node=intval($id_node);
+        $close_gaps=$close_gaps ? 1 : 0;
+        
+        if (!$this->db->multi_query("CALL Baobab_DropTree_{$this->tree_name}({$id_node},{$close_gaps})"))
+            throw new sp_MySQL_Error($this->db);
+        
+        while($this->db->more_results()) {
+            $result = $this->db->use_result();
+            if ($result) $result->close();
+            $this->db->next_result();
         }
+        
     }
 
     public function update_numbering() {
