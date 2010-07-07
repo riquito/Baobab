@@ -838,30 +838,34 @@ class Baobab  {
 
     }
 
-    /*
-     * Calculate the height of a subtree.
-     * If $id_node is NULL use tree root to start calculating the height
+    /**!
+     * .. method:: get_tree_height()
+     *    
+     *    Calculate the height of the tree
+     *
+     *    :return: the height of the tree
+     *    :rtype:  int
+     *    
+     *    .. note::
+     *       A tree with one node has height 1.
      * 
      */
-    public function get_tree_height($id_node=NULL){
-        if ($id_node!==NULL) $this->_check_id($id_node);
-
+    public function get_tree_height(){
+        
         $query="
         SELECT MAX(level)+1 as height
         FROM (SELECT t2.id as id,(COUNT(t1.id)-1) as level
-              FROM Baobab_$this->tree_name as t1, Baobab_$this->tree_name as t2
+              FROM Baobab_{$this->tree_name} as t1, Baobab_{$this->tree_name} as t2
               WHERE t2.lft  BETWEEN t1.lft AND t1.rgt
               GROUP BY t2.id
-             ) as ID_LEVELS
-        ".($id_node!==NULL ?
-           "WHERE id = $id_node" : "");
+             ) as ID_LEVELS";
         
         $result = $this->db->query($query,MYSQLI_STORE_RESULT);
         if (!$result) throw new sp_MySQL_Error($this->db);
 
         $row = $result->fetch_row();
-        $out=$row[0];
-
+        $out=intval($row[0]);
+        
         $result->close();
         return $out;
     }

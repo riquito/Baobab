@@ -58,7 +58,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     }
     
     public function tearDown(){
-        $this->baobab->destroy();
+        //$this->baobab->destroy();
     }
     
     public function testGetTree(){
@@ -595,6 +595,19 @@ HER
      */
     function testCloseGaps($whatToTest){
         $this->_useTreeTestData($whatToTest);
+    }
+    
+    function testGetTreeHeight() {
+        // test empty tree
+        $this->assertTrue(0===$this->baobab->get_tree_height());
+        
+        $this->_fillComplexTree();
+        $this->assertTrue(5===$this->baobab->get_tree_height());
+        
+        
+        $this->_fillGenericTree();
+        $this->assertTrue(3===$this->baobab->get_tree_height());
+        
     }
 }
 
