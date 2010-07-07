@@ -636,32 +636,3 @@ DETERMINISTIC
                WHERE seq_nbr <= rgt
               );
   END
-
-
-
-
-/*
-
-CREATE PROCEDURE Baobab_Destroy_GENERIC()
-LANGUAGE SQL
-DETERMINISTIC
-
-  BEGIN
-
-    DROP PROCEDURE IF EXISTS Baobab_getNthChild_GENERIC;
-    DROP PROCEDURE IF EXISTS Baobab_MoveSubtree_real_GENERIC;
-    DROP PROCEDURE IF EXISTS Baobab_MoveSubtreeAtIndex_GENERIC;
-    DROP PROCEDURE IF EXISTS Baobab_MoveSubtreeBefore_GENERIC;
-    DROP PROCEDURE IF EXISTS Baobab_MoveSubtreeAfter_GENERIC;
-    DROP PROCEDURE IF EXISTS Baobab_InsertChildAtIndex_GENERIC;
-    DROP PROCEDURE IF EXISTS Baobab_InsertNodeBefore_GENERIC;
-    DROP PROCEDURE IF EXISTS Baobab_InsertNodeAfter_GENERIC;
-    DROP PROCEDURE IF EXISTS Baobab_AppendChild_GENERIC;
-    DROP PROCEDURE IF EXISTS Baobab_DropTree_GENERIC;
-    DROP PROCEDURE IF EXISTS Baobab_Close_Gaps_GENERIC;
-    DROP VIEW IF EXISTS Baobab_AdjTree_GENERIC;
-    DROP TABLE IF EXISTS Baobab_GENERIC;
-
-  END
-
-*/
