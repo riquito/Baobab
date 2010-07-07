@@ -58,7 +58,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     }
     
     public function tearDown(){
-        //$this->baobab->destroy();
+        $this->baobab->destroy();
     }
     
     public function testGetTree(){
@@ -172,10 +172,17 @@ HER
     }
     
     function _useTreeTestData($whatToTest){
+        
         // load the data
         $this->baobab->import(array("fields"=>array("id","lft","rgt"),"values"=>$whatToTest["from"]));
         // call the func to test
-        call_user_func_array(array($this->baobab,$whatToTest["methodName"]),$whatToTest["params"]);
+        try {
+            call_user_func_array(array($this->baobab,$whatToTest["methodName"]),$whatToTest["params"]);
+        } catch (Exception $e) {
+            if (isset($whatToTest["error"]))
+                $this->assertTrue($whatToTest["error"]===$e->getCode());
+            else throw $e;
+        }
         // get the current tree state
         $treeState=json_decode($this->baobab->export(),TRUE);
         // check that the tree state is what we expected
@@ -608,6 +615,18 @@ HER
         $this->_fillGenericTree();
         $this->assertTrue(3===$this->baobab->get_tree_height());
         
+    }
+    
+    
+    function _provider_moveSubtreeAfter(){
+        return $this->_getTreeTestData("moveSubtreeAfter.php");
+    }
+    
+    /**
+     * @dataProvider _provider_moveSubtreeAfter
+     */
+    function testMoveSubtreeAfter($whatToTest){
+        $this->_useTreeTestData($whatToTest);
     }
 }
 

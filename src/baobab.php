@@ -1039,15 +1039,53 @@ class Baobab  {
         return $new_id;
     }
     
+    /**!
+     * .. method:: moveSubTreeAfter($id_to_move,$reference_node)
+     *
+     *    Move a node and all of his children as right sibling of another node.
+     *
+     *    :param $id_to_move: id of a node in the tree
+     *    :type $id_to_move:  int
+     *    :param $reference_node: the node that will become the left sibling
+     *                              of $id_to_move
+     *    :type $reference_node:  int
+     *    
+     *    .. note::
+     *       Using -1 will cause the node to be inserted before the last sibling
+     *
+     *    .. warning:
+     *       Moving a node after/before root or as a child of hisself will
+     *         throw a sp_Error exception
+     * 
+     */
     public function moveSubTreeAfter($id_to_move,$reference_node) {
+        $id_to_move=intval($id_to_move);
+        $reference_node=intval($reference_node);
+        
         $this->_check_id($id_to_move);
         $this->_check_id($reference_node);
 
         if (!$this->db->multi_query("
-                CALL Baobab_MoveSubtreeAfter_$this->tree_name($id_to_move,$reference_node)"))
+                CALL Baobab_MoveSubtreeAfter_{$this->tree_name}({$id_to_move},{$reference_node},@error_code);
+                SELECT @error_code  as error_id"))
             throw new sp_MySQL_Error($this->db);
+        
+        $this->db->next_result();
+        $result = $this->db->use_result();
+        $error_code=intVal(array_pop($result->fetch_row()));
+        $result->close();
+        
+        if ($error_code!==0) {
+            
+            if ($error_code===1000) {
+                throw new sp_Error("Cannot move a node before or after root",$error_code);
+            } else if ($error_code===2000) {
+                throw new sp_Error("Cannot move a parent node inside his own subtree",$error_code);
+            }
+            else throw new sp_Error("An error occurred while moving node ({$id_to_move}) after node ({$reference_node})");
+        }
     }
-
+    
     public function moveSubTreeBefore($id_to_move,$reference_node) {
         $this->_check_id($id_to_move);
         $this->_check_id($reference_node);
