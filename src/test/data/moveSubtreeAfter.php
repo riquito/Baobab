@@ -31,7 +31,7 @@ $data=array(
                     array(9,17,18),
                     array(10,19,20)
         ),
-        "error"=>1000
+        "error"=>1100
     ),
     
     array(
@@ -95,7 +95,7 @@ $data=array(
                     array(9,17,18),
                     array(10,19,20)
         ),
-        "error"=>2000
+        "error"=>1200
     ),
     
     

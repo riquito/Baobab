@@ -17,7 +17,6 @@
  */ 
 
 
-
 /* ############################### */
 /* ###### TABLES AND VIEWS ####### */
 /* ############################### */
@@ -41,6 +40,26 @@ CREATE VIEW Baobab_AdjTree_GENERIC (parent, child, lft)
                           AND E.lft < S.rgt)
     ORDER BY lft ASC;
 
+
+/* ########################### */
+/* ###### ERRORS CONTROL ##### */
+/* ########################### */
+
+CREATE TABLE IF NOT EXISTS Baobab_Errors_GENERIC (
+    code   INTEGER UNSIGNED NOT NULL PRIMARY KEY,
+    name   VARCHAR(50)      NOT NULL,
+    msg    TINYTEXT         NOT NULL,
+    CONSTRAINT unique_codename UNIQUE (name)
+) ENGINE INNODB;
+
+INSERT INTO Baobab_Errors_GENERIC(code,name,msg)
+VALUES
+  (1100,'ROOT_ERROR','Cannot add or move a node next to root'),
+  (1200,'CHILD_OF_YOURSELF_ERROR','Cannot move a node inside his own subtree');
+
+CREATE FUNCTION Baobab_getErrCode_GENERIC(x TINYTEXT) RETURNS INT
+DETERMINISTIC
+    RETURN (SELECT code from Baobab_Errors_GENERIC WHERE name=x);
 
 /* ########################## */
 /* ######## DROP TREE ####### */
@@ -488,13 +507,13 @@ DETERMINISTIC
     /* cannot move a node before or after root */
     IF ref_lft = 1 THEN
       BEGIN
-        SELECT 1000 INTO error_code;
+        SELECT Baobab_getErrCode_GENERIC('ROOT_ERROR') INTO error_code;
         LEAVE main;
       END;
     /* cannote move a parent node inside his own subtree */
     ELSEIF s_lft < ref_lft AND s_rgt > ref_rgt THEN
       BEGIN
-        SELECT 2000 INTO error_code;
+        SELECT Baobab_getErrCode_GENERIC('CHILD_OF_YOURSELF_ERROR') INTO error_code;
         LEAVE main;
       END;
     END IF;

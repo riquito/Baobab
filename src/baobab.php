@@ -177,7 +177,8 @@ class BaobabNode {
 class Baobab  {
     protected $db;
     protected $tree_name;
-    private $_must_check_ids=FALSE;
+    private $_must_check_ids;
+    private $_errors;
     
     /**!
      * .. class:: Baobab($db,$tree_name[,$must_check_ids=FALSE])
@@ -197,6 +198,30 @@ class Baobab  {
         $this->db=$db;
         $this->tree_name=$tree_name;
         $this->enableIdCheck($must_check_ids);
+        
+        // load error's information from db (if tables were created)
+        try { $this->_load_errors();
+        } catch (sp_Error $e) {}
+    }
+    
+    /**
+     * .. method:: _load_errors()
+     *
+     *    fill the member $_errors with informations aboud possible
+     *      error codes and messages
+     */
+    private function _load_errors(){
+        $this->_errors=array("by_code"=>array(),"by_name"=>array());
+        if ($result=$this->db->query("SELECT code,name,msg FROM Baobab_Errors_{$this->tree_name}")) {
+            
+            while($row=$result->fetch_assoc()) {
+                $copy=$row;
+                $this->_errors["by_code"][$copy["code"]]=&$copy;
+                $this->_errors["by_name"][$copy["name"]]=&$copy;
+            }
+            $result->close();
+            
+        } else throw new sp_Error("Cannot read info about errors (d'oh!)");
     }
 
     /**
@@ -219,7 +244,7 @@ class Baobab  {
                 return;
             }
         }
-        throw new sp_Error("not a valid id: $id");
+        throw new sp_Error("not a valid id: {$id}");
     }
     
     /**!
@@ -274,6 +299,8 @@ class Baobab  {
             $this->db->next_result();
         }
         
+        $this->_load_errors();
+        
     }
     
     /**!
@@ -302,7 +329,12 @@ class Baobab  {
                 DROP PROCEDURE IF EXISTS Baobab_DropTree_GENERIC;
                 DROP PROCEDURE IF EXISTS Baobab_Close_Gaps_GENERIC;
                 DROP VIEW IF EXISTS Baobab_AdjTree_GENERIC;
-                DROP TABLE IF EXISTS Baobab_GENERIC"))) {
+                DROP TABLE IF EXISTS Baobab_GENERIC;
+                
+                DROP TABLE IF EXISTS Baobab_Errors_GENERIC;
+                DROP FUNCTION IF EXISTS Baobab_getErrCode_GENERIC;
+                
+                "))) {
             throw new sp_MySQL_Error($this->db);
         }
         
@@ -1067,7 +1099,7 @@ class Baobab  {
 
         if (!$this->db->multi_query("
                 CALL Baobab_MoveSubtreeAfter_{$this->tree_name}({$id_to_move},{$reference_node},@error_code);
-                SELECT @error_code  as error_id"))
+                SELECT @error_code  as code"))
             throw new sp_MySQL_Error($this->db);
         
         $this->db->next_result();
@@ -1076,13 +1108,9 @@ class Baobab  {
         $result->close();
         
         if ($error_code!==0) {
-            
-            if ($error_code===1000) {
-                throw new sp_Error("Cannot move a node before or after root",$error_code);
-            } else if ($error_code===2000) {
-                throw new sp_Error("Cannot move a parent node inside his own subtree",$error_code);
-            }
-            else throw new sp_Error("An error occurred while moving node ({$id_to_move}) after node ({$reference_node})");
+            throw new sp_Error(sprintf("[%s] %s",
+                $this->_errors["by_code"][$error_code]["name"],
+                $this->_errors["by_code"][$error_code]["msg"]),$error_code);
         }
     }
     
@@ -1093,6 +1121,7 @@ class Baobab  {
         if (!$this->db->multi_query("
                 CALL Baobab_MoveSubtreeBefore_$this->tree_name($id_to_move,$reference_node)"))
             throw new sp_MySQL_Error($this->db);
+        
     }
 
     public function moveSubTreeAtIndex($id_to_move,$id_parent,$index) {
