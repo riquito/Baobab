@@ -365,7 +365,8 @@ DETERMINISTIC
 
 CREATE PROCEDURE Baobab_MoveSubtreeBefore_GENERIC(
         IN node_id_to_move INTEGER UNSIGNED,
-        IN reference_node INTEGER UNSIGNED)
+        IN reference_node INTEGER UNSIGNED,
+        OUT error_code INTEGER UNSIGNED)
 LANGUAGE SQL
 DETERMINISTIC
 
@@ -373,6 +374,8 @@ DETERMINISTIC
   
     DECLARE node_revised INTEGER UNSIGNED;
     DECLARE is_first_child BOOLEAN;
+    
+    SELECT 0 INTO error_code; /* 0 means no error */
 
     SET node_revised = IFNULL(
        /* if reference_node is the first child, get his parent */
@@ -394,7 +397,7 @@ DETERMINISTIC
     END IF;
 
      CALL Baobab_MoveSubtree_real_GENERIC(
-        node_id_to_move, node_revised , is_first_child
+        node_id_to_move, node_revised , is_first_child,error_code
      );
 
   END;
@@ -408,13 +411,13 @@ DETERMINISTIC
 CREATE PROCEDURE Baobab_MoveSubtreeAfter_GENERIC(
         IN node_id_to_move INTEGER UNSIGNED,
         IN reference_node INTEGER UNSIGNED,
-        OUT error_code INTEGER)
+        OUT error_code INTEGER UNSIGNED)
 LANGUAGE SQL
 DETERMINISTIC
 
   BEGIN
     
-    SELECT 0 INTO error_code;
+    SELECT 0 INTO error_code; /* 0 means no error */
     
     CALL Baobab_MoveSubtree_real_GENERIC(
         node_id_to_move,reference_node,FALSE,error_code
@@ -423,12 +426,6 @@ DETERMINISTIC
   END;
 
 
-/*
-
-DECLARE CONTINUE HANDLER
-  FOR SQLSTATE '23000' SET @x2 = 1;
-
-*/
 
 /* ##################################### */
 /* ####### MOVE SUBTREE AT INDEX ####### */
@@ -471,7 +468,8 @@ DETERMINISTIC
 /* ####### MOVE SUBTREE REAL LOGIC #######*/
 /* ####################################### */
 
-/* move node_id_to_move AFTER reference_node, unless move_as_first_sibling is TRUE */
+/* If move_as_first_sibling is FALSE, move node_id_to_move after reference_node,
+     else reference_node is the new father of node_id_to_move */
 
 CREATE PROCEDURE Baobab_MoveSubtree_real_GENERIC(
         IN node_id_to_move INTEGER UNSIGNED,
@@ -492,41 +490,33 @@ DETERMINISTIC
     START TRANSACTION;
 
     /* select left and right of the node to move */
-    SELECT lft, rgt      
+    SELECT lft, rgt
     INTO s_lft, s_rgt
     FROM Baobab_GENERIC
     WHERE id = node_id_to_move;
     
-    /* select left and right of the reference node */
-    SELECT lft, rgt      
+    /* select left and right of the reference node
+        
+       If moving as first, sibling, ref_lft will become the new lft value of node_id_to_move,
+         (and ref_rgt is unused), else we're saving left and right value of soon to be
+         previous sibling
+    
+    */
+    SELECT IF(move_as_first_sibling,lft+1,lft), rgt
     INTO ref_lft, ref_rgt
     FROM Baobab_GENERIC
     WHERE id = reference_node;
     
-    
-    /* cannot move a node before or after root */
-    IF ref_lft = 1 THEN
-      BEGIN
-        SELECT Baobab_getErrCode_GENERIC('ROOT_ERROR') INTO error_code;
-        LEAVE main;
-      END;
-    /* cannote move a parent node inside his own subtree */
-    ELSEIF s_lft < ref_lft AND s_rgt > ref_rgt THEN
-      BEGIN
-        SELECT Baobab_getErrCode_GENERIC('CHILD_OF_YOURSELF_ERROR') INTO error_code;
-        LEAVE main;
-      END;
-    END IF;
-    
-    
     IF move_as_first_sibling = TRUE THEN
-
-        /* ref_lft will become the new lft value of node_id_to_move */
-        SELECT lft+1 INTO ref_lft
-        FROM Baobab_GENERIC
-        WHERE id = reference_node;
-
-        IF s_lft > ref_lft THEN
+        
+        IF s_lft <= ref_lft AND s_rgt >= ref_rgt THEN
+            /* cannot move a parent node inside his own subtree */
+            BEGIN
+                SELECT Baobab_getErrCode_GENERIC('CHILD_OF_YOURSELF_ERROR') INTO error_code;
+                LEAVE main;
+            END;
+        
+        ELSEIF s_lft > ref_lft THEN
             
             UPDATE Baobab_GENERIC
             SET lft =
@@ -573,14 +563,19 @@ DETERMINISTIC
         END IF;
 
     ELSE    /* moving after an existing child */
-
-        /* select lft and right of soon to be previous sibling */
-        SELECT lft, rgt
-        INTO ref_lft, ref_rgt
-        FROM Baobab_GENERIC
-        WHERE id = reference_node;
-
-        IF s_lft > ref_lft AND s_rgt < ref_rgt THEN
+        
+        IF ref_lft = 1 THEN /* cannot move a node before or after root */
+            BEGIN
+                SELECT Baobab_getErrCode_GENERIC('ROOT_ERROR') INTO error_code;
+                LEAVE main;
+            END;
+        ELSEIF s_lft < ref_lft AND s_rgt > ref_rgt THEN
+            /* cannot move a parent node inside his own subtree */
+            BEGIN
+                SELECT Baobab_getErrCode_GENERIC('CHILD_OF_YOURSELF_ERROR') INTO error_code;
+                LEAVE main;
+            END;
+        ELSEIF s_lft > ref_lft AND s_rgt < ref_rgt THEN
             /* we're moving a subtree as next sibling of an ancestor*/
 
             UPDATE Baobab_GENERIC
@@ -589,7 +584,7 @@ DETERMINISTIC
 
                   WHEN lft BETWEEN s_lft AND s_rgt
                   THEN ref_rgt-s_rgt
-                  WHEN lft BETWEEN s_rgt+1 AND ref_rgt-1 /*lft BETWEEN ref_rgt+1 AND s_lft-1*/
+                  WHEN lft BETWEEN s_rgt+1 AND ref_rgt-1
                   THEN -(s_rgt-s_lft+1)
                   ELSE 0 END
                 ,
@@ -609,9 +604,9 @@ DETERMINISTIC
                 lft + CASE
 
                   WHEN lft BETWEEN s_lft AND s_rgt
-                  THEN  -(s_lft-ref_rgt-1)     /*IF(s_lft>ref_rgt,-(s_lft-ref_rgt-1),ref_rgt-s_lft+1)*/ /*  -(s_lft-ref_rgt-1) */
-                  WHEN lft BETWEEN ref_rgt+1 AND s_lft-1 /*lft BETWEEN ref_rgt+1 AND s_lft-1*/
-                  THEN s_rgt-s_lft+1 /*(GREATEST(s_rgt,s_lft)-LEAST(s_rgt,s_lft)+1)*/
+                  THEN  -(s_lft-ref_rgt-1)
+                  WHEN lft BETWEEN ref_rgt+1 AND s_lft-1
+                  THEN s_rgt-s_lft+1
                   ELSE 0 END
                 ,
                 rgt =
@@ -654,6 +649,11 @@ DETERMINISTIC
     COMMIT;
     
   END;
+
+
+/* ########################## */
+/* ####### CLOSE GAPS ####### */
+/* ########################## */
 
 
 CREATE PROCEDURE Baobab_Close_Gaps_GENERIC()

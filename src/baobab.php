@@ -215,9 +215,8 @@ class Baobab  {
         if ($result=$this->db->query("SELECT code,name,msg FROM Baobab_Errors_{$this->tree_name}")) {
             
             while($row=$result->fetch_assoc()) {
-                $copy=$row;
-                $this->_errors["by_code"][$copy["code"]]=&$copy;
-                $this->_errors["by_name"][$copy["name"]]=&$copy;
+                $this->_errors["by_code"][$row["code"]]=$row;
+                $this->_errors["by_name"][$row["name"]]=&$this->_errors["by_code"][$row["code"]];
             }
             $result->close();
             
@@ -1082,11 +1081,8 @@ class Baobab  {
      *                              of $id_to_move
      *    :type $reference_node:  int
      *    
-     *    .. note::
-     *       Using -1 will cause the node to be inserted before the last sibling
-     *
      *    .. warning:
-     *       Moving a node after/before root or as a child of hisself will
+     *       Moving a subtree after/before root or as a child of hisself will
      *         throw a sp_Error exception
      * 
      */
@@ -1114,14 +1110,41 @@ class Baobab  {
         }
     }
     
+    /**!
+     * .. method:: moveSubTreeBefore($id_to_move,$reference_node)
+     *
+     *    Move a node and all of his children as left sibling of another node.
+     *
+     *    :param $id_to_move: id of a node in the tree
+     *    :type $id_to_move:  int
+     *    :param $reference_node: the node that will become the left sibling
+     *                              of $id_to_move
+     *    :type $reference_node:  int
+     *    
+     *    .. warning:
+     *       Moving a subtree after/before root or as a child of hisself will
+     *         throw a sp_Error exception
+     * 
+     */
     public function moveSubTreeBefore($id_to_move,$reference_node) {
         $this->_check_id($id_to_move);
         $this->_check_id($reference_node);
 
         if (!$this->db->multi_query("
-                CALL Baobab_MoveSubtreeBefore_$this->tree_name($id_to_move,$reference_node)"))
+                CALL Baobab_MoveSubtreeBefore_{$this->tree_name}({$id_to_move},{$reference_node},@error_code);
+                SELECT @error_code as code"))
             throw new sp_MySQL_Error($this->db);
         
+        $this->db->next_result();
+        $result = $this->db->use_result();
+        $error_code=intVal(array_pop($result->fetch_row()));
+        $result->close();
+        
+        if ($error_code!==0) {
+            throw new sp_Error(sprintf("[%s] %s",
+                $this->_errors["by_code"][$error_code]["name"],
+                $this->_errors["by_code"][$error_code]["msg"]),$error_code);
+        }
     }
 
     public function moveSubTreeAtIndex($id_to_move,$id_parent,$index) {

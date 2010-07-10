@@ -53,6 +53,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     
     public function setUp(){
         $this->baobab = new Baobab(self::$db,"GENERIC");
+        $this->baobab->destroy();
         $this->baobab->clean();
         $this->baobab->build();
     }
@@ -626,6 +627,18 @@ HER
      * @dataProvider _provider_moveSubtreeAfter
      */
     function testMoveSubtreeAfter($whatToTest){
+        $this->_useTreeTestData($whatToTest);
+    }
+    
+    
+    function _provider_moveSubtreeBefore(){
+        return $this->_getTreeTestData("moveSubtreeBefore.php");
+    }
+    
+    /**
+     * @dataProvider _provider_moveSubtreeBefore
+     */
+    function testMoveSubtreeBefore($whatToTest){
         $this->_useTreeTestData($whatToTest);
     }
 }
