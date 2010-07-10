@@ -371,7 +371,7 @@ class Baobab  {
 
         $query="
           SELECT id AS root
-          FROM Baobab_$this->tree_name
+          FROM Baobab_{$this->tree_name}
           WHERE lft = 1;
         ";
 
@@ -582,9 +582,9 @@ class Baobab  {
      * 
      */
     public function get_path($id_node,$fields=NULL,$squash=FALSE){
-        $this->_check_id($id_node);
-        
         $id_node=intval($id_node);
+        
+        $this->_check_id($id_node);
         
         if (empty($fields)) {
             if ($squash) $fields=array("id");
@@ -648,11 +648,10 @@ class Baobab  {
      *
      */
     public function get_some_children($id_parent,$howMany=NULL,$fromLeftToRight=TRUE){
-        $this->_check_id($id_parent);
-        
-        // ensure we have numbers
         $id_parent=intval($id_parent);
         $howMany=intval($howMany);
+        
+        $this->_check_id($id_parent);
         
         $query=" SELECT child FROM Baobab_AdjTree_{$this->tree_name} ".
                " WHERE parent = {$id_parent} ".
@@ -831,10 +830,10 @@ class Baobab  {
      *         (see :Baobab:`update_numbering`)
      */
     public function delete_subtree($id_node,$close_gaps=TRUE) {
-        $this->_check_id($id_node);
-        
         $id_node=intval($id_node);
         $close_gaps=$close_gaps ? 1 : 0;
+        
+        $this->_check_id($id_node);
         
         if (!$this->db->multi_query("CALL Baobab_DropTree_{$this->tree_name}({$id_node},{$close_gaps})"))
             throw new sp_MySQL_Error($this->db);
@@ -917,7 +916,7 @@ class Baobab  {
         if (!$attrs) throw new sp_Error("\$attrs must be a non empty array");
 
         $query="".
-         " UPDATE Baobab_$this->tree_name".
+         " UPDATE Baobab_{$this->tree_name}".
          " SET ".( sp_SQLUtil::array_to_sql_assignments($attrs) ).
          " WHERE id = @new_id";
         
@@ -940,12 +939,13 @@ class Baobab  {
      *
      */
     public function appendChild($id_parent=NULL,$attrs=NULL){
-
-        if ($id_parent===NULL) $id_parent=0;
-        else $this->_check_id($id_parent);
+        
+        $id_parent=intval($id_parent);
+        
+        if ($id_parent) $this->_check_id($id_parent);
 
         if (!$this->db->multi_query("
-                CALL Baobab_AppendChild_$this->tree_name($id_parent,@new_id);
+                CALL Baobab_AppendChild_{$this->tree_name}({$id_parent},@new_id);
                 SELECT @new_id as id"))
                 throw new sp_MySQL_Error($this->db);
 
@@ -977,6 +977,8 @@ class Baobab  {
      * 
      */
     public function insertNodeAfter($id_sibling,$attrs=NULL) {
+        $id_sibling=intval($id_sibling);
+        
         $this->_check_id($id_sibling);
 
         if (!$this->db->multi_query("
@@ -1013,6 +1015,8 @@ class Baobab  {
      * 
      */
     public function insertNodeBefore($id_sibling,$attrs=NULL) {
+        $id_sibling=intval($id_sibling);
+        
         $this->_check_id($id_sibling);
 
         if (!$this->db->multi_query("
@@ -1042,17 +1046,18 @@ class Baobab  {
      *    :param $id_parent: id of a node in the tree
      *    :type $id_parent:  int
      *    :param $index: new child position between his siblings (0 is first).
-     *                   Negative indexes are allowed.
+     *                   Negative indexes are allowed (-1 is the position before
+     *                     the last sibling).
      *    :type $index:  int
      *
      *    :return: id of the new node
      *    :rtype:  int
-     *
-     *    .. note::
-     *       Using -1 will cause the node to be inserted before the last sibling
      * 
      */
     public function insertChildAtIndex($id_parent,$index) {
+        $id_parent=intval($id_parent);
+        $index=intval($index);
+        
         $this->_check_id($id_parent);
 
         if (!$this->db->multi_query("
@@ -1127,6 +1132,9 @@ class Baobab  {
      * 
      */
     public function moveSubTreeBefore($id_to_move,$reference_node) {
+        $id_to_move=intval($id_to_move);
+        $reference_node=intval($reference_node);
+        
         $this->_check_id($id_to_move);
         $this->_check_id($reference_node);
 
@@ -1148,6 +1156,10 @@ class Baobab  {
     }
 
     public function moveSubTreeAtIndex($id_to_move,$id_parent,$index) {
+        $id_to_move=intval($id_to_move);
+        $id_parent=intval($id_parent);
+        $index=intval($index);
+        
         $this->_check_id($id_to_move);
         $this->_check_id($id_parent);
         
@@ -1179,7 +1191,7 @@ class Baobab  {
         $ar_out=array("fields"=>array(),"values"=>array());
         
         // retrieve the data
-        $result=$this->db->query("SELECT * FROM Baobab_$this->tree_name ORDER BY lft ASC",MYSQLI_STORE_RESULT);
+        $result=$this->db->query("SELECT * FROM Baobab_{$this->tree_name} ORDER BY lft ASC",MYSQLI_STORE_RESULT);
         if (!$result)  throw new sp_MySQL_Error($this->db);
         
         // retrieve the column names
