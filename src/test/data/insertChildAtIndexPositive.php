@@ -3,6 +3,23 @@ $data=array(
   "insertChildAtIndex"=>array(
     
     array(
+        "msg"=> "Index too high",
+        "from"=>array(
+            array(1,1,6),
+                array(3,2,3),
+                array(2,4,5)
+            
+        ),
+        "params"=>array(1,2),
+        "to"=>array(
+            array(1,1,6),
+                array(3,2,3),
+                array(2,4,5)
+        ),
+        "error"=>1300
+    ),
+    
+    array(
         // insert an element before the only and last leaf
         "from"=>array(
             array(1,1,4),

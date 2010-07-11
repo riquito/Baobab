@@ -23,9 +23,14 @@ class sp_Error extends Exception { }
 
 class sp_MySQL_Error extends sp_Error {
 
-    public function __construct($db,$err_str=NULL,$err_code=NULL) {
-        if (!$err_str) $err_str=$db->error;
-        if (!$err_code) $err_code=$db->errno;
+    public function __construct($conn_or_msg,$err_code=NULL) {
+        if ($conn_or_msg instanceof mysqli || $conn_or_msg instanceof mysql) {
+            $err_str=$conn_or_msg->error;
+            $err_code=$conn_or_msg->errno;
+        } else {
+            $err_str=$conn_or_msg;
+        }
+        
         parent::__construct($err_str,$err_code);
     }
 }
@@ -99,6 +104,15 @@ class sp_SQLUtil {
             $tmp[]=sprintf(" `%s` = %s ",str_replace("`","``",$key),$value);
         }
         return join($sep,$tmp);
+    }
+    
+    public function flush_results($conn){
+        while($conn->more_results()) {
+            if ($result = $conn->use_result()) $result->close();
+            $conn->next_result();
+        }
+        
+        if ($conn->errno) throw new sp_MySQL_Error($conn);
     }
 }
 
@@ -207,8 +221,8 @@ class Baobab  {
     /**
      * .. method:: _load_errors()
      *
-     *    fill the member $_errors with informations aboud possible
-     *      error codes and messages
+     *    Fill the member $_errors with informations about error codes and 
+     *      messages
      */
     private function _load_errors(){
         $this->_errors=array("by_code"=>array(),"by_name"=>array());
@@ -243,7 +257,7 @@ class Baobab  {
                 return;
             }
         }
-        throw new sp_Error("not a valid id: {$id}");
+        throw new sp_Error("Not a valid id: {$id}");
     }
     
     /**!
@@ -273,6 +287,8 @@ class Baobab  {
         return $this->_must_check_ids;
     }
     
+    
+    
     /**!
      * .. method:: build()
      *
@@ -288,16 +304,11 @@ class Baobab  {
     public function build() {
 
         $sql=file_get_contents(dirname(__FILE__).DIRECTORY_SEPARATOR."schema_baobab.sql");
-
         if (!$this->db->multi_query(str_replace("GENERIC",$this->tree_name,$sql))) {
             throw new sp_MySQL_Error($this->db);
         }
         
-        while($this->db->more_results()) {
-            if ($result = $this->db->use_result()) $result->close();
-            $this->db->next_result();
-        }
-        
+        sp_SQLUtil::flush_results($this->db);
         $this->_load_errors();
         
     }
@@ -378,17 +389,14 @@ class Baobab  {
         $out=NULL;
 
         if ($result=$this->db->query($query,MYSQLI_STORE_RESULT)) {
-            if ($result->num_rows===0) {
-                $result->close();
-                return NULL;
+            if ($result->num_rows) {
+                $row = $result->fetch_row();
+                $out=intval($row[0]);
             }
-
-            $row = $result->fetch_row();
-            $out=intval($row[0]);
             $result->close();
-
+        
         } else throw new sp_MySQL_Error($this->db);
-
+        
         return $out;
     }
 
@@ -572,7 +580,7 @@ class Baobab  {
      *               ordered from root to $id_node
      *    :rtype:  array
      *
-     *    Example (considering a tree with two elements and a field 'name'):
+     *    Example (considering a tree with two nodes with a field 'name'):
      *    .. code-block:: php
      *       
      *       php> $tree->get_path(2,"name")
@@ -638,7 +646,7 @@ class Baobab  {
      *
      *     :param $id_parent: id of the parent node
      *     :type $id_parent:  int
-     *     :param $howMany: maximum number of children to retrieve
+     *     :param $howMany: maximum number of children to retrieve (NULL means all)
      *     :type $howMany:  int or NULL
      *     :param $fromLeftToRight: what order the children must follow
      *     :type $fromLeftToRight:  boolean
@@ -719,6 +727,47 @@ class Baobab  {
         $res=$this->get_some_children($id_parent,1,FALSE);
         return empty($res) ? 0 : current($res);
     }
+    
+    /**!
+     *  .. method:: get_child_at_index($id_parent,$index)
+     *
+     *     Find the nth child of a parent node
+     *
+     *     :param $id_parent: id of the parent node
+     *     :type $id_parent:  int
+     *     :param $index: position between his siblings (0 is first).
+     *                    Negative indexes are allowed (-1 is the last sibling).
+     *     :type $index:  int
+     *     
+     *     :return: id of the nth child node
+     *     :rtype:  int
+     *
+     */
+    public function get_child_at_index($id_parent,$index){
+        $id_parent=intval($id_parent);
+        $index=intval($index);
+        
+        if (!$this->db->multi_query("
+                CALL Baobab_getNthChild_{$this->tree_name}({$id_parent},{$index},@child_id,@error_code);
+                SELECT @child_id as child_id,@error_code as error_code"))
+                throw new sp_MySQL_Error($this->db);
+
+        $this->db->next_result(); // skip the CALL result
+        $result = $this->db->use_result();
+        $row=$result->fetch_assoc();
+        $child_id=intval($row["child_id"]);
+        $error_code=intval($row["error_code"]);
+        $result->close();
+        
+        if ($error_code) {
+            throw new sp_Error(sprintf("[%s] %s",
+                $this->_errors["by_code"][$error_code]["name"],
+                $this->_errors["by_code"][$error_code]["msg"]),$error_code);
+        }
+        
+        return $child_id;
+    }
+    
     
     /**!
      * .. method: get_tree([$className="BaobabNode"[,$addChild="add_child"]])
@@ -946,7 +995,7 @@ class Baobab  {
 
         if (!$this->db->multi_query("
                 CALL Baobab_AppendChild_{$this->tree_name}({$id_parent},@new_id);
-                SELECT @new_id as id"))
+                SELECT @new_id as new_id"))
                 throw new sp_MySQL_Error($this->db);
 
         // reach the last result and read it
@@ -982,16 +1031,22 @@ class Baobab  {
         $this->_check_id($id_sibling);
 
         if (!$this->db->multi_query("
-                CALL Baobab_InsertNodeAfter_{$this->tree_name}({$id_sibling},@new_id);
-                SELECT @new_id as id"))
+                CALL Baobab_InsertNodeAfter_{$this->tree_name}({$id_sibling},@new_id,@error_code);
+                SELECT @new_id as new_id,@error_code as error_code"))
                 throw new sp_MySQL_Error($this->db);
 
-        $this->db->next_result();
+        $this->db->next_result(); // skip the CALL result
         $result = $this->db->use_result();
-        $new_id=intval(array_pop($result->fetch_row()));
+        $row=$result->fetch_assoc();
+        $new_id=intval($row["new_id"]);
+        $error_code=intval($row["error_code"]);
         $result->close();
         
-        if ($new_id===0) throw new sp_Error("Can't add to root");
+        if ($error_code) {
+            throw new sp_Error(sprintf("[%s] %s",
+                $this->_errors["by_code"][$error_code]["name"],
+                $this->_errors["by_code"][$error_code]["msg"]),$error_code);
+        }
 
         //update the node if needed
         if ($attrs!==NULL) $this->updateNode($new_id,$attrs,TRUE);
@@ -1020,16 +1075,22 @@ class Baobab  {
         $this->_check_id($id_sibling);
 
         if (!$this->db->multi_query("
-                CALL Baobab_InsertNodeBefore_{$this->tree_name}({$id_sibling},@new_id);
-                SELECT @new_id as id"))
+                CALL Baobab_InsertNodeBefore_{$this->tree_name}({$id_sibling},@new_id,@error_code);
+                SELECT @new_id as new_id,@error_code as error_code"))
                 throw new sp_MySQL_Error($this->db);
 
-        $this->db->next_result();
+        $this->db->next_result(); // skip the CALL result
         $result = $this->db->use_result();
-        $new_id=intval(array_pop($result->fetch_row()));
+        $row=$result->fetch_assoc();
+        $new_id=intval($row["new_id"]);
+        $error_code=intval($row["error_code"]);
         $result->close();
         
-        if ($new_id===0) throw new sp_Error("Can't add to root");
+        if ($error_code) {
+            throw new sp_Error(sprintf("[%s] %s",
+                $this->_errors["by_code"][$error_code]["name"],
+                $this->_errors["by_code"][$error_code]["msg"]),$error_code);
+        }
 
         //update the node if needed
         if ($attrs!==NULL) $this->updateNode($new_id,$attrs,TRUE);
@@ -1046,6 +1107,7 @@ class Baobab  {
      *    :param $id_parent: id of a node in the tree
      *    :type $id_parent:  int
      *    :param $index: new child position between his siblings (0 is first).
+     *                   You cannot insert a child as last sibling.
      *                   Negative indexes are allowed (-1 is the position before
      *                     the last sibling).
      *    :type $index:  int
@@ -1061,16 +1123,22 @@ class Baobab  {
         $this->_check_id($id_parent);
 
         if (!$this->db->multi_query("
-                CALL Baobab_InsertChildAtIndex_{$this->tree_name}({$id_parent},{$index},@new_id);
-                SELECT @new_id as id"))
+                CALL Baobab_InsertChildAtIndex_{$this->tree_name}({$id_parent},{$index},@new_id,@error_code);
+                SELECT @new_id as new_id,@error_code as error_code"))
             throw new sp_MySQL_Error($this->db);
 
-        $this->db->next_result();
+        $this->db->next_result(); // skip the CALL result
         $result = $this->db->use_result();
-        $new_id=intval(array_pop($result->fetch_row()));
+        $row=$result->fetch_assoc();
+        $new_id=intval($row["new_id"]);
+        $error_code=intval($row["error_code"]);
         $result->close();
-
-        if ($new_id===0) throw new sp_Error("Index out of range (parent[$id_parent],index[$index])");
+        
+        if ($error_code) {
+            throw new sp_Error(sprintf("[%s] %s",
+                $this->_errors["by_code"][$error_code]["name"],
+                $this->_errors["by_code"][$error_code]["msg"]),$error_code);
+        }
 
         return $new_id;
     }
@@ -1100,12 +1168,12 @@ class Baobab  {
 
         if (!$this->db->multi_query("
                 CALL Baobab_MoveSubtreeAfter_{$this->tree_name}({$id_to_move},{$reference_node},@error_code);
-                SELECT @error_code  as code"))
+                SELECT @error_code as code"))
             throw new sp_MySQL_Error($this->db);
         
         $this->db->next_result();
         $result = $this->db->use_result();
-        $error_code=intVal(array_pop($result->fetch_row()));
+        $error_code=intval(array_pop($result->fetch_row()));
         $result->close();
         
         if ($error_code!==0) {
@@ -1140,7 +1208,7 @@ class Baobab  {
 
         if (!$this->db->multi_query("
                 CALL Baobab_MoveSubtreeBefore_{$this->tree_name}({$id_to_move},{$reference_node},@error_code);
-                SELECT @error_code as code"))
+                SELECT @error_code as error_code"))
             throw new sp_MySQL_Error($this->db);
         
         $this->db->next_result();
@@ -1154,7 +1222,26 @@ class Baobab  {
                 $this->_errors["by_code"][$error_code]["msg"]),$error_code);
         }
     }
-
+    
+    /**!
+     * .. method:: moveSubTreeAtIndex($id_to_move,$id_parent,$index)
+     *
+     *    Move a subtree's root as nth child of another node
+     *
+     *    :param $id_to_move: id of a node in the tree
+     *    :type $id_to_move:  int
+     *    :param $id_parent: id of a node that will become $id_to_move's parent
+     *    :type $id_parent:  int
+     *    :param $index: new child position between his siblings (0 is first).
+     *                   Negative indexes are allowed (-1 is the position before
+     *                   the last sibling).
+     *    :type $index:  int
+     *    
+     *    .. warning:
+     *       Moving a subtree after/before root or as a child of hisself will
+     *         throw a sp_Error exception
+     * 
+     */
     public function moveSubTreeAtIndex($id_to_move,$id_parent,$index) {
         $id_to_move=intval($id_to_move);
         $id_parent=intval($id_parent);
@@ -1164,7 +1251,7 @@ class Baobab  {
         $this->_check_id($id_parent);
         
         if (!$this->db->multi_query("
-                CALL Baobab_MoveSubtreeAtIndex_$this->tree_name($id_to_move,$id_parent,$index,@error_code);
+                CALL Baobab_MoveSubtreeAtIndex_{$this->tree_name}({$id_to_move},{$id_parent},{$index},@error_code);
                 SELECT @error_code as error_id"))
             throw new sp_MySQL_Error($this->db);
 
@@ -1173,7 +1260,11 @@ class Baobab  {
         $error_code=intVal(array_pop($result->fetch_row()));
         $result->close();
         
-        if ($error_code!==0) throw new sp_Error("Index out of range (parent[$id_parent],index[$index])");
+        if ($error_code!==0) {
+            throw new sp_Error(sprintf("[%s] %s",
+                $this->_errors["by_code"][$error_code]["name"],
+                $this->_errors["by_code"][$error_code]["msg"]),$error_code);
+        }
     }
 
 

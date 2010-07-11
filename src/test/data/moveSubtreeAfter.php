@@ -1,6 +1,6 @@
 <?php
 $data=array(
-  "moveSubtreeAfter"=>array(
+  "moveSubTreeAfter"=>array(
     
     array(
         "desc"=>"move a node after root",

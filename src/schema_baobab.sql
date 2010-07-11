@@ -55,7 +55,9 @@ CREATE TABLE IF NOT EXISTS Baobab_Errors_GENERIC (
 INSERT INTO Baobab_Errors_GENERIC(code,name,msg)
 VALUES
   (1100,'ROOT_ERROR','Cannot add or move a node next to root'),
-  (1200,'CHILD_OF_YOURSELF_ERROR','Cannot move a node inside his own subtree');
+  (1200,'CHILD_OF_YOURSELF_ERROR','Cannot move a node inside his own subtree'),
+  (1300,'INDEX_OUT_OF_RANGE','The index is out of range'),
+  (1400,'NODE_DOES_NOT_EXIST',"Node doesn't exist");
 
 CREATE FUNCTION Baobab_getErrCode_GENERIC(x TINYTEXT) RETURNS INT
 DETERMINISTIC
@@ -179,24 +181,21 @@ DETERMINISTIC
 /* ###### INSERT NODE AFTER ###### */
 /* ############################### */
 
-/*
- * If sibling_id is root, return 0 as error value;
- *
- */
 
 CREATE PROCEDURE Baobab_InsertNodeAfter_GENERIC(
             IN sibling_id INTEGER UNSIGNED,
-            OUT new_id INTEGER UNSIGNED)
+            OUT new_id INTEGER UNSIGNED,
+            OUT error_code INTEGER UNSIGNED)
 LANGUAGE SQL
 DETERMINISTIC
 
-  BEGIN
+  main:BEGIN
     
-    IF (SELECT lft /* the root has no siblings */
-        FROM Baobab_GENERIC
-        WHERE id = sibling_id) = 1
-    THEN
-        SELECT 0 INTO new_id;
+    IF 1 = (SELECT lft FROM Baobab_GENERIC WHERE id = sibling_id) THEN
+        BEGIN
+            SELECT Baobab_getErrCode_GENERIC('ROOT_ERROR') INTO error_code;
+            LEAVE main;
+        END;
     ELSE
         BEGIN
 
@@ -207,6 +206,13 @@ DETERMINISTIC
           SET lft_sibling = (SELECT rgt
                              FROM Baobab_GENERIC
                              WHERE id = sibling_id);
+          
+          IF ISNULL(lft_sibling) THEN
+              BEGIN
+                SELECT Baobab_getErrCode_GENERIC('NODE_DOES_NOT_EXIST') INTO error_code;
+                LEAVE main;
+              END;
+          END IF;
 
           UPDATE Baobab_GENERIC
           SET lft = CASE WHEN lft < lft_sibling
@@ -234,23 +240,20 @@ DETERMINISTIC
 /* ###### INSERT NODE BEFORE ###### */
 /* ################################ */
 
-/*
- * If sibling_id is root, return 0 as error value;
- *
- */
 
 CREATE PROCEDURE Baobab_InsertNodeBefore_GENERIC(
             IN sibling_id INTEGER UNSIGNED,
-            OUT new_id INTEGER UNSIGNED)
+            OUT new_id INTEGER UNSIGNED,
+            OUT error_code INTEGER UNSIGNED)
 LANGUAGE SQL
 DETERMINISTIC
-  BEGIN
+  main:BEGIN
 
-    IF (SELECT lft /* the root has no siblings */
-        FROM Baobab_GENERIC
-        WHERE id = sibling_id) = 1
-    THEN
-        SELECT 0 INTO new_id;
+    IF 1 = (SELECT lft FROM Baobab_GENERIC WHERE id = sibling_id) THEN
+        BEGIN
+            SELECT Baobab_getErrCode_GENERIC('ROOT_ERROR') INTO error_code;
+            LEAVE main;
+        END;
     ELSE
       BEGIN
 
@@ -261,6 +264,13 @@ DETERMINISTIC
         SET rgt_sibling = (SELECT lft
                          FROM Baobab_GENERIC
                          WHERE id = sibling_id);
+        
+        IF ISNULL(rgt_sibling) THEN
+            BEGIN
+                SELECT Baobab_getErrCode_GENERIC('NODE_DOES_NOT_EXIST') INTO error_code;
+                LEAVE main;
+            END;
+        END IF;
 
         UPDATE IGNORE Baobab_GENERIC
         SET lft = CASE WHEN lft < rgt_sibling
@@ -297,20 +307,22 @@ END;
 CREATE PROCEDURE Baobab_InsertChildAtIndex_GENERIC(
             IN parent_id INTEGER UNSIGNED,
             IN idx INTEGER,
-            OUT new_id INTEGER UNSIGNED)
+            OUT new_id INTEGER UNSIGNED,
+            OUT error_code INTEGER UNSIGNED)
 LANGUAGE SQL
 DETERMINISTIC
 
   BEGIN
     
     DECLARE nth_child INTEGER UNSIGNED;
-
-    CALL Baobab_getNthChild_GENERIC(parent_id,idx,nth_child);
     
-    IF nth_child = 0 THEN
-        SET new_id = 0;
-    ELSE
-        CALL Baobab_InsertNodeBefore_GENERIC(nth_child,new_id);
+    SET error_code=0;
+    SET new_id=0;
+
+    CALL Baobab_getNthChild_GENERIC(parent_id,idx,nth_child,error_code);
+    
+    IF NOT error_code THEN
+        CALL Baobab_InsertNodeBefore_GENERIC(nth_child,new_id,error_code);
     END IF;
 
   END;
@@ -322,21 +334,27 @@ DETERMINISTIC
 CREATE PROCEDURE Baobab_getNthChild_GENERIC(
             IN parent_id INTEGER UNSIGNED,
             IN idx INTEGER,
-            OUT nth_child INTEGER UNSIGNED)
+            OUT nth_child INTEGER UNSIGNED,
+            OUT error_code INTEGER UNSIGNED)
 LANGUAGE SQL
 DETERMINISTIC
 
-  BEGIN
+  main:BEGIN
 
     DECLARE num_children INTEGER;
+    
+    SET error_code=0;
 
     SELECT COUNT(*)
     INTO num_children
-    FROM  Baobab_AdjTree_GENERIC WHERE parent = parent_id;
+    FROM Baobab_AdjTree_GENERIC WHERE parent = parent_id;
 
     IF num_children = 0 OR IF(idx<0,(-idx)-1,idx) >= num_children THEN
         /* idx is out of range */
-        SET nth_child = 0;
+        BEGIN
+            SELECT Baobab_getErrCode_GENERIC('INDEX_OUT_OF_RANGE') INTO error_code;
+            LEAVE main;
+        END;
     ELSE
 
         SELECT child
@@ -370,35 +388,41 @@ CREATE PROCEDURE Baobab_MoveSubtreeBefore_GENERIC(
 LANGUAGE SQL
 DETERMINISTIC
 
-  BEGIN
+  main:BEGIN
   
     DECLARE node_revised INTEGER UNSIGNED;
     DECLARE is_first_child BOOLEAN;
+    DECLARE ref_left INTEGER UNSIGNED;
     
-    SELECT 0 INTO error_code; /* 0 means no error */
-
-    SET node_revised = IFNULL(
-       /* if reference_node is the first child, get his parent */
-        ( SELECT id FROM Baobab_GENERIC
-          WHERE lft = -1+(SELECT lft FROM Baobab_GENERIC WHERE id = reference_node)
-        )
-        , 
-        NULL
-    );
-
-    IF ISNULL(node_revised) THEN    /* if reference_node is not the first child, get the previous sibling */
-        SET node_revised=(SELECT id FROM Baobab_GENERIC
-                          WHERE rgt = -1 + (SELECT lft FROM Baobab_GENERIC
-                                            WHERE id = reference_node )
-                         );
+    SET error_code=0; /* 0 means no error */
+    SET is_first_child = TRUE;
+    
+    SET ref_left=(SELECT lft FROM Baobab_GENERIC WHERE id = reference_node);
+    
+    IF ref_left = 1 THEN
+        BEGIN
+            /* cannot move a parent node before or after root */
+            SELECT Baobab_getErrCode_GENERIC('ROOT_ERROR') INTO error_code;
+            LEAVE main;
+        END;
+    END IF;
+    
+    /* if node_id_to_move is the first child of his parent, set node_revised
+       to the parent id, else set node_revised to NULL */
+    SET node_revised = ( SELECT id FROM Baobab_GENERIC WHERE lft = -1+ ref_left);
+    
+    
+    IF ISNULL(node_revised) THEN    /* if node_revised is NULL we must find the previous sibling */
+      BEGIN
+        SET node_revised= (SELECT id FROM Baobab_GENERIC
+                           WHERE rgt = -1 + ref_left );
         SET is_first_child = FALSE;
-    ELSE
-        SET is_first_child = TRUE;
+      END;
     END IF;
 
-     CALL Baobab_MoveSubtree_real_GENERIC(
+    CALL Baobab_MoveSubtree_real_GENERIC(
         node_id_to_move, node_revised , is_first_child,error_code
-     );
+    );
 
   END;
 
@@ -431,12 +455,6 @@ DETERMINISTIC
 /* ####### MOVE SUBTREE AT INDEX ####### */
 /* ##################################### */
 
-/*
- *
- * error_code != 0 means an error occurred
- * error_code == 1 it's an index out of bounds error
- **/
-
 CREATE PROCEDURE Baobab_MoveSubtreeAtIndex_GENERIC(
         IN node_id_to_move INTEGER UNSIGNED,
         IN parent_id INTEGER UNSIGNED,
@@ -445,21 +463,37 @@ CREATE PROCEDURE Baobab_MoveSubtreeAtIndex_GENERIC(
 LANGUAGE SQL
 DETERMINISTIC
 
-  BEGIN
+  main:BEGIN
 
     DECLARE nth_child INTEGER UNSIGNED;
+    DECLARE num_children INTEGER;
+    
+    SET error_code=0;
 
-    SET error_code = 0;
-
+    SELECT COUNT(*)
+    INTO num_children
+    FROM Baobab_AdjTree_GENERIC WHERE parent = parent_id;
+    
+    IF num_children = 0 THEN
+      BEGIN
+        SELECT Baobab_getErrCode_GENERIC('INDEX_OUT_OF_RANGE') INTO error_code;
+        LEAVE main;
+      END;
+    END IF;
+    
+    SET idx = IF(idx<0,num_children+idx,idx);
+    
     IF idx = 0 THEN /* moving as first child, special case */
-        CALL Baobab_MoveSubtree_real_GENERIC(node_id_to_move,parent_id,TRUE);
+        CALL Baobab_MoveSubtree_real_GENERIC(node_id_to_move,parent_id,TRUE,error_code);
     ELSE
-        CALL Baobab_getNthChild_GENERIC(parent_id,idx-1,nth_child);
+      BEGIN
+        /* search the node before idx, and we wil move our node after that */
+        CALL Baobab_getNthChild_GENERIC(parent_id,idx-1,nth_child,error_code);
 
-        IF nth_child = 0 THEN SET error_code = 1;
-        ELSE
-            CALL Baobab_MoveSubtree_real_GENERIC(node_id_to_move,nth_child,FALSE);
+        IF NOT error_code THEN
+            CALL Baobab_MoveSubtree_real_GENERIC(node_id_to_move,nth_child,FALSE,error_code);
         END IF;
+      END;
     END IF;
 
   END; 
@@ -486,7 +520,9 @@ DETERMINISTIC
     DECLARE s_rgt INTEGER UNSIGNED;
     DECLARE ref_lft INTEGER UNSIGNED;
     DECLARE ref_rgt INTEGER UNSIGNED;
-
+    
+    SET error_code=0;
+    
     START TRANSACTION;
 
     /* select left and right of the node to move */

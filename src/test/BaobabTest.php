@@ -59,7 +59,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     }
     
     public function tearDown(){
-        $this->baobab->destroy();
+        //$this->baobab->destroy();
     }
     
     public function testGetTree(){
@@ -179,11 +179,13 @@ HER
         // call the func to test
         try {
             call_user_func_array(array($this->baobab,$whatToTest["methodName"]),$whatToTest["params"]);
+            if (isset($whatToTest["error"])) $this->fail("Expecting exception ".$whatToTest["error"]);
         } catch (Exception $e) {
             if (isset($whatToTest["error"]))
                 $this->assertTrue($whatToTest["error"]===$e->getCode());
             else throw $e;
         }
+        
         // get the current tree state
         $treeState=json_decode($this->baobab->export(),TRUE);
         // check that the tree state is what we expected
@@ -204,9 +206,12 @@ HER
     function testInsertNodeAfterRoot(){
         $root_id=$this->baobab->appendChild();
         
-        try { $this->baobab->insertNodeAfter($root_id);
-        } catch (sp_Error $e) { return; }
-        $this->fail("was expecting an sp_Error Exception to be raised");
+        try {
+            $this->baobab->insertNodeAfter($root_id);
+            $this->fail("was expecting an sp_Error Exception to be raised");
+        } catch (sp_Error $e) {
+            $this->assertTrue($e->getCode()===1100);
+        }
     }
     
     function _provider_insertNodeAfter(){
@@ -223,9 +228,12 @@ HER
     function testInsertNodeAfterUnexistentId(){
         $this->baobab->appendChild();
         
-        try { $this->baobab->insertNodeAfter(100);
-        } catch (sp_Error $e) { return; }
-        $this->fail("was expecting an sp_Error Exception to be raised");
+        try {
+            $this->baobab->insertNodeAfter(100);
+            $this->fail("was expecting an sp_Error Exception to be raised");
+        } catch (sp_Error $e) {
+            $this->assertTrue($e->getCode()===1400);
+        }
     }
     
     function testInsertNodeBeforeRoot(){
@@ -233,10 +241,10 @@ HER
         
         try {
             $this->baobab->insertNodeBefore($root_id);
+            $this->fail("was expecting an sp_Error Exception to be raised");
         } catch (sp_Error $e) {
-            return;
+            $this->assertTrue($e->getCode()===1100);
         }
-        $this->fail("was expecting an sp_Error Exception to be raised");
     }
     
     function _provider_insertNodeBefore(){
@@ -253,9 +261,12 @@ HER
     function testInsertNodeBeforeUnexistentId(){
         $this->baobab->appendChild();
         
-        try { $this->baobab->insertNodeBefore(100);
-        } catch (sp_Error $e) { return; }
-        $this->fail("was expecting an sp_Error Exception to be raised");
+        try {
+            $this->baobab->insertNodeBefore(100);
+            $this->fail("was expecting an sp_Error Exception to be raised");
+        } catch (sp_Error $e) {
+            $this->assertTrue($e->getCode()===1400);
+        }
     }
     
     function _provider_insertChildAtIndexPositive(){
@@ -289,13 +300,17 @@ HER
             // index too high
             $this->baobab->insertChildAtIndex(1,2);
             $this->fail("was expecting an sp_Error Exception to be raised");
-        } catch (sp_Error $e) {}
+        } catch (sp_Error $e) {
+            $this->assertTrue($e->getCode()===1300);
+        }
         
         try {
             // index too low
             $this->baobab->insertChildAtIndex(1,-3);
             $this->fail("was expecting an sp_Error Exception to be raised");
-        } catch (sp_Error $e) {}
+        } catch (sp_Error $e) {
+            $this->assertTrue($e->getCode()===1300);
+        }
     }
     
     // require import to be yet tested
@@ -640,6 +655,54 @@ HER
      */
     function testMoveSubtreeBefore($whatToTest){
         $this->_useTreeTestData($whatToTest);
+    }
+    
+    
+    function _provider_moveSubtreeAtIndex(){
+        return $this->_getTreeTestData("moveSubtreeAtIndex.php");
+    }
+    
+    /**
+     * @dataProvider _provider_moveSubtreeAtIndex
+     */
+    function testMoveSubtreeAtIndex($whatToTest){
+        $this->_useTreeTestData($whatToTest);
+    }
+    
+    
+    function testGetChildAtIndex(){
+        $this->_fillComplexTree();
+        
+        $this->assertTrue($this->baobab->get_child_at_index(15,0)===14);
+        $this->assertTrue($this->baobab->get_child_at_index(15,1)===12);
+        $this->assertTrue($this->baobab->get_child_at_index(15,-2)===14);
+        $this->assertTrue($this->baobab->get_child_at_index(15,-1)===12);
+        $this->assertTrue($this->baobab->get_child_at_index(2,0)===16);
+        $this->assertTrue($this->baobab->get_child_at_index(2,-1)===16);
+        
+        try {
+            // index too high
+            $this->baobab->get_child_at_index(15,2);
+            $this->fail("was expecting an sp_Error Exception to be raised");
+        } catch (sp_Error $e) {
+            $this->assertTrue($e->getCode()===1300);
+        }
+        
+        try {
+            // index too high
+            $this->baobab->get_child_at_index(15,-3);
+            $this->fail("was expecting an sp_Error Exception to be raised");
+        } catch (sp_Error $e) {
+            $this->assertTrue($e->getCode()===1300);
+        }
+        
+        try {
+            // index too high
+            $this->baobab->get_child_at_index(17,0);
+            $this->fail("was expecting an sp_Error Exception to be raised");
+        } catch (sp_Error $e) {
+            $this->assertTrue($e->getCode()===1300);
+        }
     }
 }
 
