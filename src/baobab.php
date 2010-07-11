@@ -37,11 +37,11 @@ class sp_MySQL_Error extends sp_Error {
 
 
 /**!
- * .. class:: sp_SQLUtil
+ * .. class:: sp_SQLUtils
  *    
  *    Class with helpers to work with SQL
  */
-class sp_SQLUtil {
+class sp_SQLUtils {
     /**!
      * .. method:: vector_to_sql_tuple($ar)
      *    
@@ -56,7 +56,7 @@ class sp_SQLUtil {
      * 
      *    Example:
      *    .. code-block:: php
-     *       php> echo sp_SQLUtil::vector_to_sql_tuple(array("i'm a string",28,NULL,FALSE));
+     *       php> echo sp_SQLUtils::vector_to_sql_tuple(array("i'm a string",28,NULL,FALSE));
      *       ( 'i\'m a string','28',NULL,FALSE )
      * 
      */
@@ -89,9 +89,9 @@ class sp_SQLUtil {
      *    Example:
      *    .. code-block:: php
      *       php> $myArray=array("city address"=>"main street","married"=>false);
-     *       php> echo sp_SQLUtil::array_to_sql_assignments($myArray);
+     *       php> echo sp_SQLUtils::array_to_sql_assignments($myArray);
      *        `city address` = 'main street' , `married` = FALSE
-     *       php> echo sp_SQLUtil::array_to_sql_assignments($myArray,"AND");
+     *       php> echo sp_SQLUtils::array_to_sql_assignments($myArray,"AND");
      *        `city address` = 'main street' AND `married` = FALSE 
      */
     public static function array_to_sql_assignments($ar,$sep=",") {
@@ -308,7 +308,7 @@ class Baobab  {
             throw new sp_MySQL_Error($this->db);
         }
         
-        sp_SQLUtil::flush_results($this->db);
+        sp_SQLUtils::flush_results($this->db);
         $this->_load_errors();
         
     }
@@ -966,7 +966,7 @@ class Baobab  {
 
         $query="".
          " UPDATE Baobab_{$this->tree_name}".
-         " SET ".( sp_SQLUtil::array_to_sql_assignments($attrs) ).
+         " SET ".( sp_SQLUtils::array_to_sql_assignments($attrs) ).
          " WHERE id = @new_id";
         
         $result = $this->db->query($query,MYSQLI_STORE_RESULT);
@@ -1359,7 +1359,7 @@ class Baobab  {
         
         $result=$this->db->query(
                 "INSERT INTO Baobab_{$this->tree_name}(".join(",",$data["fields"]).") VALUES ".
-                join(", ",array_map("sp_SQLUtil::vector_to_sql_tuple",$data["values"]))
+                join(", ",array_map("sp_SQLUtils::vector_to_sql_tuple",$data["values"]))
             ,MYSQLI_STORE_RESULT);
         if (!$result)  throw new sp_MySQL_Error($this->db);
         
