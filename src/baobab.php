@@ -106,6 +106,16 @@ class sp_SQLUtils {
         return join($sep,$tmp);
     }
     
+    /**!
+     * .. method:: flush_results($conn)
+     *    
+     *    Empty connection results of the last single or multi query.
+     *    If the last query generated an error, a sp_MySQL_Error exception
+     *      is raised.
+     *
+     *    :param $conn: mysqli connection, object oriented version
+     *    :type $conn:  mysqli instance
+     **/
     public function flush_results($conn){
         while($conn->more_results()) {
             if ($result = $conn->use_result()) $result->close();
@@ -348,10 +358,7 @@ class Baobab  {
             throw new sp_MySQL_Error($this->db);
         }
         
-        while($this->db->more_results()) {
-            if ($result = $this->db->use_result()) $result->close();
-            $this->db->next_result();
-        }
+        sp_SQLUtils::flush_results($this->db);
     }
     
     /**!
@@ -887,10 +894,7 @@ class Baobab  {
         if (!$this->db->multi_query("CALL Baobab_DropTree_{$this->tree_name}({$id_node},{$close_gaps})"))
             throw new sp_MySQL_Error($this->db);
         
-        while($this->db->more_results()) {
-            if ($result = $this->db->use_result()) $result->close();
-            $this->db->next_result();
-        }
+        sp_SQLUtils::flush_results($this->db);
         
     }
     
@@ -910,10 +914,7 @@ class Baobab  {
         if (!$this->db->multi_query("CALL Baobab_Close_Gaps_{$this->tree_name}()"))
             throw new sp_MySQL_Error($this->db);
         
-        while($this->db->more_results()) {
-            if ($result = $this->db->use_result()) $result->close();
-            $this->db->next_result();
-        }
+        sp_SQLUtils::flush_results($this->db);
 
     }
 
