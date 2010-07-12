@@ -759,20 +759,8 @@ class Baobab  {
                 SELECT @child_id as child_id,@error_code as error_code"))
                 throw new sp_MySQL_Error($this->db);
 
-        $this->db->next_result(); // skip the CALL result
-        $result = $this->db->use_result();
-        $row=$result->fetch_assoc();
-        $child_id=intval($row["child_id"]);
-        $error_code=intval($row["error_code"]);
-        $result->close();
-        
-        if ($error_code) {
-            throw new sp_Error(sprintf("[%s] %s",
-                $this->_errors["by_code"][$error_code]["name"],
-                $this->_errors["by_code"][$error_code]["msg"]),$error_code);
-        }
-        
-        return $child_id;
+        $res=$this->_readLastResult('child_id');
+        return intval($res['child_id']);
     }
     
     
@@ -999,16 +987,12 @@ class Baobab  {
                 SELECT @new_id as new_id"))
                 throw new sp_MySQL_Error($this->db);
 
-        // reach the last result and read it
-        while($this->db->more_results()) $this->db->next_result();
-        $result = $this->db->use_result();
-        $new_id=intval(array_pop($result->fetch_row()));
-        $result->close();
-
+        $res=$this->_readLastResult('new_id');
+        
         //update the node if needed
         if ($attrs!==NULL) $this->updateNode($new_id,$attrs,TRUE);
-
-        return $new_id;
+        
+        return intval($res['new_id']);
     }
     
     /**!
@@ -1036,23 +1020,12 @@ class Baobab  {
                 SELECT @new_id as new_id,@error_code as error_code"))
                 throw new sp_MySQL_Error($this->db);
 
-        $this->db->next_result(); // skip the CALL result
-        $result = $this->db->use_result();
-        $row=$result->fetch_assoc();
-        $new_id=intval($row["new_id"]);
-        $error_code=intval($row["error_code"]);
-        $result->close();
+        $res=$this->_readLastResult('new_id');
         
-        if ($error_code) {
-            throw new sp_Error(sprintf("[%s] %s",
-                $this->_errors["by_code"][$error_code]["name"],
-                $this->_errors["by_code"][$error_code]["msg"]),$error_code);
-        }
-
         //update the node if needed
         if ($attrs!==NULL) $this->updateNode($new_id,$attrs,TRUE);
-
-        return $new_id;
+        
+        return intval($res['new_id']);
     }
 
     /**!
@@ -1080,23 +1053,12 @@ class Baobab  {
                 SELECT @new_id as new_id,@error_code as error_code"))
                 throw new sp_MySQL_Error($this->db);
 
-        $this->db->next_result(); // skip the CALL result
-        $result = $this->db->use_result();
-        $row=$result->fetch_assoc();
-        $new_id=intval($row["new_id"]);
-        $error_code=intval($row["error_code"]);
-        $result->close();
+        $res=$this->_readLastResult('new_id');
         
-        if ($error_code) {
-            throw new sp_Error(sprintf("[%s] %s",
-                $this->_errors["by_code"][$error_code]["name"],
-                $this->_errors["by_code"][$error_code]["msg"]),$error_code);
-        }
-
         //update the node if needed
         if ($attrs!==NULL) $this->updateNode($new_id,$attrs,TRUE);
-
-        return $new_id;
+        
+        return intval($res['new_id']);
     }
 
     /**!
@@ -1127,21 +1089,9 @@ class Baobab  {
                 CALL Baobab_InsertChildAtIndex_{$this->tree_name}({$id_parent},{$index},@new_id,@error_code);
                 SELECT @new_id as new_id,@error_code as error_code"))
             throw new sp_MySQL_Error($this->db);
-
-        $this->db->next_result(); // skip the CALL result
-        $result = $this->db->use_result();
-        $row=$result->fetch_assoc();
-        $new_id=intval($row["new_id"]);
-        $error_code=intval($row["error_code"]);
-        $result->close();
         
-        if ($error_code) {
-            throw new sp_Error(sprintf("[%s] %s",
-                $this->_errors["by_code"][$error_code]["name"],
-                $this->_errors["by_code"][$error_code]["msg"]),$error_code);
-        }
-
-        return $new_id;
+        $res=$this->_readLastResult('new_id');
+        return intval($res['new_id']);
     }
     
     /**!
@@ -1169,19 +1119,10 @@ class Baobab  {
 
         if (!$this->db->multi_query("
                 CALL Baobab_MoveSubtreeAfter_{$this->tree_name}({$id_to_move},{$reference_node},@error_code);
-                SELECT @error_code as code"))
+                SELECT @error_code as error_code"))
             throw new sp_MySQL_Error($this->db);
         
-        $this->db->next_result();
-        $result = $this->db->use_result();
-        $error_code=intval(array_pop($result->fetch_row()));
-        $result->close();
-        
-        if ($error_code!==0) {
-            throw new sp_Error(sprintf("[%s] %s",
-                $this->_errors["by_code"][$error_code]["name"],
-                $this->_errors["by_code"][$error_code]["msg"]),$error_code);
-        }
+        $this->_readLastResult();
     }
     
     /**!
@@ -1212,16 +1153,7 @@ class Baobab  {
                 SELECT @error_code as error_code"))
             throw new sp_MySQL_Error($this->db);
         
-        $this->db->next_result();
-        $result = $this->db->use_result();
-        $error_code=intVal(array_pop($result->fetch_row()));
-        $result->close();
-        
-        if ($error_code!==0) {
-            throw new sp_Error(sprintf("[%s] %s",
-                $this->_errors["by_code"][$error_code]["name"],
-                $this->_errors["by_code"][$error_code]["msg"]),$error_code);
-        }
+        $this->_readLastResult();
     }
     
     /**!
@@ -1253,19 +1185,58 @@ class Baobab  {
         
         if (!$this->db->multi_query("
                 CALL Baobab_MoveSubtreeAtIndex_{$this->tree_name}({$id_to_move},{$id_parent},{$index},@error_code);
-                SELECT @error_code as error_id"))
+                SELECT @error_code as error_code"))
             throw new sp_MySQL_Error($this->db);
-
-        $this->db->next_result();
-        $result = $this->db->use_result();
-        $error_code=intVal(array_pop($result->fetch_row()));
-        $result->close();
         
-        if ($error_code!==0) {
+        $this->_readLastResult();
+    }
+    
+    /**
+     * .. method:: _readLastResult([$fields=NULL[,$error_field="error_code"[,$numResults=2]]])
+     *    
+     *    Read $numResults query results and return the value mapped to $fields.
+     *    If a field named $error_field is found throw an exception using that
+     *      error informations.
+     *
+     *    :param $fields: name of a field to read or an array of fields names
+     *    :type $fields:  string or array
+     *    :param $error_field: name of the field that could contain an error code
+     *    :type $error_field:  string
+     *    :param $numResults: number of expected mysql results
+     *    :type $numResults:  int
+     *    
+     *    :return: array, mapping $fields=>values found in the last result
+     *    :rtype:  int
+     **/
+    private function _readLastResult($fields=NULL,$error_field="error_code",$numResults=2){
+        if (is_string($fields)) $fields=array($fields);
+        else if ($fields===NULL) $fields=array();
+        
+        $k=1;
+        while($k++ < $numResults) {
+            if ($result = $this->db->use_result()) { $result->close(); }
+            if ($this->db->errno) throw new sp_MySQL_Error($this->db);
+            $this->db->next_result();
+        }
+        
+        $result = $this->db->use_result();
+        $record=$result->fetch_assoc();
+        
+        if (isset($record[$error_field]) && $record[$error_field]!=0) {
+            $error_code=intval($record[$error_field]);
+            $result->close();
             throw new sp_Error(sprintf("[%s] %s",
                 $this->_errors["by_code"][$error_code]["name"],
                 $this->_errors["by_code"][$error_code]["msg"]),$error_code);
         }
+        
+        $ar_out=array();
+        foreach($fields as $field_name) {
+            $ar_out[$field_name]=$record[$field_name];
+        }
+        $result->close();
+        
+        return $ar_out;
     }
 
 
