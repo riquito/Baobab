@@ -19,8 +19,24 @@
  */ 
 
 
+/**!
+ * .. class:: sp_Error
+ *    
+ *    Root exception. Each Exception thrown in a Sideralis Programs library
+ *      derive from this class
+ */
 class sp_Error extends Exception { }
 
+/**!
+ * .. class:: sp_MySQL_Error
+ *    
+ *    Exception holding informations about errors occurred when using mysql
+ *
+ *    :param $conn_or_msg: database connection object or an exception message
+ *    :type $conn_or_msg:  mysqli or string
+ *    :param $err_code: mysql error code
+ *    :type $err_code:  int
+ */
 class sp_MySQL_Error extends sp_Error {
 
     public function __construct($conn_or_msg,$err_code=NULL) {
@@ -40,8 +56,17 @@ class sp_MySQL_Error extends sp_Error {
  * .. class:: sp_SQLUtils
  *    
  *    Class with helpers to work with SQL
+ *
+ *    :param $conn: database connection object
+ *    :type $conn:  mysqli
  */
 class sp_SQLUtils {
+    private $conn;
+    
+    public function __construct($conn){
+        $this->conn=$conn;
+    }
+    
     /**!
      * .. method:: vector_to_sql_tuple($ar)
      *    
@@ -56,16 +81,18 @@ class sp_SQLUtils {
      * 
      *    Example:
      *    .. code-block:: php
-     *       php> echo sp_SQLUtils::vector_to_sql_tuple(array("i'm a string",28,NULL,FALSE));
+     *       php> $conn=new mysqli( ... connection data ...)
+     *       php> $sql_utils=new sp_SQLUtils($conn)
+     *       php> echo $sql_utils->vector_to_sql_tuple(array("i'm a string",28,NULL,FALSE));
      *       ( 'i\'m a string','28',NULL,FALSE )
      * 
      */
-    public static function vector_to_sql_tuple($ar) {
+    public function vector_to_sql_tuple($ar) {
         $tmp=array();
         foreach($ar as $value) {
             if ($value===NULL) $tmp[]="NULL";
             else if (is_bool($value)) $tmp[]=($value ? "TRUE" : "FALSE");
-            else $tmp[]="'".addslashes($value)."'";
+            else $tmp[]="'".($this->conn->real_escape_string($value))."'";
         }
         return sprintf("( %s )",join(",",$tmp));
     }
@@ -88,18 +115,20 @@ class sp_SQLUtils {
      *
      *    Example:
      *    .. code-block:: php
+     *       php> $conn=new mysqli( ... connection data ...)
+     *       php> $sql_utils=new sp_SQLUtils($conn)
      *       php> $myArray=array("city address"=>"main street","married"=>false);
-     *       php> echo sp_SQLUtils::array_to_sql_assignments($myArray);
+     *       php> echo $sql_utils->array_to_sql_assignments($myArray);
      *        `city address` = 'main street' , `married` = FALSE
-     *       php> echo sp_SQLUtils::array_to_sql_assignments($myArray,"AND");
+     *       php> echo $sql_utils->array_to_sql_assignments($myArray,"AND");
      *        `city address` = 'main street' AND `married` = FALSE 
      */
-    public static function array_to_sql_assignments($ar,$sep=",") {
+    public function array_to_sql_assignments($ar,$sep=",") {
         $tmp=array();
         foreach($ar as $key=>$value) {
             if ($value===NULL) $value="NULL";
             else if (is_bool($value)) $value=($value ? "TRUE" : "FALSE");
-            else $value= "'".addslashes($value)."'";
+            else $value= "'".($this->conn->real_escape_string($value))."'";
             
             $tmp[]=sprintf(" `%s` = %s ",str_replace("`","``",$key),$value);
         }
@@ -107,22 +136,51 @@ class sp_SQLUtils {
     }
     
     /**!
-     * .. method:: flush_results($conn)
+     * .. method:: flush_results()
      *    
      *    Empty connection results of the last single or multi query.
      *    If the last query generated an error, a sp_MySQL_Error exception
      *      is raised.
-     *
-     *    :param $conn: mysqli connection, object oriented version
-     *    :type $conn:  mysqli instance
      **/
-    public function flush_results($conn){
+    public function flush_results(){
+        $conn=&$this->conn;
         while($conn->more_results()) {
             if ($result = $conn->use_result()) $result->close();
             $conn->next_result();
         }
         
         if ($conn->errno) throw new sp_MySQL_Error($conn);
+    }
+}
+
+/**!
+ * .. class:: sp_Lib
+ *    
+ *    Generic utilities
+ */
+class sp_Lib {
+    
+    /**!
+     * .. map_method::
+     *    Call an object method on each item in an array and return an array
+     *      with the results.
+     *
+     *   :param $array: values to pass to the method
+     *   :type $array:  array
+     *   :param $obj: an object instance
+     *   :type $obj:  object
+     *   :param $methodName: a callable method of $obj
+     *   :type $methodName:  string
+     *   
+     *   :return: the computed results
+     *   :rtype:  array
+     */
+    public static function &map_method(&$array,$obj,$methodName) {
+        $tmp=array();
+        foreach ($array as $item){
+            $tmp[]=$obj->$methodName($item);
+        }
+        return $tmp;
     }
 }
 
@@ -201,6 +259,7 @@ class BaobabNode {
 class Baobab  {
     protected $db;
     protected $tree_name;
+    protected $sql_utils;
     private $_must_check_ids;
     private $_errors;
     
@@ -220,6 +279,7 @@ class Baobab  {
      */
     public function __construct($db,$tree_name,$must_check_ids=FALSE) {
         $this->db=$db;
+        $this->sql_utils=new sp_SQLUtils($db);
         $this->tree_name=$tree_name;
         $this->enableIdCheck($must_check_ids);
         
@@ -318,7 +378,7 @@ class Baobab  {
             throw new sp_MySQL_Error($this->db);
         }
         
-        sp_SQLUtils::flush_results($this->db);
+        $this->sql_utils->flush_results();
         $this->_load_errors();
         
     }
@@ -358,7 +418,7 @@ class Baobab  {
             throw new sp_MySQL_Error($this->db);
         }
         
-        sp_SQLUtils::flush_results($this->db);
+        $this->sql_utils->flush_results();
     }
     
     /**!
@@ -882,7 +942,7 @@ class Baobab  {
         if (!$this->db->multi_query("CALL Baobab_DropTree_{$this->tree_name}({$id_node},{$close_gaps})"))
             throw new sp_MySQL_Error($this->db);
         
-        sp_SQLUtils::flush_results($this->db);
+        $this->sql_utils->flush_results();
         
     }
     
@@ -902,7 +962,7 @@ class Baobab  {
         if (!$this->db->multi_query("CALL Baobab_Close_Gaps_{$this->tree_name}()"))
             throw new sp_MySQL_Error($this->db);
         
-        sp_SQLUtils::flush_results($this->db);
+        $this->sql_utils->flush_results();
 
     }
 
@@ -940,23 +1000,19 @@ class Baobab  {
 
     /*
      *
-     * while usable, $disableCheck is meant for internal use only.
-     * it gives the same behaviour of
-     *      $tmpValue=$this->isIdCheckEnabled();
-     *      $this->enableIdCheck(false);
-     *      $this->updateNode($foo,$moo);
-     *      $this->enableIdCheck($tmpValue);
      *
      */
-    public function updateNode($id_node,$attrs,$disableCheck=False){
-        if (!$disableCheck) $this->_check_id($id_node);
-
-        if (!$attrs) throw new sp_Error("\$attrs must be a non empty array");
-
+    public function updateNode($id_node,$attrs){
+        $id_node=intval($id_node);
+        
+        $this->_check_id($id_node);
+        
+        if (empty($attrs)) throw new sp_Error("\$attrs cannot be empty");
+        
         $query="".
          " UPDATE Baobab_{$this->tree_name}".
-         " SET ".( sp_SQLUtils::array_to_sql_assignments($attrs) ).
-         " WHERE id = @new_id";
+         " SET ".( $this->sql_utils->array_to_sql_assignments($attrs,$this->db) ).
+         " WHERE id = $id_node";
         
         $result = $this->db->query($query,MYSQLI_STORE_RESULT);
         if (!$result) throw new sp_MySQL_Error($this->db);
@@ -1331,7 +1387,7 @@ class Baobab  {
         
         $result=$this->db->query(
                 "INSERT INTO Baobab_{$this->tree_name}(".join(",",$data["fields"]).") VALUES ".
-                join(", ",array_map("sp_SQLUtils::vector_to_sql_tuple",$data["values"]))
+                join(", ",sp_Lib::map_method($data["values"],$this->sql_utils,"vector_to_sql_tuple"))
             ,MYSQLI_STORE_RESULT);
         if (!$result)  throw new sp_MySQL_Error($this->db);
         
@@ -1346,7 +1402,7 @@ class BaobabNamed extends Baobab {
     public function build() {
         parent::build();
 
-        $result = $this->db->query("ALTER TABLE Baobab_$this->tree_name ADD COLUMN label TEXT DEFAULT '' NOT NULL",MYSQLI_STORE_RESULT);
+        $result = $this->db->query("ALTER TABLE Baobab_{$this->tree_name} ADD COLUMN label TEXT DEFAULT '' NOT NULL",MYSQLI_STORE_RESULT);
         if (!$result) throw new sp_MySQL_Error($this->db);
     }
     
