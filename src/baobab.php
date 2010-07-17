@@ -1314,7 +1314,7 @@ class Baobab  {
         
         // retrieve the column names
         
-        $result=$this->db->query("SHOW COLUMNS FROM Baobab_GENERIC;",MYSQLI_STORE_RESULT);
+        $result=$this->db->query("SHOW COLUMNS FROM Baobab_{$this->tree_name};",MYSQLI_STORE_RESULT);
         if (!$result)  throw new sp_MySQL_Error($this->db);
         
         $real_cols=array();

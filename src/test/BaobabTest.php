@@ -52,7 +52,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     }
     
     public function setUp(){
-        $this->baobab = new Baobab(self::$db,"GENERIC");
+        $this->baobab = new Baobab(self::$db,"test");
         $this->baobab->destroy();
         $this->baobab->clean();
         $this->baobab->build();
