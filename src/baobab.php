@@ -80,8 +80,9 @@ class sp_SQLUtils {
      *    :rtype:  string
      * 
      *    Example:
-     *    .. code-block:: php
-     *       php> $conn=new mysqli( ... connection data ...)
+     *    .. code-block::
+     *       
+     *       php> $conn=new mysqli(  connection data )
      *       php> $sql_utils=new sp_SQLUtils($conn)
      *       php> echo $sql_utils->vector_to_sql_tuple(array("i'm a string",28,NULL,FALSE));
      *       ( 'i\'m a string','28',NULL,FALSE )
@@ -114,8 +115,9 @@ class sp_SQLUtils {
      *    :rtype:  string
      *
      *    Example:
-     *    .. code-block:: php
-     *       php> $conn=new mysqli( ... connection data ...)
+     *    .. code-block::
+     *       
+     *       php> $conn=new mysqli( connection data )
      *       php> $sql_utils=new sp_SQLUtils($conn)
      *       php> $myArray=array("city address"=>"main street","married"=>false);
      *       php> echo $sql_utils->array_to_sql_assignments($myArray);
@@ -161,7 +163,7 @@ class sp_SQLUtils {
 class sp_Lib {
     
     /**!
-     * .. map_method::
+     * .. method:: map_method($array,$obj,$methodName)
      *    Call an object method on each item in an array and return an array
      *      with the results.
      *
@@ -198,7 +200,7 @@ class sp_Lib {
  *    :type $rgt: int
  *    :param $parentId: the parent's node id, if any
  *    :type $parentId: int or NULL
- *    :param $fields: additional fields of the node, as fieldName=>value
+ *    :param $fields: additional field names of the node (each value is a field name)
  *    :type $fields: array or NULL
  *
  *    ..note: this class doesn't involve database interaction, its purposes is
@@ -213,17 +215,17 @@ class BaobabNode {
     public $lft;
     public $rgt;
     public $parentNode;
-    public $fields;
+    public $fields_values;
 
     
     public $children;
 
-    public function __construct($id,$lft,$rgt,$parentNode,$fields=NULL) {
+    public function __construct($id,$lft,$rgt,$parentNode,$fields_values=NULL) {
         $this->id=$id;
         $this->lft=$lft;
         $this->rgt=$rgt;
         $this->parentNode=$parentNode;
-        $this->fields=&$fields;
+        $this->fields_values=&$fields_values;
         
         $this->children=array();
     }
@@ -401,7 +403,7 @@ class Baobab  {
     /**!
      * .. method:: isIdCheckEnabled()
      *    
-     *    Verify if id checking is enabled. See :method:`Baobab.enableIdCheck`.
+     *    Verify if id checking is enabled. See :class:`Baobab.enableIdCheck`.
      *
      *    :return: wheter to enable id checking is enabled or not
      *    :rtype:  boolean
@@ -702,7 +704,7 @@ class Baobab  {
      *    :rtype:  array
      *
      *    Example (considering a tree with two nodes with a field 'name'):
-     *    .. code-block:: php
+     *    .. code-block::
      *       
      *       php> $tree->get_path(2,array("name"))
      *       array([0]=>array([id]=>1,[name]=>'rootName'),array([id]=>2,[name]=>'secondNodeName']))
@@ -986,7 +988,7 @@ class Baobab  {
      *       If the gaps are not closed, you can't use most of the API. Usually
      *         you want to avoid closing gaps when you're delete different
      *         subtrees and want to update the numbering just once
-     *         (see :Baobab:`update_numbering`)
+     *         (see :class:`Baobab.update_numbering`)
      */
     public function delete_subtree($id_node,$close_gaps=TRUE) {
         $id_node=intval($id_node);
@@ -1345,9 +1347,9 @@ class Baobab  {
     /**
      * .. method:: _readLastResult([$fields=NULL[,$error_field="error_code"[,$numResults=2]]])
      *    
-     *    Read $numResults query results and return the value mapped to $fields.
-     *    If a field named $error_field is found throw an exception using that
-     *      error informations.
+     *    Read $numResults query results and return the values mapped to $fields.
+     *    If a field named as the value of $error_field is found throw an 
+     *      exception using that error informations.
      *
      *    :param $fields: name of a field to read or an array of fields names
      *    :type $fields:  string or array
@@ -1382,8 +1384,8 @@ class Baobab  {
         }
         
         $ar_out=array();
-        foreach($fields as $field_name) {
-            $ar_out[$field_name]=$record[$field_name];
+        foreach($fields as $fieldName) {
+            $ar_out[$fieldName]=$record[$fieldName];
         }
         $result->close();
         
@@ -1433,16 +1435,16 @@ class Baobab  {
     }
     
     /**
-     * .. method:: _sql_check_fields($fieldNames)
+     * .. method:: _sql_check_fields($fields)
      *
      *    Check that the supplied fields exists in this Baobab table.
      *    Throws an exception if something is wrong.
      *
-     *    :param $fieldNames: names of the fields to check for
-     *    :type $fieldNames:  array
+     *    :param $fields: names of the fields to check for
+     *    :type $fields:  array
      *
      */
-    private function _sql_check_fields($fieldNames) {
+    private function _sql_check_fields($fields) {
         // retrieve the fields' names
         $result=$this->db->query("SHOW COLUMNS FROM Baobab_{$this->tree_name};",MYSQLI_STORE_RESULT);
         if (!$result)  throw new sp_MySQL_Error($this->db);
@@ -1454,8 +1456,8 @@ class Baobab  {
         $result->close();
         
         // check that the requested fields exist
-        foreach($fieldNames as $fName) {
-            if (!isset($real_cols[$fName])) throw new sp_Error("`{$fName}` wrong field name for table Baobab_{$this->tree_name}");
+        foreach($fields as $fieldName) {
+            if (!isset($real_cols[$fieldName])) throw new sp_Error("`{$fieldName}` wrong field name for table Baobab_{$this->tree_name}");
         }
     }
 
