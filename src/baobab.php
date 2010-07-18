@@ -1054,32 +1054,63 @@ class Baobab  {
     }
 
     /**!
-     * .. method:: updateNode($id_node,$attrs)
+     * .. method:: updateNode($id_node,$fields_values)
      *    Update data associeted to a node
      *
      *    :param $id_node: id of the node to update
      *    :type $id_node:  int
-     *    :param $attrs: mapping fields=>values to update
+     *    :param $fields_values: mapping fields=>values to update
      *                     (only supported types are string,int,float,boolean)
-     *    :type $attrs:  array
+     *    :type $fields_values:  array
      * 
      */
-    public function updateNode($id_node,$attrs){
+    public function updateNode($id_node,$fields_values){
         $id_node=intval($id_node);
         
         $this->_check_id($id_node);
         
-        if (empty($attrs)) throw new sp_Error("\$attrs cannot be empty");
+        if (empty($fields_values)) throw new sp_Error("\$fields_values cannot be empty");
         
-        $this->_sql_check_fields(array_keys($attrs));
+        $this->_sql_check_fields(array_keys($fields_values));
         
         $query="".
          " UPDATE Baobab_{$this->tree_name}".
-         " SET ".( $this->sql_utils->array_to_sql_assignments($attrs,$this->db) ).
+         " SET ".( $this->sql_utils->array_to_sql_assignments($fields_values) ).
          " WHERE id = $id_node";
         
         $result = $this->db->query($query,MYSQLI_STORE_RESULT);
         if (!$result) throw new sp_MySQL_Error($this->db);
+    }
+    
+    /**!
+     * .. method:: getNodeData($id_node[,$fields])
+     *    Retrieve informations about a node.
+     *    
+     *    :param $id_node: id of the node
+     *    :type $id_node:  int
+     *    :param $fields: fields' names to read values from
+     *    :type $fields:  array
+     *
+     *    :return: the informations found
+     *    :rtype:  array
+     * 
+     */
+    public function getNodeData($id_node,$fields=NULL){
+        $id_node=intval($id_node);
+        
+        $this->_check_id($id_node);
+        
+        if (!empty($fields)) $this->_sql_check_fields($fields);
+        
+        $query="".
+        " SELECT ".($fields===NULL ? "*" : join(",",$fields)).
+        " FROM Baobab_{$this->tree_name} ".
+        " WHERE id = $id_node";
+        
+        $result = $this->db->query($query,MYSQLI_STORE_RESULT);
+        if (!$result) throw new sp_MySQL_Error($this->db);
+        
+        return $result->fetch_assoc();
     }
     
     /**!
