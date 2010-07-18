@@ -141,7 +141,7 @@ class sp_SQLUtils {
      *    Empty connection results of the last single or multi query.
      *    If the last query generated an error, a sp_MySQL_Error exception
      *      is raised.
-     **/
+     */
     public function flush_results(){
         $conn=&$this->conn;
         while($conn->more_results()) {
@@ -186,7 +186,7 @@ class sp_Lib {
 
 
 /**!
- * .. class:: BaobabNode($id,$lft,$rgt,$parentId[,$attrs=NULL])
+ * .. class:: BaobabNode($id,$lft,$rgt,$parentId[,$fields=NULL])
  *    
  *    Node of a Baobab tree
  *
@@ -198,8 +198,8 @@ class sp_Lib {
  *    :type $rgt: int
  *    :param $parentId: the parent's node id, if any
  *    :type $parentId: int or NULL
- *    :param $attrs: additional fields of the node, as fieldName=>value
- *    :type $attrs: array or NULL
+ *    :param $fields: additional fields of the node, as fieldName=>value
+ *    :type $fields: array or NULL
  *
  *    ..note: this class doesn't involve database interaction, its purposes is
  *        just to have a runtime representation of a Baobab tree
@@ -218,12 +218,12 @@ class BaobabNode {
     
     public $children;
 
-    public function __construct($id,$lft,$rgt,&$parentNode,$fields=NULL) {
+    public function __construct($id,$lft,$rgt,$parentNode,$fields=NULL) {
         $this->id=$id;
         $this->lft=$lft;
         $this->rgt=$rgt;
         $this->parentNode=$parentNode;
-        $this->fields=$fields;
+        $this->fields=&$fields;
         
         $this->children=array();
     }
@@ -236,22 +236,76 @@ class BaobabNode {
      *    :param $child: append a node to the list of this node children
      *    :type $child: :class:`BaobabNode`
      *
-     **/
+     */
     public function add_child($child) {
         $this->children[]=$child;
     }
     
-    public function stringify($indent="",$deep=True) {
-        $out=$indent."({$this->id}) [{$this->lft},{$this->rgt}]";
-        if (!$deep) return $out;
-        foreach($this->children as $child) $out.="\n".$child->stringify($indent."    ");
+    /**!
+     * .. method:: stringify([$fields=NULL[,$diveInto=TRUE[,$indentChar=" "[,$indentLevel=0]]]])
+     *
+     *    Return a representation of the tree as a string.
+     *
+     *    :param $fields: what node fields include in the output. id,lft and rgt
+     *                      are always included.
+     *    :type $fields:  array
+     *    :param $diveInto: wheter to continue with node's children or not
+     *    :type $diveInto:  boolean
+     *    :param $indentChar: character to use to indent
+     *    :type $indentChar:  string
+     *    :param $indentLevel: how deep we are indenting
+     *    :type $indentLevel:  int
+     *    
+     *    :return: tree or node representation
+     *    :rtype:  string
+     *    
+     *    .. note::
+     *       $indentLevel is meant for internal use only.
+     *
+     *    .. todo::
+     *       $fields is currently unused
+     */
+    public function stringify($fields=NULL,$diveInto=TRUE,$indentChar=" ",$indentLevel=0) {
+        // XXX TODO $fields is not used at present (and remove the notice from documentation)
+        $out=str_repeat($indentChar,$indentLevel*4)."({$this->id}) [{$this->lft},{$this->rgt}]";
+        if (!$diveInto) return $out;
+        foreach($this->children as $child) $out.="\n".$child->stringify(
+                            $fields,TRUE,$indentChar,$indentLevel+1);
         return $out;
     }
     
+    /**!
+     * .. method:: is_rightmost()
+     *    
+     *    Check if the node is rightmost between his siblings.
+     *
+     *    :return: whether if the node is the rightmost or not
+     *    :rtype:  boolean
+     *
+     *    .. note:
+     *       root node is considered to be rightmost
+     */
     public function is_rightmost(){
         if (!$this->parentNode) return TRUE;
         
         return $this->parentNode->children[count($this->parentNode->children)-1]->id===$this->id;
+    }
+    
+    /**!
+     * .. method:: is_leftmost()
+     *    
+     *    Check if the node is leftmost between his siblings.
+     *
+     *    :return: whether if the node is the leftmost or not
+     *    :rtype:  boolean
+     *    
+     *    .. note:
+     *       root node is considered to be leftmost
+     */
+    public function is_leftmost(){
+        if (!$this->parentNode) return TRUE;
+        
+        return $this->parentNode->children[0]->id===$this->id;
     }
 }
 
@@ -513,7 +567,7 @@ class Baobab  {
      *    :return: the ids of node's descendants, in ascending order
      *    :rtype:  array
      *
-     **/
+     */
     public function get_descendants($id_node=NULL) {
 
         if ($id_node===NULL) {
@@ -1273,7 +1327,7 @@ class Baobab  {
      *    
      *    :return: array, mapping $fields=>values found in the last result
      *    :rtype:  int
-     **/
+     */
     private function _readLastResult($fields=NULL,$error_field="error_code",$numResults=2){
         if (is_string($fields)) $fields=array($fields);
         else if ($fields===NULL) $fields=array();
