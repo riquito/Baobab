@@ -222,7 +222,7 @@ class BaobabNode {
         $this->id=$id;
         $this->lft=$lft;
         $this->rgt=$rgt;
-        $this->parentNode=&$parentNode;
+        $this->parentNode=$parentNode;
         $this->fields=$fields;
         
         $this->children=array();
@@ -242,7 +242,7 @@ class BaobabNode {
     }
     
     public function stringify($indent="",$deep=True) {
-        $out.=$indent."({$this->id}) [{$this->lft},{$this->rgt}]";
+        $out=$indent."({$this->id}) [{$this->lft},{$this->rgt}]";
         if (!$deep) return $out;
         foreach($this->children as $child) $out.="\n".$child->stringify($indent."    ");
         return $out;
@@ -650,9 +650,9 @@ class Baobab  {
      *    Example (considering a tree with two nodes with a field 'name'):
      *    .. code-block:: php
      *       
-     *       php> $tree->get_path(2,"name")
+     *       php> $tree->get_path(2,array("name"))
      *       array([0]=>array([id]=>1,[name]=>'rootName'),array([id]=>2,[name]=>'secondNodeName']))
-     *       php> join("/",$tree->get_path(2,array("name"),TRUE))
+     *       php> join("/",$tree->get_path(2,"name",TRUE))
      *       "rootName/secondNodeName"
      * 
      */
@@ -670,9 +670,10 @@ class Baobab  {
         // append the field "id" if missing
         if (FALSE===array_search("id",$fields)) $fields[]="id";
         
+        $this->_sql_check_fields($fields);
+        
         $fields_escaped=array();
         foreach($fields as $fieldName) {
-            // XXX at present $fields are not checked and SQL injections are possible
             $fields_escaped[]=sprintf("`%s`", str_replace("`","``",$fieldName));
         }
         
@@ -892,7 +893,7 @@ class Baobab  {
                     
                     $k=$numParents-1;
                     $me=$node;
-                    while ($me->rgt+1 == $parents[$k]->rgt) {
+                    while ($k>-1 && $me->rgt+1 == $parents[$k]->rgt) {
                         $me=$parents[$k];
                         unset($parents[$k--]);
                     }
@@ -998,9 +999,16 @@ class Baobab  {
         return $out;
     }
 
-    /*
+    /**!
+     * .. method:: updateNode($id_node,$attrs)
+     *    Update data associeted to a node
      *
-     *
+     *    :param $id_node: id of the node to update
+     *    :type $id_node:  int
+     *    :param $attrs: mapping fields=>values to update
+     *                     (only supported types are string,int,float,boolean)
+     *    :type $attrs:  array
+     * 
      */
     public function updateNode($id_node,$attrs){
         $id_node=intval($id_node);
@@ -1008,6 +1016,8 @@ class Baobab  {
         $this->_check_id($id_node);
         
         if (empty($attrs)) throw new sp_Error("\$attrs cannot be empty");
+        
+        $this->_sql_check_fields(array_keys($attrs));
         
         $query="".
          " UPDATE Baobab_{$this->tree_name}".
@@ -1336,6 +1346,33 @@ class Baobab  {
         
         return json_encode($ar_out);
     }
+    
+    /**
+     * .. method:: _sql_check_fields($fieldNames)
+     *
+     *    Check that the supplied fields exists in this Baobab table.
+     *    Throws an exception if something is wrong.
+     *
+     *    :param $fieldNames: names of the fields to check for
+     *    :type $fieldNames:  array
+     *
+     */
+    private function _sql_check_fields($fieldNames) {
+        // retrieve the fields' names
+        $result=$this->db->query("SHOW COLUMNS FROM Baobab_{$this->tree_name};",MYSQLI_STORE_RESULT);
+        if (!$result)  throw new sp_MySQL_Error($this->db);
+        
+        $real_cols=array();
+        while($row = $result->fetch_array(MYSQLI_ASSOC)) {
+            $real_cols[$row["Field"]]=TRUE;
+        }
+        $result->close();
+        
+        // check that the requested fields exist
+        foreach($fieldNames as $fName) {
+            if (!isset($real_cols[$fName])) throw new sp_Error("`{$fName}` wrong field name for table Baobab_{$this->tree_name}");
+        }
+    }
 
     /**!
      * .. method:: import($data)
@@ -1368,22 +1405,7 @@ class Baobab  {
         if (is_string($data)) $data=json_decode($data,true);
         if (!$data || empty($data["values"])) return;
         
-        // retrieve the column names
-        
-        $result=$this->db->query("SHOW COLUMNS FROM Baobab_{$this->tree_name};",MYSQLI_STORE_RESULT);
-        if (!$result)  throw new sp_MySQL_Error($this->db);
-        
-        $real_cols=array();
-        while($row = $result->fetch_array(MYSQLI_ASSOC)) {
-            $real_cols[$row["Field"]]=TRUE;
-        }
-        $result->close();
-        
-        // check that the requested fields exist
-        foreach($data["fields"] as $fieldName) {
-            if (!isset($real_cols[$fieldName])) throw new sp_Error("`{$fieldName}` wrong field name for table Baobab_{$this->tree_name}");
-        }
-        
+        $this->_sql_check_fields($data["fields"]);
         
         $result=$this->db->query(
                 "INSERT INTO Baobab_{$this->tree_name}(".join(",",$data["fields"]).") VALUES ".
@@ -1402,7 +1424,7 @@ class BaobabNamed extends Baobab {
     public function build() {
         parent::build();
 
-        $result = $this->db->query("ALTER TABLE Baobab_{$this->tree_name} ADD COLUMN label TEXT DEFAULT '' NOT NULL",MYSQLI_STORE_RESULT);
+        $result = $this->db->query("ALTER TABLE Baobab_{$this->tree_name} ADD COLUMN label VARCHAR(50) DEFAULT '' NOT NULL",MYSQLI_STORE_RESULT);
         if (!$result) throw new sp_MySQL_Error($this->db);
     }
     
