@@ -1167,7 +1167,7 @@ class Baobab  {
     }
     
     /**!
-     * .. method:: getNodeData($id_node[,$fields])
+     * .. method:: getNodeData($id_node[,$fields=NULL])
      *    Retrieve informations about a node.
      *    
      *    :param $id_node: id of the node
@@ -1198,20 +1198,20 @@ class Baobab  {
     }
     
     /**!
-     * .. method:: appendChild([$id_parent,[$attrs]])
+     * .. method:: appendChild([$id_parent=NULL[,$fields_values=NULL]])
      *    
      *    Create and append a node as last child of a parent node.
      *
      *    :param $id_parent: id of the parent node
      *    :type $id_parent: int or NULL
-     *    :param $attrs: array fields=>values to assign to the new node
-     *    :type $attrs: array or NULL
+     *    :param $fields_values: mapping fields=>values to assign to the new node
+     *    :type $fields_values: array or NULL
      *    
-     *    :return: id of the root, or NULL if empty
-     *    :rtype:  int or NULL
+     *    :return: id of the root, or 0 if empty
+     *    :rtype:  int
      *
      */
-    public function appendChild($id_parent=NULL,$attrs=NULL){
+    public function appendChild($id_parent=NULL,$fields_values=NULL){
         
         $id_parent=intval($id_parent);
         
@@ -1225,27 +1225,27 @@ class Baobab  {
         $res=$this->_readLastResult('new_id');
         
         //update the node if needed
-        if ($attrs!==NULL) $this->updateNode($new_id,$attrs,TRUE);
+        if ($fields_values!==NULL) $this->updateNode($res['new_id'],$fields_values);
         
         return intval($res['new_id']);
     }
     
     /**!
-     * .. method:: insertNodeAfter($id_sibling[,$attrs=NULL])
+     * .. method:: insertNodeAfter($id_sibling[,$fields_values=NULL])
      *
      *    Create a new node and insert it as the next sibling of the node
      *      chosen (which can not be root)
      *
      *    :param $id_sibling: id of a node in the tree (can not be root)
      *    :type $id_sibling:  int
-     *    :param $attrs: additional fields of the new node, as fieldName=>value
-     *    :type $attrs:  array
+     *    :param $fields_values: mapping fields=>values to assign to the new node
+     *    :type $fields_values: array or NULL
      *
      *    :return: id of the new node
      *    :rtype:  int
      * 
      */
-    public function insertNodeAfter($id_sibling,$attrs=NULL) {
+    public function insertNodeAfter($id_sibling,$fields_values=NULL) {
         $id_sibling=intval($id_sibling);
         
         $this->_check_id($id_sibling);
@@ -1258,27 +1258,27 @@ class Baobab  {
         $res=$this->_readLastResult('new_id');
         
         //update the node if needed
-        if ($attrs!==NULL) $this->updateNode($new_id,$attrs,TRUE);
+        if ($fields_values!==NULL) $this->updateNode($res['new_id'],$fields_values);
         
         return intval($res['new_id']);
     }
 
     /**!
-     * .. method:: insertNodeBefore($id_sibling[,$attrs=NULL])
+     * .. method:: insertNodeBefore($id_sibling[,$fields_values=NULL])
      *
      *    Create a new node and insert it as the previous sibling of the node
      *      chosen (which can not be root)
      *
      *    :param $id_sibling: id of a node in the tree (can not be root)
      *    :type $id_sibling:  int
-     *    :param $attrs: additional fields of the new node, as fieldName=>value
-     *    :type $attrs:  array
+     *    :param $fields_values: mapping fields=>values to assign to the new node
+     *    :type $fields_values: array or NULL
      *
      *    :return: id of the new node
      *    :rtype:  int
      * 
      */
-    public function insertNodeBefore($id_sibling,$attrs=NULL) {
+    public function insertNodeBefore($id_sibling,$fields_values=NULL) {
         $id_sibling=intval($id_sibling);
         
         $this->_check_id($id_sibling);
@@ -1291,13 +1291,13 @@ class Baobab  {
         $res=$this->_readLastResult('new_id');
         
         //update the node if needed
-        if ($attrs!==NULL) $this->updateNode($new_id,$attrs,TRUE);
+        if ($fields_values!==NULL) $this->updateNode($res['new_id'],$fields_values);
         
         return intval($res['new_id']);
     }
 
     /**!
-     * .. method:: insertChildAtIndex($id_parent,$index)
+     * .. method:: insertChildAtIndex($id_parent,$index[,$fields_values=NULL])
      *
      *    Create a new node and insert it as the nth child of the parent node
      *      chosen
@@ -1309,12 +1309,14 @@ class Baobab  {
      *                   Negative indexes are allowed (-1 is the position before
      *                     the last sibling).
      *    :type $index:  int
+     *    :param $fields_values: mapping fields=>values to assign to the new node
+     *    :type $fields_values: array or NULL
      *
      *    :return: id of the new node
      *    :rtype:  int
      * 
      */
-    public function insertChildAtIndex($id_parent,$index) {
+    public function insertChildAtIndex($id_parent,$index,$fields_values=NULL) {
         $id_parent=intval($id_parent);
         $index=intval($index);
         
@@ -1326,6 +1328,10 @@ class Baobab  {
             throw new sp_MySQL_Error($this->db);
         
         $res=$this->_readLastResult('new_id');
+        
+        //update the node if needed
+        if ($fields_values!==NULL) $this->updateNode($res['new_id'],$fields_values);
+        
         return intval($res['new_id']);
     }
     
