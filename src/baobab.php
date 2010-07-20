@@ -142,16 +142,47 @@ class sp_SQLUtils {
      *    
      *    Empty connection results of the last single or multi query.
      *    If the last query generated an error, a sp_MySQL_Error exception
-     *      is raised.
+     *    is raised.
+     *    Mostly useful after calling sql functions or procedures.
      */
     public function flush_results(){
-        $conn=&$this->conn;
+        $conn=$this->conn;
         while($conn->more_results()) {
             if ($result = $conn->use_result()) $result->close();
             $conn->next_result();
         }
         
         if ($conn->errno) throw new sp_MySQL_Error($conn);
+    }
+    
+    /**!
+     * .. method:: get_table_fields($table_name)
+     *    
+     *    Retrieve the names of the fields in a table.
+     *    
+     *    :param $table_name: name of the table
+     *    :type $table_name:  string
+     *
+     *    :return: fields' names
+     *    :rtype:  array
+     *    
+     *    .. warning::
+     *       The table name is not sanitized at all, use this method only
+     *       if you're directly providing the correct name, otherwise
+     *       sql injection is a given.
+     */
+    public function &get_table_fields($table_name){
+        $table_name=str_replace('`','``',$table_name);
+        
+        $result=$this->conn->query("SHOW COLUMNS FROM `{$table_name}`;",MYSQLI_STORE_RESULT);
+        if (!$result)  throw new sp_MySQL_Error($this->conn);
+        
+        $fields=array();
+        while($row = $result->fetch_array(MYSQLI_ASSOC)) {
+            $fields[]=$row["Field"];
+        }
+        $result->close();
+        return $fields;
     }
 }
 
@@ -316,6 +347,8 @@ class Baobab  {
     protected $db;
     protected $tree_name;
     protected $sql_utils;
+    protected $fields;
+    private $_refresh_fields;
     private $_must_check_ids;
     private $_errors;
     
@@ -337,6 +370,8 @@ class Baobab  {
         $this->db=$db;
         $this->sql_utils=new sp_SQLUtils($db);
         $this->tree_name=$tree_name;
+        $this->fields=array();
+        $this->_refresh_fields=TRUE;
         $this->enableIdCheck($must_check_ids);
         
         // load error's information from db (if tables were created)
@@ -413,7 +448,54 @@ class Baobab  {
         return $this->_must_check_ids;
     }
     
+    /**
+     * .. method:: _sql_check_fields($fields)
+     *
+     *    Check that the supplied fields exists in this Baobab table.
+     *    Throws an exception if something is wrong.
+     *
+     *    :param $fields: names of the fields to check for
+     *    :type $fields:  array
+     *
+     */
+    private function _sql_check_fields(&$fields) {
+        
+        $real_fields=$this->_get_fields();
+        // check that the requested fields exist
+        foreach($fields as $fieldName) {
+            if (!isset($real_fields[$fieldName])) throw new sp_Error("`{$fieldName}` wrong field name for table Baobab_{$this->tree_name}");
+        }
+    }
     
+    /**
+     * .. method:: _get_fields()
+     *
+     *    Return the fields' names of the Baobab main table.
+     *    It mantains the fields array in memory, and refresh it if the
+     *    private variable _refresh_fields is TRUE
+     *
+     *    :return: associative array fieldName=>TRUE
+     *    :rtype:  array
+     *
+     *    .. note::
+     *
+     *       An associative array is being returned because it's quicker to
+     *       check for fields existence inside it.
+     *
+     */
+    private function &_get_fields(){
+        
+        if ($this->_refresh_fields) {
+            $fields=$this->sql_utils->get_table_fields("Baobab_{$this->tree_name}");
+            $this->fields=array();
+            for($i=0,$il=count($fields);$i<$il;$i++) {
+                $this->fields[$fields[$i]]=TRUE;
+            }
+            $this->_refresh_fields=FALSE;
+        }
+        
+        return $this->fields;
+    }
     
     /**!
      * .. method:: build()
@@ -1434,33 +1516,6 @@ class Baobab  {
         return json_encode($ar_out);
     }
     
-    /**
-     * .. method:: _sql_check_fields($fields)
-     *
-     *    Check that the supplied fields exists in this Baobab table.
-     *    Throws an exception if something is wrong.
-     *
-     *    :param $fields: names of the fields to check for
-     *    :type $fields:  array
-     *
-     */
-    private function _sql_check_fields($fields) {
-        // retrieve the fields' names
-        $result=$this->db->query("SHOW COLUMNS FROM Baobab_{$this->tree_name};",MYSQLI_STORE_RESULT);
-        if (!$result)  throw new sp_MySQL_Error($this->db);
-        
-        $real_cols=array();
-        while($row = $result->fetch_array(MYSQLI_ASSOC)) {
-            $real_cols[$row["Field"]]=TRUE;
-        }
-        $result->close();
-        
-        // check that the requested fields exist
-        foreach($fields as $fieldName) {
-            if (!isset($real_cols[$fieldName])) throw new sp_Error("`{$fieldName}` wrong field name for table Baobab_{$this->tree_name}");
-        }
-    }
-
     /**!
      * .. method:: import($data)
      *    
