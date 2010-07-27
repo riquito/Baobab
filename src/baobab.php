@@ -231,8 +231,8 @@ class sp_Lib {
  *    :type $rgt: int
  *    :param $parentId: the parent's node id, if any
  *    :type $parentId: int or NULL
- *    :param $fields: additional field names of the node (each value is a field name)
- *    :type $fields: array or NULL
+ *    :param $fields_values: additional fields of the node (mapping fieldName=>value)
+ *    :type $fields_values: array or NULL
  *
  *    ..note: this class doesn't involve database interaction, its purposes is
  *        just to have a runtime representation of a Baobab tree
@@ -247,7 +247,6 @@ class BaobabNode {
     public $rgt;
     public $parentNode;
     public $fields_values;
-
     
     public $children;
 
