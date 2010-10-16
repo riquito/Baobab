@@ -23,7 +23,7 @@ if (!defined("DS")) define("DS",DIRECTORY_SEPARATOR);
 require_once(dirname(__FILE__).DS.'../baobab.php');
 
 
-class BaobabJSONTest extends PHPUnit_Framework_TestCase {
+class BaobabTest extends PHPUnit_Framework_TestCase {
     protected static $db;
     protected $baobab;
     
@@ -68,15 +68,15 @@ class BaobabJSONTest extends PHPUnit_Framework_TestCase {
         
         $this->assertEquals(
             json_decode($empty_json_tree,TRUE),
-            json_decode($this->baobab->new_export(),TRUE)
+            json_decode($this->baobab->export(),TRUE)
         );
         
-        $this->baobab->new_import($empty_json_tree);
+        $this->baobab->import($empty_json_tree);
         $this->assertEquals(NULL,$this->baobab->get_tree());
         
         $this->assertEquals(
             json_decode($empty_json_tree,TRUE),
-            json_decode($this->baobab->new_export(),TRUE)
+            json_decode($this->baobab->export(),TRUE)
         );
         
         /* ### test nested tree ### */
@@ -92,11 +92,11 @@ class BaobabJSONTest extends PHPUnit_Framework_TestCase {
                 ]]
             }';
         
-        $this->baobab->new_import($nested_json_tree);
+        $this->baobab->import($nested_json_tree);
         
         $this->assertEquals(
             json_decode($nested_json_tree,TRUE),
-            json_decode($this->baobab->new_export(),TRUE)
+            json_decode($this->baobab->export(),TRUE)
         );
         
     }
@@ -108,7 +108,7 @@ class BaobabJSONTest extends PHPUnit_Framework_TestCase {
         $this->baobab->appendChild();
         $this->assertEquals(
             json_decode('{"fields":["id","lft","rgt"],"values":[1,1,2,[]]}',TRUE),
-            json_decode($this->baobab->new_export(),TRUE)
+            json_decode($this->baobab->export(),TRUE)
         );
         $this->baobab->clean();
         
@@ -120,7 +120,7 @@ class BaobabJSONTest extends PHPUnit_Framework_TestCase {
                         [9,16,23,[[1,17,20,[[17,18,19,[]]]],[4,21,22,[]]]],[18,24,37,
                         [[11,25,30,[[3,26,29,[[6,27,28,[]]]]]],[13,31,36,[[5,32,35,
                         [[19,33,34,[]]]]]]]]]]}',TRUE),
-            json_decode($this->baobab->new_export(),TRUE)
+            json_decode($this->baobab->export(),TRUE)
         );
     }
     
@@ -418,14 +418,14 @@ class BaobabJSONTest extends PHPUnit_Framework_TestCase {
     function _useTreeTestData(&$whatToTest){
         
         // load the data
-        $this->baobab->new_import(array("fields"=>$whatToTest["fields"],"values"=>$whatToTest["from"]));
+        $this->baobab->import(array("fields"=>$whatToTest["fields"],"values"=>$whatToTest["from"]));
         // call the func to test
         try {
             call_user_func_array(array($this->baobab,$whatToTest["methodName"]),$whatToTest["params"]);
             if (isset($whatToTest["error"])) $this->fail("Expecting exception ".$whatToTest["error"]);
             
             // get the current tree state
-            $treeState=json_decode($this->baobab->new_export(),TRUE);
+            $treeState=json_decode($this->baobab->export(),TRUE);
             
             // check that the tree state is what we expected
             $this->assertEquals($whatToTest["to"],$treeState["values"]);
@@ -503,7 +503,7 @@ class BaobabJSONTest extends PHPUnit_Framework_TestCase {
     // require import to be yet tested
     function _fillGenericTree(){
         $this->baobab->clean();
-        $this->baobab->new_import('{
+        $this->baobab->import('{
             "fields":["id","lft","rgt"],
             "values":
                 [5,1,14,[
@@ -524,7 +524,7 @@ class BaobabJSONTest extends PHPUnit_Framework_TestCase {
     // require import to be yet tested
     function _fillComplexTree(){
         $this->baobab->clean();
-        $this->baobab->new_import('{
+        $this->baobab->import('{
             "fields":["id","lft","rgt"],
             "values":
                 [8,1,38,[

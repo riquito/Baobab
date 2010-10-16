@@ -1472,92 +1472,9 @@ class Baobab  {
         
         return $ar_out;
     }
-
-
-    /**!
-     * .. method:: export()
-     *    
-     *    Create a JSON dump of the tree
-     *    
-     *    :return: a dump of the tree in JSON format
-     *    :rtype:  string
-     * 
-     */
-    public function export() {
-
-        $ar_out=array("fields"=>array(),"values"=>array());
-        
-        // retrieve the data
-        $result=$this->db->query("SELECT * FROM Baobab_{$this->tree_name} ORDER BY lft ASC",MYSQLI_STORE_RESULT);
-        if (!$result)  throw new sp_MySQL_Error($this->db);
-        
-        // retrieve the column names
-        $fieldFlags=array();
-        while ($finfo = $result->fetch_field()) {
-            $ar_out["fields"][]=$finfo->name;
-            $fieldFlags[]=$finfo->flags;
-        }
-        
-        // fill the value array
-        while($row = $result->fetch_array(MYSQLI_NUM)) {
-            $i=0;
-            $tmp_ar=array();
-            foreach($row as $fieldValue) {
-                if ($fieldFlags[$i]&MYSQLI_NUM_FLAG!=0) $fieldValue=floatval($fieldValue);
-                $tmp_ar[]=$fieldValue;
-                $i++;
-            }
-            $ar_out["values"][]=$tmp_ar;
-        }
-        
-        $result->close();
-        
-        return json_encode($ar_out);
-    }
     
     /**!
      * .. method:: import($data)
-     *    
-     *    Load data previously exported via the export method.
-     *    
-     *    :param $data: data to import, a json string or his decoded equivalent
-     *    :type $data: string(json) or array
-     *    
-     *    :return: id of the root, or NULL if empty
-     *    :rtype:  int or NULL
-     *    
-     *    Associative array format is something like
-     *
-     *    .. code-block:: php
-     *    
-     *       array(
-     *         "fields" => array("id","lft", "rgt"),
-     *         "values" => array(
-     *             array(1,1,4),
-     *             array(2,2,3)
-     *         )
-     *       )
-     *    
-     *    .. note::
-     *      If "id" in used and not NULL, there must not be any record on the
-     *        table with that same value.
-     */
-    public function import($data){
-        if (is_string($data)) $data=json_decode($data,true);
-        if (!$data || empty($data["values"])) return;
-        
-        $this->_sql_check_fields($data["fields"]);
-        
-        $result=$this->db->query(
-                "INSERT INTO Baobab_{$this->tree_name}(".join(",",$data["fields"]).") VALUES ".
-                join(", ",sp_Lib::map_method($data["values"],$this->sql_utils,"vector_to_sql_tuple"))
-            ,MYSQLI_STORE_RESULT);
-        if (!$result)  throw new sp_MySQL_Error($this->db);
-        
-    }
-    
-    /**!
-     * .. method:: new_import($data)
      *    
      *    Load data previously exported via the export method.
      *    
@@ -1583,7 +1500,7 @@ class Baobab  {
      *      If "id" in used and not NULL, there must not be any record on the
      *        table with that same value.
      */
-    public function new_import($data){
+    public function import($data){
         if (is_string($data)) $data=json_decode($data,true);
         if (!$data || empty($data["values"])) return;
         
@@ -1652,7 +1569,7 @@ class Baobab  {
     }
     
     /**!
-     * .. method:: new_export($fields=NULL)
+     * .. method:: export($fields=NULL)
      *    
      *    Create a JSON dump of the tree
      *    
@@ -1676,7 +1593,7 @@ class Baobab  {
      *    
      * 
      */
-    public function new_export($fields=NULL) {
+    public function export($fields=NULL) {
         
         if ($fields!==NULL) $this->_sql_check_fields($fields);
         else $fields=array_keys($this->_get_fields());
