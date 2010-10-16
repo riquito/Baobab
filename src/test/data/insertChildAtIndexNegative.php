@@ -21,7 +21,7 @@ $data=array(
     ),
     
     array(
-        // insert an element before the only and last leaf
+        "msg"=> "insert an element before the only and last leaf",
         "from"=>array(
             array(1,1,4),
                 array(2,2,3)
@@ -36,8 +36,7 @@ $data=array(
     ),
     
     array(
-        // insert an element as leaf before the most left side node
-        // (future siblings have not children)
+        "msg"=> "insert an element as leaf before the most left side node (future siblings have not children)",
         "from"=>array(
             array(1,1,8),
                 array(2,2,3),
@@ -54,8 +53,7 @@ $data=array(
         )
     ),
     array(
-        // insert an element as leaf before an inner node
-        // (future siblings have not children)
+        "msg"=> "insert an element as leaf before an inner node (future siblings have not children)",
         "from"=>array(
             array(1,1,8),
                 array(2,2,3),
@@ -71,8 +69,7 @@ $data=array(
                 array(4,8,9)
         )
     ),array(
-        // insert an element as leaf before the last node
-        // (future siblings have not children)
+        "msg"=> "insert an element as leaf before the last node (future siblings have not children)",
         "from"=>array(
             array(1,1,8),
                 array(2,2,3),
@@ -91,8 +88,7 @@ $data=array(
     
     
     array(
-        // insert an element before the most left side node
-        // (future siblings have children)
+        "msg"=> "insert an element before the most left side node (future siblings have children)",
         "from"=>array(
             array(1,1,20),
                 array(2,2,7),
@@ -121,8 +117,7 @@ $data=array(
         )
     ),
     array(
-        // insert an element before an inner node
-        // (future siblings have children)
+        "msg"=> "insert an element before an inner node (future siblings have children)",
         "from"=>array(
             array(1,1,20),
                 array(2,2,7),
@@ -151,8 +146,7 @@ $data=array(
         )
     ),
     array(
-        // insert an element before the last node
-        // (future siblings have children)
+        "msg"=> "insert an element before the last node (future siblings have children)",
         "from"=>array(
             array(1,1,20),
                 array(2,2,7),

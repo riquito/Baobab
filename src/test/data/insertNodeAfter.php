@@ -3,7 +3,7 @@ $data=array(
   "insertNodeAfter"=>array(
     
     array(
-        // insert an element after the only and last leaf
+        "msg"=>"insert an element after the only and last leaf",
         "from"=>array(
             array(1,1,4),
                 array(2,2,3)
@@ -18,8 +18,7 @@ $data=array(
     ),
     
     array(
-        // insert an element as leaf after the most left side node
-        // (future siblings have not children)
+        "msg"=>"insert an element as leaf after the most left side node (future siblings have not children)",
         "from"=>array(
             array(1,1,8),
                 array(2,2,3),
@@ -36,8 +35,7 @@ $data=array(
         )
     ),
     array(
-        // insert an element as leaf after an inner node
-        // (future siblings have not children)
+        "msg"=>"insert an element as leaf after an inner node (future siblings have not children)",
         "from"=>array(
             array(1,1,8),
                 array(2,2,3),
@@ -54,8 +52,7 @@ $data=array(
         )
     ),
     array(
-        // insert an element as leaf after the most right side node
-        // (future siblings have not children)
+        "msg"=>"insert an element as leaf after the most right side node (future siblings have not children)",
         "from"=>array(
             array(1,1,8),
                 array(2,2,3),
@@ -74,8 +71,7 @@ $data=array(
     
     
     array(
-        // insert an element after the most left side node
-        // (future siblings have children)
+        "msg"=>"insert an element after the most left side node (future siblings have children)",
         "from"=>array(
             array(1,1,20),
                 array(2,2,7),
@@ -104,8 +100,7 @@ $data=array(
         )
     ),
     array(
-        // insert an element after an inner node
-        // (future siblings have children)
+        "msg"=>"insert an element after an inner node (future siblings have children)",
         "from"=>array(
             array(1,1,20),
                 array(2,2,7),
@@ -134,8 +129,7 @@ $data=array(
         )
     ),
     array(
-        // insert an element after the most right side node
-        // (future siblings have children)
+        "msg"=>"insert an element after the most right side node (future siblings have children)",
         "from"=>array(
             array(1,1,20),
                 array(2,2,7),

@@ -3,7 +3,7 @@ $data=array(
   "moveSubTreeAfter"=>array(
     
     array(
-        "desc"=>"move a node after root",
+        "msg"=>"move a node after root",
         "from"=>array(
             array(1,1,22),
                 array(2,2,7),
@@ -35,7 +35,7 @@ $data=array(
     ),
     
     array(
-        "desc"=>"move a node after a single leaf (not in his subtree)",
+        "msg"=>"move a node after a single leaf (not in his subtree)",
         "from"=>array(
             array(1,1,22),
                 array(2,2,7),
@@ -67,7 +67,7 @@ $data=array(
     
     
     array(
-        "desc"=> "move a node after a single leaf in his subtree",
+        "msg"=> "move a node after a single leaf in his subtree",
         "from"=>array(
             array(1,1,22),
                 array(2,2,7),
@@ -100,7 +100,7 @@ $data=array(
     
     
     array(
-        "desc"=>"move a node after his rightmost sibling",
+        "msg"=>"move a node after his rightmost sibling",
         "from"=>array(
             array(1,1,28),
                 array(2,2,7),
@@ -138,7 +138,7 @@ $data=array(
     
     
     array(
-        "desc"=>"move a node after his leftmost sibling",
+        "msg"=>"move a node after his leftmost sibling",
         "from"=>array(
             array(1,1,28),
                 array(2,2,7),
@@ -177,7 +177,7 @@ $data=array(
     
     
     array(
-        "desc"=>"move a node after an ancestor",
+        "msg"=>"move a node after an ancestor",
         "from"=>array(
             array(1,1,32),
                 array(2,2,7),
@@ -218,7 +218,7 @@ $data=array(
     ),
     
     array(
-        "desc"=>"move a node after his parent",
+        "msg"=>"move a node after his parent",
         "from"=>array(
             array(1,1,32),
                 array(2,2,7),
