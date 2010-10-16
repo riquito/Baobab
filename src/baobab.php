@@ -451,7 +451,7 @@ class Baobab  {
      * .. method:: _sql_check_fields($fields)
      *
      *    Check that the supplied fields exists in this Baobab table.
-     *    Throws an exception if something is wrong.
+     *    Throws an sp_Error if something is wrong.
      *
      *    :param $fields: names of the fields to check for
      *    :type $fields:  array
@@ -1014,19 +1014,13 @@ class Baobab  {
                 
                 $node=new $className($id,$lft,$rgt,$parentNode,$row);
                 
-                $parentsList=array();
-                foreach($parents as $key=>$abc) {
-                    $parentsList[]="{$key}^".$abc->id;
-                }
-                $parentsList=array_reverse($parentsList);
-                
                 if (!$root) $root=$node;
                 else $parents[$numParents-1]->$addChild($node);
                 
-                if ($rgt-$lft!=1) {
+                if ($rgt-$lft!=1) { // not a leaf
                     $parents[$numParents]=$node;
                 }
-                else if ($rgt+1==$parents[$numParents-1]->rgt) {
+                else if (!empty($parents) && $rgt+1==$parents[$numParents-1]->rgt) {
                     
                     $k=$numParents-1;
                     $me=$node;
@@ -1560,6 +1554,155 @@ class Baobab  {
             ,MYSQLI_STORE_RESULT);
         if (!$result)  throw new sp_MySQL_Error($this->db);
         
+    }
+    
+    /**!
+     * .. method:: new_import($data)
+     *    
+     *    Load data previously exported via the export method.
+     *    
+     *    :param $data: data to import, a json string or his decoded equivalent
+     *    :type $data:  string(json) or array
+     *    
+     *    :return: id of the root, or NULL if empty
+     *    :rtype:  int or NULL
+     *    
+     *    $data JSON format is like the following
+     *
+     *    .. code-block:: json
+     *    
+     *       {
+     *         "fields" : ["id","lft", "rgt"],
+     *         "values" : 
+     *             [1,1,4,[
+     *                 [2,2,3,[]]
+     *             ]]
+     *       )
+     *    
+     *    .. note::
+     *      If "id" in used and not NULL, there must not be any record on the
+     *        table with that same value.
+     */
+    public function new_import($data){
+        if (is_string($data)) $data=json_decode($data,true);
+        if (!$data || empty($data["values"])) return;
+        
+        $this->_sql_check_fields($data["fields"]);
+        
+        $values=array();
+        
+        $nodes=array($data["values"]);
+        
+        while (!empty($nodes)) {
+            // prendi i dati del nodo corrente
+            $last_node=array_pop($nodes);
+             //salvo l'array dei figli
+            $children=array_pop($last_node);
+            // append the children to the nodes to iterate over
+            if (count($children)) $nodes=array_merge($nodes,$children);
+            
+            // tengo i dati
+            $values[]=$last_node;
+        }
+        
+        $result=$this->db->query(
+                "INSERT INTO Baobab_{$this->tree_name}(".join(",",$data["fields"]).") VALUES ".
+                join(", ",sp_Lib::map_method($values,$this->sql_utils,"vector_to_sql_tuple"))
+            ,MYSQLI_STORE_RESULT);
+        if (!$result)  throw new sp_MySQL_Error($this->db);
+        
+    }
+    
+    /**
+     * ..method:: _traverse_tree_to_export_data($node,&$data,&$fieldsFlags,&$fieldsOrder)
+     *
+     *   Traverse a baobab tree and create an array holding the data about each node.
+     *   Each resulting node is represented as an array holding his values ordered as
+     *     $fieldsOrder, with an array as most right element holding children nodes
+     *     (in the same format).
+     */
+    private function _traverse_tree_to_export_data($node,&$data,&$fieldsFlags,&$fieldsOrder){
+        
+        $len_data=count($data);
+        
+        $tmp_ar=array();
+        
+        $i=0;
+        
+        // get fields and values in the correct order
+        foreach($fieldsOrder as $fieldName) {
+            if ($fieldName=='id') $value=$node->id;
+            else if ($fieldName=='lft') $value=$node->lft;
+            else if ($fieldName=='rgt') $value=$node->rgt;
+            else $value=$node->fields_values[$fieldName];
+            
+            if ($fieldsFlags[$i++]&MYSQLI_NUM_FLAG!=0) $value=floatval($value);
+            $tmp_ar[]=$value;
+        }
+        
+        $tmp_ar[]=array(); // the last element holds the children
+        
+        // append the child data to parent data
+        $data[$len_data-1][]=&$tmp_ar;
+        
+        foreach($node->children as $childNode) {
+            $this->_traverse_tree_to_export_data($childNode,$tmp_ar,$fieldsFlags,$fieldsOrder);
+        }
+        
+    }
+    
+    /**!
+     * .. method:: new_export($fields=NULL)
+     *    
+     *    Create a JSON dump of the tree
+     *    
+     *    :param $fields: optional, the fields to be exported
+     *    :type $fields:  array
+     *    
+     *    :return: a dump of the tree in JSON format
+     *    :rtype:  string
+     *    
+     *    Example of an exported tree
+     *    
+     *    .. code-block:: json
+     *    
+     *       {
+     *         "fields" : ["id","lft", "rgt"],
+     *         "values" : 
+     *             [1,1,4,[
+     *                 [2,2,3,[]]
+     *             ]]
+     *       )
+     *    
+     * 
+     */
+    public function new_export($fields=NULL) {
+        
+        if ($fields!==NULL) $this->_sql_check_fields($fields);
+        else $fields=array_keys($this->_get_fields());
+        
+        $ar_out=array("fields"=>$fields,"values"=>null);
+        
+        // retrieve the data
+        $result=$this->db->query("SELECT ".join(",",$fields)." FROM Baobab_{$this->tree_name} ORDER BY lft ASC",MYSQLI_STORE_RESULT);
+        if (!$result)  throw new sp_MySQL_Error($this->db);
+        
+        // retrieve the column names and their types
+        $fieldsFlags=array();
+        while ($finfo = $result->fetch_field()) {
+            $fieldsFlags[]=$finfo->flags;
+        }
+        $result->close();
+        
+        $root=$this->get_tree();
+        
+        if ($root!==NULL) {
+            $data=array(array()); // the inner array emulate a node to gain root as child
+            $this->_traverse_tree_to_export_data($root,$data,$fieldsFlags,$ar_out["fields"]);
+            if (!empty($data[0][0])) $ar_out["values"]=&$data[0][0];
+        }
+        
+        return json_encode($ar_out);
     }
 
 
