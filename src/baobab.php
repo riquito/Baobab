@@ -250,12 +250,12 @@ class BaobabNode {
     
     public $children;
 
-    public function __construct($id,$lft,$rgt,$parentNode,$fields_values=NULL) {
+    public function __construct($id,$lft,$rgt,$parentNode,&$fields_values=NULL) {
         $this->id=$id;
         $this->lft=$lft;
         $this->rgt=$rgt;
         $this->parentNode=$parentNode;
-        $this->fields_values=&$fields_values;
+        $this->fields_values=$fields_values;
         
         $this->children=array();
     }
@@ -651,7 +651,7 @@ class Baobab  {
      *    :rtype:  array
      *
      */
-    public function get_descendants($id_node=NULL) {
+    public function &get_descendants($id_node=NULL) {
 
         if ($id_node===NULL) {
             // we search for descendants of root
@@ -694,7 +694,7 @@ class Baobab  {
      *    :return: the ids of the leaves, ordered from left to right
      *    :rtype:  array
      */
-    public function get_leaves($id_node=NULL){
+    public function &get_leaves($id_node=NULL){
         if ($id_node!==NULL) $this->_check_id($id_node);
         
         $query="
@@ -740,7 +740,7 @@ class Baobab  {
      *    .. note::
      *       tree root is at level 0
      */
-    public function get_levels(){
+    public function &get_levels(){
     
         $query="
           SELECT T2.id as id, (COUNT(T1.id) - 1) AS level
@@ -793,7 +793,7 @@ class Baobab  {
      *       "rootName/secondNodeName"
      * 
      */
-    public function get_path($id_node,$fields=NULL,$squash=FALSE){
+    public function &get_path($id_node,$fields=NULL,$squash=FALSE){
         $id_node=intval($id_node);
         
         $this->_check_id($id_node);
@@ -860,7 +860,7 @@ class Baobab  {
      *     :rtype:  array
      *
      */
-    public function get_some_children($id_parent,$howMany=NULL,$fromLeftToRight=TRUE){
+    public function &get_some_children($id_parent,$howMany=NULL,$fromLeftToRight=TRUE){
         $id_parent=intval($id_parent);
         $howMany=intval($howMany);
         
@@ -895,7 +895,7 @@ class Baobab  {
      *     :rtype:  array
      *
      */
-    public function get_children($id_parent) {
+    public function &get_children($id_parent) {
         return $this->get_some_children($id_parent);
     }
     
@@ -1148,7 +1148,8 @@ class Baobab  {
         
         if (empty($fields_values)) throw new sp_Error("\$fields_values cannot be empty");
         
-        $this->_sql_check_fields(array_keys($fields_values));
+        $fields=array_keys($fields_values);
+        $this->_sql_check_fields($fields);
         
         $query="".
          " UPDATE Baobab_{$this->tree_name}".
@@ -1442,7 +1443,7 @@ class Baobab  {
      *    :return: array, mapping $fields=>values found in the last result
      *    :rtype:  int
      */
-    private function _readLastResult($fields=NULL,$error_field="error_code",$numResults=2){
+    private function &_readLastResult($fields=NULL,$error_field="error_code",$numResults=2){
         if (is_string($fields)) $fields=array($fields);
         else if ($fields===NULL) $fields=array();
         
