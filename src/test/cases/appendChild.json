@@ -1,0 +1,235 @@
+{
+ "method":"appendChild",
+ "fields":["id","lft","rgt"],
+ "cases":[
+    {
+      "comment":"append an element at root in empty tree",
+      "from":null,
+      "params":[],
+      "to": [1,1,2,[]]
+    },
+    {
+      "comment":"append an element as unique child of root",
+      "from":[1,1,2,[]],
+      "params":[1],
+      "to":
+          [1,1,4,[
+              [2,2,3,[]]
+          ]]
+    },
+    {
+      "comment":"append an element when parent has one child",
+      "from" :
+          [1,1,4,[
+              [2,2,3,[]]
+          ]]
+      ,
+      "params":[1],
+      "to":
+          [1,1,6,[
+              [2,2,3,[]],
+              [3,4,5,[]]
+          ]]
+    },
+    {
+      "comment":"append an element when parent has two children",
+      "from" :
+          [1,1,6,[
+              [2,2,3,[]],
+              [3,4,5,[]]
+          ]]
+      ,
+      "params":[1],
+      "to":
+          [1,1,8,[
+              [2,2,3,[]],
+              [3,4,5,[]],
+              [4,6,7,[]]
+          ]]
+    },
+    {
+      "comment":"insert an element at root position",
+      "from" :
+          [1,1,8,[
+              [2,2,3,[]],
+              [3,4,5,[]],
+              [4,6,7,[]]
+          ]]
+      ,
+      "params":[],
+      "to":
+          [5,1,10,[
+            [1,2,9,[
+                [2,3,4,[]],
+                [3,5,6,[]],
+                [4,7,8,[]]
+            ]]
+          ]]
+    },
+    {
+      "comment":"append an element as leaf at most left side (parent and uncles have not children)",
+      "from" :
+          [1,1,8,[
+              [2,2,3,[]],
+              [3,4,5,[]],
+              [4,6,7,[]]
+          ]]
+      ,
+      "params":[2],
+      "to":
+          [1,1,10,[
+              [2,2,5,[
+                  [5,3,4,[]]
+              ]],
+              [3,6,7,[]],
+              [4,8,9,[]]
+          ]]
+    },
+    {
+      "comment":"append an element as leaf at center (parent and uncles have not children)",
+      "from" :
+          [1,1,8,[
+              [2,2,3,[]],
+              [3,4,5,[]],
+              [4,6,7,[]]
+          ]]
+      ,
+      "params":[3],
+      "to":
+          [1,1,10,[
+              [2,2,3,[]],
+              [3,4,7,[
+                  [5,5,6,[]]
+              ]],
+              [4,8,9,[]]
+          ]]
+    },
+    {
+      "comment":"append an element as leaf at most right side (parent and uncles have not children)",
+      "from" :
+          [1,1,8,[
+              [2,2,3,[]],
+              [3,4,5,[]],
+              [4,6,7,[]]
+          ]]
+      ,
+      "params":[4],
+      "to":
+          [1,1,10,[
+              [2,2,3,[]],
+              [3,4,5,[]],
+              [4,6,9,[
+                  [5,7,8,[]]
+              ]]
+          ]]
+    },
+    {
+      "comment":"append an element as leaf at most left side (not on leaf) (parent and uncles have children)",
+      "from" :
+          [1,1,20,[
+              [2,2,7,[
+                  [5,3,4,[]],
+                  [6,5,6,[]]
+              ]],
+              [3,8,13,[
+                  [7,9,10,[]],
+                  [8,11,12,[]]
+              ]],
+              [4,14,19,[
+                  [9,15,16,[]],
+                  [10,17,18,[]]
+              ]]
+          ]]
+      ,
+      "params":[2],
+      "to":
+          [1,1,22,[
+              [2,2,9,[
+                  [5,3,4,[]],
+                  [6,5,6,[]],
+                  [11,7,8,[]]
+              ]],
+              [3,10,15,[
+                  [7,11,12,[]],
+                  [8,13,14,[]]
+              ]],
+              [4,16,21,[
+                  [9,17,18,[]],
+                  [10,19,20,[]]
+              ]]
+          ]]
+    },
+    {
+      "comment":"append an element as leaf at center (not on leaf) (parent and uncles have children)",
+      "from" :
+          [1,1,20,[
+              [2,2,7,[
+                  [5,3,4,[]],
+                  [6,5,6,[]]
+              ]],
+              [3,8,13,[
+                  [7,9,10,[]],
+                  [8,11,12,[]]
+              ]],
+              [4,14,19,[
+                  [9,15,16,[]],
+                  [10,17,18,[]]
+              ]]
+          ]]
+      ,
+      "params":[3],
+      "to":
+          [1,1,22,[
+              [2,2,7,[
+                  [5,3,4,[]],
+                  [6,5,6,[]]
+              ]],
+              [3,8,15,[
+                  [7,9,10,[]],
+                  [8,11,12,[]],
+                  [11,13,14,[]]
+              ]],
+              [4,16,21,[
+                  [9,17,18,[]],
+                  [10,19,20,[]]
+              ]]
+          ]]
+    },
+    {
+      "comment":"append an element as leaf at most right side (not on leaf) (parent and uncles have children)",
+      "from" :
+          [1,1,20,[
+              [2,2,7,[
+                  [5,3,4,[]],
+                  [6,5,6,[]]
+              ]],
+              [3,8,13,[
+                  [7,9,10,[]],
+                  [8,11,12,[]]
+              ]],
+              [4,14,19,[
+                  [9,15,16,[]],
+                  [10,17,18,[]]
+              ]]
+          ]]
+      ,
+      "params":[4],
+      "to":
+          [1,1,22,[
+              [2,2,7,[
+                  [5,3,4,[]],
+                  [6,5,6,[]]
+              ]],
+              [3,8,13,[
+                  [7,9,10,[]],
+                  [8,11,12,[]]
+              ]],
+              [4,14,21,[
+                  [9,15,16,[]],
+                  [10,17,18,[]],
+                  [11,19,20,[]]
+              ]]
+          ]]
+    }
+  ]
+}

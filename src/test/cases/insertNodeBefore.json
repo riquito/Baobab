@@ -1,0 +1,48 @@
+{
+ "method":"insertNodeBefore",
+ "fields":["id","lft","rgt"],
+ "cases":[
+    {
+     "comment":"insert an element before the only and last leaf",
+     "from":[1,1,4,[[2,2,3,[]]]],
+     "params":[2],
+     "to":[1,1,6,[[3,2,3,[]],[2,4,5,[]]]]
+    },
+    {
+     "comment":"insert an element as leaf before the most left side node (future siblings have not children)",
+     "from":[1,1,8,[[2,2,3,[]],[3,4,5,[]],[4,6,7,[]]]],
+     "params":[2],
+     "to":[1,1,10,[[5,2,3,[]],[2,4,5,[]],[3,6,7,[]],[4,8,9,[]]]]
+    },
+    {
+     "comment":"insert an element as leaf before an inner node (future siblings have not children)",
+     "from":[1,1,8,[[2,2,3,[]],[3,4,5,[]],[4,6,7,[]]]],
+     "params":[3],
+     "to":[1,1,10,[[2,2,3,[]],[5,4,5,[]],[3,6,7,[]],[4,8,9,[]]]]
+    },
+    {
+     "comment":"insert an element as leaf before the most right side node (future siblings have not children)",
+     "from":[1,1,8,[[2,2,3,[]],[3,4,5,[]],[4,6,7,[]]]],
+     "params":[4],
+     "to":[1,1,10,[[2,2,3,[]],[3,4,5,[]],[5,6,7,[]],[4,8,9,[]]]]
+    },
+    {
+     "comment":"insert an element before the most left side node (future siblings have children)",
+     "from":[1,1,20,[[2,2,7,[[5,3,4,[]],[6,5,6,[]]]],[3,8,13,[[7,9,10,[]],[8,11,12,[]]]],[4,14,19,[[9,15,16,[]],[10,17,18,[]]]]]],
+     "params":[2],
+     "to":[1,1,22,[[11,2,3,[]],[2,4,9,[[5,5,6,[]],[6,7,8,[]]]],[3,10,15,[[7,11,12,[]],[8,13,14,[]]]],[4,16,21,[[9,17,18,[]],[10,19,20,[]]]]]]
+    },
+    {
+     "comment":"insert an element before an inner node (future siblings have children)",
+     "from":[1,1,20,[[2,2,7,[[5,3,4,[]],[6,5,6,[]]]],[3,8,13,[[7,9,10,[]],[8,11,12,[]]]],[4,14,19,[[9,15,16,[]],[10,17,18,[]]]]]],
+     "params":[3],
+     "to":[1,1,22,[[2,2,7,[[5,3,4,[]],[6,5,6,[]]]],[11,8,9,[]],[3,10,15,[[7,11,12,[]],[8,13,14,[]]]],[4,16,21,[[9,17,18,[]],[10,19,20,[]]]]]]
+    },
+    {
+     "comment":"insert an element before the most right side node (future siblings have children)",
+     "from":[1,1,20,[[2,2,7,[[5,3,4,[]],[6,5,6,[]]]],[3,8,13,[[7,9,10,[]],[8,11,12,[]]]],[4,14,19,[[9,15,16,[]],[10,17,18,[]]]]]],
+     "params":[4],
+     "to":[1,1,22,[[2,2,7,[[5,3,4,[]],[6,5,6,[]]]],[3,8,13,[[7,9,10,[]],[8,11,12,[]]]],[11,14,15,[]],[4,16,21,[[9,17,18,[]],[10,19,20,[]]]]]]
+    }
+  ]
+}
