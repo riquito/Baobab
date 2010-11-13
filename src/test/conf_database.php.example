@@ -4,5 +4,6 @@ $DB_CONFIG=array(
   "host"=>"localhost",
   "port"=>"3306",
   "username"=>"foo",
-  "password"=>"bar"
+  "password"=>"bar",
+  "charset"=>"utf8" // remember mysql charset have no dash
 );

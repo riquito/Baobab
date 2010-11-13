@@ -39,6 +39,9 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
                       $DB_CONFIG["dbname"],
                       $DB_CONFIG["port"]);
         
+        //http://dev.mysql.com/doc/refman/5.1/en/charset-charsets.html
+        mysqli_set_charset(self::$db,$DB_CONFIG["charset"]);
+        
         if (mysqli_connect_error()) {
             self::fail(sprintf('Connect Error (%s): %s',mysqli_connect_errno(),mysqli_connect_error()));
         }
