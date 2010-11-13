@@ -1627,16 +1627,5 @@ class Baobab  {
 }
 
 
-class BaobabNamed extends Baobab {
-
-    public function build() {
-        parent::build();
-
-        $result = $this->db->query("ALTER TABLE Baobab_{$this->tree_name} ADD COLUMN label VARCHAR(50) DEFAULT '' NOT NULL",MYSQLI_STORE_RESULT);
-        if (!$result) throw new sp_MySQL_Error($this->db);
-    }
-    
-
-}
 
 ?>

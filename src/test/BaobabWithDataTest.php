@@ -20,9 +20,22 @@
 
 if (!defined("DS")) define("DS",DIRECTORY_SEPARATOR);
 
-require_once('PHPUnit/Framework.php');
 require_once(dirname(__FILE__).DS.'../baobab.php');
 
+
+class BaobabNamed extends Baobab {
+
+    public function build() {
+        parent::build();
+
+        $result = $this->db->query("
+            ALTER TABLE Baobab_{$this->tree_name}
+            ADD COLUMN label VARCHAR(50) DEFAULT '' NOT NULL",MYSQLI_STORE_RESULT);
+        if (!$result) throw new sp_MySQL_Error($this->db);
+    }
+    
+
+}
 
 
 class BaobabWithDataTest extends PHPUnit_Framework_TestCase {
@@ -39,6 +52,9 @@ class BaobabWithDataTest extends PHPUnit_Framework_TestCase {
                       $DB_CONFIG["password"],
                       $DB_CONFIG["dbname"],
                       $DB_CONFIG["port"]);
+        
+        //http://dev.mysql.com/doc/refman/5.1/en/charset-charsets.html
+        mysqli_set_charset(self::$db,$DB_CONFIG["charset"]);
         
         if (mysqli_connect_error()) {
             self::fail(sprintf('Connect Error (%s): %s',mysqli_connect_errno(),mysqli_connect_error()));
@@ -62,25 +78,50 @@ class BaobabWithDataTest extends PHPUnit_Framework_TestCase {
         //$this->baobab->destroy();
     }
     
+    // clean the tree and insert a simple tree
     // require import to be yet tested
-    private function _fillGenericTree(){
+    function _fillGenericTree(){
         $this->baobab->clean();
-        $this->baobab->import(array(
-            "fields"=>array("id","lft","rgt"),
-            "values"=>array(
-                array(5,1,14),
-                    array(3,2,7),
-                        array(4,3,4),
-                        array(6,5,6),
-                    array(1,8,13),
-                        array(2,9,10),
-                        array(7,11,12)
-            )
-        ));
+        $this->baobab->import('{
+            "fields":["id","lft","rgt"],
+            "values":
+                [5,1,14,[
+                    [3,2,7,[
+                        [4,3,4,[]],
+                        [6,5,6,[]]
+                    ]],
+                    [1,8,13,[
+                        [2,9,10,[]],
+                        [7,11,12,[]]
+                    ]]
+                ]]
+            }'
+        );
+    }
+    
+    // clean the tree and insert a simple tree with labels
+    // require import to be yet tested
+    function _fillGenericLabelTree(){
+        $this->baobab->clean();
+        $this->baobab->import('{
+            "fields":["id","lft","label","rgt"],
+            "values":
+                [5,1,"A",14,[
+                    [3,2,"B",7,[
+                        [4,3,"C",4,[]],
+                        [6,5,"D",6,[]]
+                    ]],
+                    [1,8,"E",13,[
+                        [2,9,"F",10,[]],
+                        [7,11,"G",12,[]]
+                    ]]
+                ]]
+            }'
+        );
     }
     
     public function testUpdateNode(){
-        $this->_fillGenericTree();
+        $this->_fillGenericLabelTree();
         
         $this->baobab->updateNode(3,array("label"=>"ciao riquito ' ! "));
         
