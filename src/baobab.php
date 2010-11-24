@@ -347,6 +347,7 @@ class Baobab  {
     protected $tree_name;
     protected $sql_utils;
     protected $fields;
+    public $tree_id;
     private $_refresh_fields;
     private $_must_check_ids;
     private $_errors;
@@ -365,10 +366,11 @@ class Baobab  {
      *    :param $must_check_ids: whether to constantly check the id consistency or not
      *    :type $must_check_ids: boolean
      */
-    public function __construct($db,$tree_name,$must_check_ids=FALSE) {
+    public function __construct($db,$tree_name,$tree_id=NULL,$must_check_ids=FALSE) {
         $this->db=$db;
         $this->sql_utils=new sp_SQLUtils($db);
         $this->tree_name=$tree_name;
+        $this->tree_id=$tree_id;
         $this->fields=array();
         $this->_refresh_fields=TRUE;
         $this->enableIdCheck($must_check_ids);
@@ -376,6 +378,34 @@ class Baobab  {
         // load error's information from db (if tables were created)
         try { $this->_load_errors();
         } catch (sp_Error $e) {}
+        
+        // if $tree_id is NULL the number of trees must be 1, and we
+        //   automatically retrieve his id
+        if (!$tree_id) {
+            $query="SELECT DISTINCT tree_id FROM Baobab_{$this->tree_name} LIMIT 2";
+            if ($result=$this->db->query($query,MYSQLI_STORE_RESULT)) {
+                if ($result->num_rows==1) {
+                    // one and only, let's use it
+                    $row = $result->fetch_row();
+                    $tree_id=intval($row[0]);
+                }
+                else if ($result->num_rows==0) { // 
+                    // no trees ? it will be the first
+                    $tree_id=1;
+                }
+                $result->close();
+            } else {
+                if ($this->db->errno==1146) {
+                    // table does not exist (skip), sot it will be the first tree
+                    $tree_id=1;
+                } else throw new sp_MySQL_Error($this->db);
+            }
+            
+            if ($tree_id) $this->tree_id=$tree_id;
+            else {
+                throw new sp_Error("Too many trees found");
+            }
+        }
     }
     
     /**
@@ -559,14 +589,20 @@ class Baobab  {
     }
     
     /**!
-     * .. method:: clean()
+     * .. method:: clean([$tree_id])
      *    
-     *    Delete all the record from the table Baobab_{yoursuffix} and
-     *      reset the index conter.
+     *    Delete all the record from the table Baobab_{yoursuffix}, or from one
+     *      of his trees.
+     *
+     *    :param $tree_id: if set only the nodes of this tree will be removed
+     *    :type $tree_id:  int
      *
      */
-    public function clean() {
-        if (!$this->db->query("TRUNCATE TABLE Baobab_{$this->tree_name}")) {
+    public function clean($tree_id=NULL) {
+        if (!$this->db->query(
+            "DELETE FROM Baobab_{$this->tree_name} ".
+            ($tree_id===NULL ? "" : " WHERE tree_id=".intval($tree_id))
+            )) {
             if ($this->db->errno!==1146) // do not count "missing table" as an error
                 throw new sp_MySQL_Error($this->db);
         }
@@ -966,7 +1002,7 @@ class Baobab  {
      * .. method: get_tree([$className="BaobabNode"[,$addChild="add_child"]])
      *
      *    Create a tree from the database data.
-     *    It's possible to use a default tree or use cusom classes/functions
+     *    It's possible to use a default tree or use custom classes/functions
      *      (it must have the same constructor and public members of class
      *      :class:`BaobabNode`)
      *
@@ -1090,8 +1126,7 @@ class Baobab  {
      *         to delete multiple subtrees and close gaps just once)
      */
     public function close_gaps() {
-        
-        if (!$this->db->multi_query("CALL Baobab_Close_Gaps_{$this->tree_name}()"))
+        if (!$this->db->multi_query("CALL Baobab_Close_Gaps_{$this->tree_name}({$this->tree_id})"))
             throw new sp_MySQL_Error($this->db);
         
         $this->sql_utils->flush_results();
@@ -1212,7 +1247,7 @@ class Baobab  {
         if ($id_parent) $this->_check_id($id_parent);
 
         if (!$this->db->multi_query("
-                CALL Baobab_AppendChild_{$this->tree_name}({$id_parent},@new_id);
+                CALL Baobab_AppendChild_{$this->tree_name}({$this->tree_id},{$id_parent},@new_id);
                 SELECT @new_id as new_id"))
                 throw new sp_MySQL_Error($this->db);
 
@@ -1490,6 +1525,7 @@ class Baobab  {
      *    .. code-block:: json
      *    
      *       {
+     *         "tree_id": 6, //optional, it could also be one of the fields
      *         "fields" : ["id","lft", "rgt"],
      *         "values" : 
      *             [1,1,4,[
@@ -1523,12 +1559,51 @@ class Baobab  {
             $values[]=$last_node;
         }
         
-        $result=$this->db->query(
-                "INSERT INTO Baobab_{$this->tree_name}(".join(",",$data["fields"]).") VALUES ".
-                join(", ",sp_Lib::map_method($values,$this->sql_utils,"vector_to_sql_tuple"))
-            ,MYSQLI_STORE_RESULT);
-        if (!$result)  throw new sp_MySQL_Error($this->db);
+        $this->db->query("START TRANSACTION");
         
+        try {
+            
+            if (FALSE===array_search("tree_id",$data["fields"])) {
+                
+                if (!isset($data["tree_id"])) {
+                    // there isn't a tree_id, we must get one
+                    
+                    // find a new tree_id
+                    $query="SELECT MAX(tree_id)+1 as new_id FROM Baobab_{$this->tree_name}";
+                    
+                    $result = $this->db->query($query,MYSQLI_STORE_RESULT);
+                    if (!$result) throw new sp_MySQL_Error($this->db);
+                    
+                    $row = $result->fetch_row();
+                    $tree_id=intval($row[0]);
+                    
+                    $result->close();
+                } else $tree_id=intval($data["tree_id"]);
+                
+                // add tree_id to fields
+                $data["fields"][]="tree_id";
+                
+                // add tree_id to the each row
+                foreach($values as &$row){
+                    $row[]=$tree_id;
+                }
+            }
+            
+            // add the values
+            $result=$this->db->query(
+                    "INSERT INTO Baobab_{$this->tree_name}(".join(",",$data["fields"]).") VALUES ".
+                    join(", ",sp_Lib::map_method($values,$this->sql_utils,"vector_to_sql_tuple"))
+                ,MYSQLI_STORE_RESULT);
+            if (!$result)  throw new sp_MySQL_Error($this->db);
+        
+        } catch (Exception $e) {
+            // whatever happens we must rollback
+            $this->db->query("ROLLBACK");
+            throw $e;
+        }
+        
+        $result=$this->db->query("COMMIT");
+        if (!$result) throw new sp_MySQL_Error($this->db);
     }
     
     /**
@@ -1538,6 +1613,9 @@ class Baobab  {
      *   Each resulting node is represented as an array holding his values ordered as
      *     $fieldsOrder, with an array as most right element holding children nodes
      *     (in the same format).
+     *
+     *   :param $node: current node to retrieve values from
+     *   :type $node:  BaobabNode
      */
     private function _traverse_tree_to_export_data($node,&$data,&$fieldsFlags,&$fieldsOrder){
         
@@ -1546,6 +1624,7 @@ class Baobab  {
         $tmp_ar=array();
         
         $i=0;
+        $tree_id=NULL;
         
         // get fields and values in the correct order
         foreach($fieldsOrder as $fieldName) {
@@ -1555,6 +1634,9 @@ class Baobab  {
             else $value=$node->fields_values[$fieldName];
             
             if ($fieldsFlags[$i++]&MYSQLI_NUM_FLAG!=0) $value=floatval($value);
+            
+            if ($fieldName=="tree_id") {$tree_id=$value;continue;}
+            
             $tmp_ar[]=$value;
         }
         
@@ -1570,28 +1652,29 @@ class Baobab  {
     }
     
     /**!
-     * .. method:: export($fields=NULL)
+     * .. method:: export([$fields=NULL])
      *    
      *    Create a JSON dump of the tree
      *    
      *    :param $fields: optional, the fields to be exported
      *    :type $fields:  array
      *    
-     *    :return: a dump of the tree in JSON format
+     *    :return: a dump of the trees in JSON format
      *    :rtype:  string
      *    
      *    Example of an exported tree
      *    
      *    .. code-block:: json
-     *    
+     *
+     *       
      *       {
+     *         "tree_id": 6
      *         "fields" : ["id","lft", "rgt"],
      *         "values" : 
      *             [1,1,4,[
      *                 [2,2,3,[]]
      *             ]]
-     *       )
-     *    
+     *       }
      * 
      */
     public function export($fields=NULL) {
@@ -1599,10 +1682,15 @@ class Baobab  {
         if ($fields!==NULL) $this->_sql_check_fields($fields);
         else $fields=array_keys($this->_get_fields());
         
-        $ar_out=array("fields"=>$fields,"values"=>null);
+        $ar_out=array("fields"=> $fields,"values"=>null);
+        
+        if (FALSE===array_search("tree_id",$fields)) $fields[]="tree_id";
         
         // retrieve the data
-        $result=$this->db->query("SELECT ".join(",",$fields)." FROM Baobab_{$this->tree_name} ORDER BY lft ASC",MYSQLI_STORE_RESULT);
+        $result=$this->db->query(
+            " SELECT ".join(",",$fields)." FROM Baobab_{$this->tree_name}".
+            " WHERE tree_id=".intval($this->tree_id).
+            " ORDER BY tree_id ASC,lft ASC",MYSQLI_STORE_RESULT);
         if (!$result)  throw new sp_MySQL_Error($this->db);
         
         // retrieve the column names and their types
@@ -1615,10 +1703,15 @@ class Baobab  {
         $root=$this->get_tree();
         
         if ($root!==NULL) {
-            $data=array(array()); // the inner array emulate a node to gain root as child
+            //$data=array(array()); // the inner array emulate a node to gain root as child
+            $data=array(array());
             $this->_traverse_tree_to_export_data($root,$data,$fieldsFlags,$ar_out["fields"]);
             if (!empty($data[0][0])) $ar_out["values"]=&$data[0][0];
         }
+        
+        // get ridden of the added "tree_id" // XXXXXXXXXXXXXXXXXXXXXXXXXXX I SHOULD CHECK IF I WAS THE ONE ADDING IT
+        unset($ar_out["fields"][array_search("tree_id",$fields)]);
+        $ar_out["fields"]=array_values($ar_out["fields"]);
         
         return json_encode($ar_out);
     }

@@ -20,7 +20,7 @@
 
 if (!defined("DS")) define("DS",DIRECTORY_SEPARATOR);
 
-require_once(dirname(__FILE__).DS.'../baobab.php');
+require_once(dirname(__FILE__).DS.'..'.DS.'baobab.php');
 
 
 class BaobabTest extends PHPUnit_Framework_TestCase {
@@ -39,12 +39,12 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
                       $DB_CONFIG["dbname"],
                       $DB_CONFIG["port"]);
         
-        //http://dev.mysql.com/doc/refman/5.1/en/charset-charsets.html
-        mysqli_set_charset(self::$db,$DB_CONFIG["charset"]);
-        
         if (mysqli_connect_error()) {
             self::fail(sprintf('Connect Error (%s): %s',mysqli_connect_errno(),mysqli_connect_error()));
         }
+        
+        //http://dev.mysql.com/doc/refman/5.1/en/charset-charsets.html
+        mysqli_set_charset(self::$db,$DB_CONFIG["charset"]);
         
     }
     
@@ -421,7 +421,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     function _useTreeTestData(&$whatToTest){
         
         // load the data
-        $this->baobab->import(array("fields"=>$whatToTest["fields"],"values"=>$whatToTest["from"]));
+        $this->baobab->import(array("tree_id"=>1,"fields"=>$whatToTest["fields"],"values"=>$whatToTest["from"]));
         // call the func to test
         try {
             call_user_func_array(array($this->baobab,$whatToTest["methodName"]),$whatToTest["params"]);

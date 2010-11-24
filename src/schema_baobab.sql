@@ -22,22 +22,25 @@
 /* ############################### */
 
 CREATE TABLE IF NOT EXISTS Baobab_GENERIC (
-    id INTEGER  NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    lft INTEGER NOT NULL  CHECK (lft > 0),
-    rgt INTEGER NOT NULL CHECK (rgt > 1),
+    tree_id INTEGER UNSIGNED NOT NULL,
+    id      INTEGER UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    lft     INTEGER NOT NULL CHECK (lft > 0),
+    rgt     INTEGER NOT NULL CHECK (rgt > 1),
     CONSTRAINT order_okay CHECK (lft < rgt)
 ) ENGINE INNODB;
 
 
-CREATE VIEW Baobab_AdjTree_GENERIC (parent, child, lft)
+CREATE VIEW Baobab_AdjTree_GENERIC (tree_id,parent,child,lft)
     AS
-    SELECT B.id, E.id, E.lft
+    SELECT B.tree_id,B.id, E.id, E.lft
     FROM Baobab_GENERIC AS E
          LEFT OUTER JOIN Baobab_GENERIC AS B
            ON B.lft = ( SELECT MAX(lft)
                         FROM Baobab_GENERIC AS S
                         WHERE E.lft > S.lft
-                          AND E.lft < S.rgt)
+                          AND E.lft < S.rgt
+                          AND E.tree_id=S.tree_id)
+          AND B.tree_id=E.tree_id
     ORDER BY lft ASC;
 
 
@@ -75,10 +78,12 @@ DETERMINISTIC
 MODIFIES SQL DATA
 
   BEGIN
-
+    
+    DECLARE drop_tree_id INTEGER UNSIGNED;
     DECLARE drop_id INTEGER UNSIGNED;
     DECLARE drop_lft INTEGER UNSIGNED;
     DECLARE drop_rgt INTEGER UNSIGNED;
+    
 
     /*
     declare exit handler for not found rollback;
@@ -92,15 +97,15 @@ MODIFIES SQL DATA
 
     /* save the dropped subtree data with a singleton SELECT */
 
-    SELECT id, lft, rgt
-    INTO drop_id, drop_lft, drop_rgt
+    SELECT tree_id, id, lft, rgt
+    INTO drop_tree_id, drop_id, drop_lft, drop_rgt
     FROM Baobab_GENERIC
     WHERE id = node;
 
     /* subtree deletion is easy */
 
     DELETE FROM Baobab_GENERIC
-    WHERE lft BETWEEN drop_lft and drop_rgt;
+    WHERE tree_id=drop_tree_id AND lft BETWEEN drop_lft and drop_rgt;
     
     IF update_numbers = 1 THEN
         /* close up the gap left by the subtree */
@@ -112,7 +117,7 @@ MODIFIES SQL DATA
           rgt = CASE WHEN rgt > drop_lft
                 THEN rgt - (drop_rgt - drop_lft + 1)
                 ELSE rgt END
-        WHERE lft > drop_lft OR rgt > drop_lft;
+        WHERE tree_id=drop_tree_id AND lft > drop_lft OR rgt > drop_lft;
         
     END IF;
 
@@ -129,6 +134,7 @@ MODIFIES SQL DATA
      previous root (if any) as his child
 */
 CREATE PROCEDURE Baobab_AppendChild_GENERIC(
+            IN choosen_tree INTEGER UNSIGNED,
             IN parent_id INTEGER UNSIGNED,
             OUT new_id INTEGER UNSIGNED)
 LANGUAGE SQL
@@ -139,23 +145,26 @@ DETERMINISTIC
     DECLARE num INTEGER UNSIGNED;
 
     START TRANSACTION;
+    
+    /* XXX TODO need to throw an error if choosen_tree doesn't exist */
 
     IF parent_id = 0 THEN /* inserting a new root node*/
 
         UPDATE Baobab_GENERIC
-        SET lft = lft+1, rgt = rgt+1 ;
+        SET lft = lft+1, rgt = rgt+1
+        WHERE tree_id=choosen_tree;
 
-        SET num = IFNULL((SELECT MAX(rgt)+1 FROM Baobab_GENERIC),2);
+        SET num = IFNULL((SELECT MAX(rgt)+1 FROM Baobab_GENERIC WHERE tree_id=choosen_tree),2);
 
-        INSERT INTO Baobab_GENERIC(id, lft, rgt)
-        VALUES (NULL, 1, num);
+        INSERT INTO Baobab_GENERIC(tree_id, id, lft, rgt)
+        VALUES (choosen_tree, NULL, 1, num);
 
-    ELSE
-
+    ELSE /* append a new node as last right child of his parent */
+        
         SET num = (SELECT rgt
-                      FROM Baobab_GENERIC
-                      WHERE id = parent_id
-                     );
+                   FROM Baobab_GENERIC
+                   WHERE id = parent_id
+                  );
 
         UPDATE Baobab_GENERIC
         SET lft = CASE WHEN lft > num
@@ -164,10 +173,10 @@ DETERMINISTIC
             rgt = CASE WHEN rgt >= num
                      THEN rgt + 2
                      ELSE rgt END
-        WHERE rgt >= num;
+        WHERE tree_id=choosen_tree AND rgt >= num;
 
-        INSERT INTO Baobab_GENERIC(id, lft, rgt)
-        VALUES (NULL, num, (num + 1));
+        INSERT INTO Baobab_GENERIC(tree_id, id, lft, rgt)
+        VALUES (choosen_tree,NULL, num, (num + 1));
 
     END IF;
 
@@ -200,12 +209,14 @@ DETERMINISTIC
         BEGIN
 
           DECLARE lft_sibling INTEGER UNSIGNED;
+          DECLARE choosen_tree INTEGER UNSIGNED;
 
           START TRANSACTION;
 
-          SET lft_sibling = (SELECT rgt
-                             FROM Baobab_GENERIC
-                             WHERE id = sibling_id);
+          SELECT tree_id,rgt
+          INTO choosen_tree,lft_sibling
+          FROM Baobab_GENERIC
+          WHERE id = sibling_id;
           
           IF ISNULL(lft_sibling) THEN
               BEGIN
@@ -221,10 +232,10 @@ DETERMINISTIC
               rgt = CASE WHEN rgt < lft_sibling
                          THEN rgt
                          ELSE rgt + 2 END
-          WHERE rgt > lft_sibling;
+          WHERE tree_id=choosen_tree AND rgt > lft_sibling;
 
-          INSERT INTO Baobab_GENERIC(id,lft,rgt)
-          VALUES (NULL, (lft_sibling + 1),(lft_sibling + 2));
+          INSERT INTO Baobab_GENERIC(tree_id,id,lft,rgt)
+          VALUES (choosen_tree,NULL, (lft_sibling + 1),(lft_sibling + 2));
 
           SELECT LAST_INSERT_ID() INTO new_id;
 
@@ -258,12 +269,14 @@ DETERMINISTIC
       BEGIN
 
         DECLARE rgt_sibling INTEGER UNSIGNED;
+        DECLARE choosen_tree INTEGER UNSIGNED;
 
         START TRANSACTION;
 
-        SET rgt_sibling = (SELECT lft
-                         FROM Baobab_GENERIC
-                         WHERE id = sibling_id);
+        SELECT tree_id,lft
+        INTO choosen_tree,rgt_sibling
+        FROM Baobab_GENERIC
+        WHERE id = sibling_id;
         
         IF ISNULL(rgt_sibling) THEN
             BEGIN
@@ -279,11 +292,11 @@ DETERMINISTIC
             rgt = CASE WHEN rgt < rgt_sibling
                      THEN rgt
                      ELSE rgt + 2 END
-        WHERE rgt >= rgt_sibling
+        WHERE tree_id=choosen_tree AND rgt >= rgt_sibling
         ORDER BY lft DESC; /* order by is meant to avoid uniqueness violation on update */
 
-        INSERT INTO Baobab_GENERIC(id,lft,rgt)
-        VALUES (NULL, rgt_sibling, rgt_sibling + 1);
+        INSERT INTO Baobab_GENERIC(tree_id,id,lft,rgt)
+        VALUES (choosen_tree,NULL, rgt_sibling, rgt_sibling + 1);
 
         SELECT LAST_INSERT_ID() INTO new_id;
 
@@ -393,11 +406,14 @@ DETERMINISTIC
     DECLARE node_revised INTEGER UNSIGNED;
     DECLARE is_first_child BOOLEAN;
     DECLARE ref_left INTEGER UNSIGNED;
+    DECLARE choosen_tree INTEGER UNSIGNED;
     
     SET error_code=0; /* 0 means no error */
     SET is_first_child = TRUE;
     
-    SET ref_left=(SELECT lft FROM Baobab_GENERIC WHERE id = reference_node);
+    SELECT tree_id,lft
+    INTO choosen_tree,ref_left
+    FROM Baobab_GENERIC WHERE id = reference_node;
     
     IF ref_left = 1 THEN
         BEGIN
@@ -409,13 +425,13 @@ DETERMINISTIC
     
     /* if node_id_to_move is the first child of his parent, set node_revised
        to the parent id, else set node_revised to NULL */
-    SET node_revised = ( SELECT id FROM Baobab_GENERIC WHERE lft = -1+ ref_left);
+    SET node_revised = ( SELECT id FROM Baobab_GENERIC WHERE tree_id=choosen_tree AND lft = -1+ ref_left);
     
     
     IF ISNULL(node_revised) THEN    /* if node_revised is NULL we must find the previous sibling */
       BEGIN
         SET node_revised= (SELECT id FROM Baobab_GENERIC
-                           WHERE rgt = -1 + ref_left );
+                           WHERE tree_id=choosen_tree AND rgt = -1 + ref_left);
         SET is_first_child = FALSE;
       END;
     END IF;
@@ -520,14 +536,15 @@ DETERMINISTIC
     DECLARE s_rgt INTEGER UNSIGNED;
     DECLARE ref_lft INTEGER UNSIGNED;
     DECLARE ref_rgt INTEGER UNSIGNED;
+    DECLARE choosen_tree INTEGER UNSIGNED;
     
     SET error_code=0;
     
     START TRANSACTION;
 
-    /* select left and right of the node to move */
-    SELECT lft, rgt
-    INTO s_lft, s_rgt
+    /* select tree, left and right of the node to move */
+    SELECT tree_id,lft, rgt
+    INTO choosen_tree, s_lft, s_rgt
     FROM Baobab_GENERIC
     WHERE id = node_id_to_move;
     
@@ -571,7 +588,8 @@ DETERMINISTIC
                   THEN -(s_lft-ref_lft)
                   WHEN rgt BETWEEN ref_lft AND s_lft-1
                   THEN s_rgt-s_lft+1
-                  ELSE 0 END;
+                  ELSE 0 END
+            WHERE tree_id=choosen_tree;
 
 
         ELSEIF s_lft < ref_lft THEN
@@ -593,7 +611,8 @@ DETERMINISTIC
                   THEN ref_lft-s_rgt-1
                   WHEN rgt BETWEEN s_rgt+1 AND ref_lft-1
                   THEN -(s_rgt-s_lft+1)
-                  ELSE 0 END;
+                  ELSE 0 END
+            WHERE tree_id=choosen_tree;
 
 
         END IF;
@@ -631,7 +650,8 @@ DETERMINISTIC
                   THEN ref_rgt-s_rgt
                   WHEN rgt BETWEEN s_rgt+1 AND ref_rgt
                   THEN -(s_rgt-s_lft+1)
-                  ELSE 0 END;
+                  ELSE 0 END
+            WHERE tree_id=choosen_tree;
 
         ELSEIF s_lft > ref_lft THEN
 
@@ -652,7 +672,8 @@ DETERMINISTIC
                   THEN -(s_lft-ref_rgt-1)
                   WHEN rgt BETWEEN ref_rgt+1 AND s_lft-1
                   THEN s_rgt-s_lft+1
-                  ELSE 0 END;
+                  ELSE 0 END
+            WHERE tree_id=choosen_tree;
 
 
         ELSEIF s_lft < ref_lft THEN
@@ -674,8 +695,9 @@ DETERMINISTIC
                   THEN ref_rgt-s_rgt
                   WHEN rgt BETWEEN s_rgt+1 AND ref_rgt
                   THEN -(s_rgt-s_lft+1)
-                  ELSE 0 END;
-                  
+                  ELSE 0 END
+            WHERE tree_id=choosen_tree;
+            
 
         END IF;
 
@@ -692,7 +714,8 @@ DETERMINISTIC
 /* ########################## */
 
 
-CREATE PROCEDURE Baobab_Close_Gaps_GENERIC()
+CREATE PROCEDURE Baobab_Close_Gaps_GENERIC(
+    IN choosen_tree INTEGER UNSIGNED)
 LANGUAGE SQL
 DETERMINISTIC
 
@@ -701,18 +724,19 @@ DETERMINISTIC
     UPDATE Baobab_GENERIC
     SET lft = (SELECT COUNT(*)
                FROM (
-                     SELECT lft as seq_nbr FROM Baobab_GENERIC
+                     SELECT lft as seq_nbr FROM Baobab_GENERIC WHERE tree_id=choosen_tree
                      UNION ALL
-                     SELECT rgt FROM Baobab_GENERIC
+                     SELECT rgt FROM Baobab_GENERIC WHERE tree_id=choosen_tree
                     ) AS LftRgt
-               WHERE seq_nbr <= lft
+               WHERE tree_id=choosen_tree AND seq_nbr <= lft
               ),
         rgt = (SELECT COUNT(*)
                FROM (
-                     SELECT lft as seq_nbr FROM Baobab_GENERIC
+                     SELECT lft as seq_nbr FROM Baobab_GENERIC WHERE tree_id=choosen_tree
                      UNION ALL
-                     SELECT rgt FROM Baobab_GENERIC
+                     SELECT rgt FROM Baobab_GENERIC WHERE tree_id=choosen_tree
                     ) AS LftRgt
-               WHERE seq_nbr <= rgt
-              );
+               WHERE tree_id=choosen_tree AND seq_nbr <= rgt
+              )
+    WHERE tree_id=choosen_tree;
   END
