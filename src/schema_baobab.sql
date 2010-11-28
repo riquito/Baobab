@@ -136,7 +136,8 @@ MODIFIES SQL DATA
 CREATE PROCEDURE Baobab_AppendChild_GENERIC(
             IN choosen_tree INTEGER UNSIGNED,
             IN parent_id INTEGER UNSIGNED,
-            OUT new_id INTEGER UNSIGNED)
+            OUT new_id INTEGER UNSIGNED,
+            OUT cur_tree_id INTEGER UNSIGNED)
 LANGUAGE SQL
 DETERMINISTIC
 
@@ -180,7 +181,9 @@ DETERMINISTIC
 
     END IF;
 
-    SELECT LAST_INSERT_ID() INTO new_id;
+    SELECT id,tree_id INTO new_id,cur_tree_id
+    FROM Baobab_GENERIC
+    WHERE id = LAST_INSERT_ID();
 
     COMMIT;
 
