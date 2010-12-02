@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS Baobab_GENERIC (
 
 CREATE VIEW Baobab_AdjTree_GENERIC (tree_id,parent,child,lft)
     AS
-    SELECT B.tree_id,B.id, E.id, E.lft
+    SELECT E.tree_id,B.id, E.id, E.lft
     FROM Baobab_GENERIC AS E
          LEFT OUTER JOIN Baobab_GENERIC AS B
            ON B.lft = ( SELECT MAX(lft)
@@ -377,7 +377,7 @@ DETERMINISTIC
         INTO nth_child
         FROM Baobab_AdjTree_GENERIC as t1
         WHERE (SELECT count(*) FROM Baobab_AdjTree_GENERIC as t2
-               WHERE parent = parent_id AND t2.lft<=t1.lft
+               WHERE parent = parent_id AND t2.lft<=t1.lft AND t1.tree_id=t2.tree_id
               )
               = (CASE
                   WHEN idx >= 0

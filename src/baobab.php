@@ -667,7 +667,7 @@ class Baobab  {
         $query="
           SELECT id AS root
           FROM Baobab_{$this->tree_name}
-          WHERE lft = 1;
+          WHERE tree_id={$this->tree_id} AND lft = 1;
         ";
 
         $out=NULL;
@@ -703,7 +703,8 @@ class Baobab  {
         $query="
           SELECT (rgt-lft+1) DIV 2
           FROM Baobab_{$this->tree_name}
-          WHERE ". ($id_node!==NULL ? "id = ".intval($id_node) : "lft = 1");
+          WHERE ". ($id_node!==NULL ? "id = ".intval($id_node) : "lft = 1").
+                " AND tree_id={$this->tree_id}";
         
         $out=0;
 
@@ -735,7 +736,8 @@ class Baobab  {
 
         if ($id_node===NULL) {
             // we search for descendants of root
-            $query="SELECT id FROM Baobab_{$this->tree_name} WHERE lft <> 1 ORDER BY id";
+            $query="SELECT id FROM Baobab_{$this->tree_name}
+                    WHERE tree_id={$this->tree_id} AND lft <> 1 ORDER BY id";
         } else {
             // we search for a node descendants
             $id_node=intval($id_node);
@@ -743,7 +745,8 @@ class Baobab  {
             $query="
               SELECT id
               FROM Baobab_{$this->tree_name}
-              WHERE lft > (SELECT lft FROM Baobab_{$this->tree_name} WHERE id = {$id_node})
+              WHERE tree_id = {$this->tree_id}
+                AND lft > (SELECT lft FROM Baobab_{$this->tree_name} WHERE id = {$id_node})
                 AND rgt < (SELECT rgt FROM Baobab_{$this->tree_name} WHERE id = {$id_node})
               ORDER BY id
             ";
@@ -780,7 +783,7 @@ class Baobab  {
         $query="
           SELECT id AS leaf
           FROM Baobab_{$this->tree_name}
-          WHERE lft = (rgt - 1)";
+          WHERE tree_id={$this->tree_id} AND lft = (rgt - 1)";
         
         if ($id_node!==NULL) {
             // check only leaves of a subtree adding a "where" condition
@@ -824,7 +827,8 @@ class Baobab  {
     
         $query="
           SELECT T2.id as id, (COUNT(T1.id) - 1) AS level
-          FROM Baobab_{$this->tree_name} AS T1, Baobab_{$this->tree_name} AS T2
+          FROM Baobab_{$this->tree_name} AS T1 JOIN Baobab_{$this->tree_name} AS T2
+               on T1.tree_id={$this->tree_id} AND T1.tree_id = T2.tree_id
           WHERE T2.lft BETWEEN T1.lft AND T1.rgt
           GROUP BY T2.lft
           ORDER BY T2.lft ASC;
@@ -897,7 +901,7 @@ class Baobab  {
         $query="".
         " SELECT ".join(",",$fields_escaped).
         " FROM Baobab_{$this->tree_name}".
-        " WHERE ( SELECT lft FROM Baobab_{$this->tree_name} WHERE id = {$id_node} ) BETWEEN lft AND rgt".
+        " WHERE tree_id={$this->tree_id} AND ( SELECT lft FROM Baobab_{$this->tree_name} WHERE id = {$id_node} ) BETWEEN lft AND rgt".
         " ORDER BY lft";
 
         $result = $this->db->query($query,MYSQLI_STORE_RESULT);
@@ -1194,10 +1198,11 @@ class Baobab  {
         
         $query="
         SELECT MAX(level)+1 as height
-        FROM (SELECT t2.id as id,(COUNT(t1.id)-1) as level
-              FROM Baobab_{$this->tree_name} as t1, Baobab_{$this->tree_name} as t2
-              WHERE t2.lft  BETWEEN t1.lft AND t1.rgt
-              GROUP BY t2.id
+        FROM (SELECT T2.id as id,(COUNT(T1.id)-1) as level
+              FROM Baobab_{$this->tree_name} as T1 JOIN Baobab_{$this->tree_name} as T2
+                   on T1.tree_id={$this->tree_id} AND T1.tree_id = T2.tree_id
+              WHERE T2.lft  BETWEEN T1.lft AND T1.rgt
+              GROUP BY T2.id
              ) as ID_LEVELS";
         
         $result = $this->db->query($query,MYSQLI_STORE_RESULT);
@@ -1274,14 +1279,15 @@ class Baobab  {
     /**!
      * .. method:: appendChild([$id_parent=NULL[,$fields_values=NULL]])
      *    
-     *    Create and append a node as last child of a parent node.
+     *    Create and append a node as last child of a parent node. If no
+     *      parent is given, the new node will become the root node.
      *
      *    :param $id_parent: id of the parent node
      *    :type $id_parent: int or NULL
      *    :param $fields_values: mapping fields=>values to assign to the new node
      *    :type $fields_values: array or NULL
      *    
-     *    :return: id of the root, or 0 if empty
+     *    :return: id of new node
      *    :rtype:  int
      *
      */

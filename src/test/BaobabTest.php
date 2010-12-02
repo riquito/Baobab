@@ -27,6 +27,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     protected static $db;
     protected static $tree_name;
     protected $baobab;
+    private $base_tree;
     
     public static function setUpBeforeClass() {
         
@@ -56,7 +57,8 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     }
     
     public function setUp(){
-        $this->baobab = new Baobab(self::$db,self::$tree_name,1);
+        $this->base_tree=1;
+        $this->baobab = new Baobab(self::$db,self::$tree_name,$this->base_tree);
         $this->baobab->destroy();
         $this->baobab->build();
     }
@@ -198,33 +200,67 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     
     public function testGetTree(){
         
+        // check empty tree
         $this->assertTrue(NULL===$this->baobab->get_tree());
         
-        $this->baobab->appendChild();
-        $this->assertEquals(
-            json_decode('[{"tree_id":1,"fields":["id","lft","rgt"],"values":[1,1,2,[]]}]',TRUE),
-            json_decode(Baobab::export(self::$db,self::$tree_name),TRUE)
-        );
-        $this->baobab->clean();
+        // add a tree with a certain tree_id
+        $b_id=5;
+        $b=new Baobab(self::$db,self::$tree_name,$b_id);
         
-        $this->_fillComplexTree();
+        $b->appendChild();
+        
+        $this->_fillAnyIdTree(4);
+        
+        // check that we get correctly the first tree
+        $this->assertEquals(
+            json_decode('[{"tree_id":'.$b_id.',"fields":["id","lft","rgt"],"values":[1,1,2,[]]}]',TRUE),
+            json_decode(Baobab::export(self::$db,self::$tree_name,NULL,$b_id),TRUE)
+        );
+        $b->clean();
+        
+        // once again but with a bigger tree
+        $this->_fillComplexTree($b_id);
+        $this->_fillAnyIdTree(4);
         
         $this->assertEquals(
             json_decode('[{"fields":["id","lft","rgt"],"values":[8,1,38,[[15,2,15,[[14,3,8,
                         [[2,4,7,[[16,5,6,[]]]]]],[12,9,14,[[10,10,13,[[7,11,12,[]]]]]]]],
                         [9,16,23,[[1,17,20,[[17,18,19,[]]]],[4,21,22,[]]]],[18,24,37,
                         [[11,25,30,[[3,26,29,[[6,27,28,[]]]]]],[13,31,36,[[5,32,35,
-                        [[19,33,34,[]]]]]]]]]],"tree_id":1}]',TRUE),
-            json_decode(Baobab::export(self::$db,self::$tree_name),TRUE)
+                        [[19,33,34,[]]]]]]]]]],"tree_id":'.$b_id.'}]',TRUE),
+            json_decode(Baobab::export(self::$db,self::$tree_name,NULL,$b_id),TRUE)
         );
     }
     
     public function testAppendChildAsRootInEmptyTree(){
         $root_id=$this->baobab->appendChild();
         $this->assertTrue(1===$root_id);
+        
+        // check with two trees in the table
+        $b_id=5;
+        $b=new Baobab(self::$db,self::$tree_name,$b_id);
+        $b_root_id=$b->appendChild();
+        $this->assertTrue(2===$b_root_id);
     }
     
     public function testEmptyRoot(){
+        $root_id=$this->baobab->get_root();
+        $this->assertNull($root_id);
+        
+        // add a tree with a certain tree_id
+        // now add another tree
+        $nested_json_tree='[{
+            "fields":["tree_id","id","lft","rgt"],
+            "values":
+                [4,100,1,8,[
+                    [4,200,2,5,[
+                        [4,300,3,4,[]]
+                    ]],
+                    [4,400,6,7,[]]
+                ]]
+            }]';
+        Baobab::import(self::$db,self::$tree_name,$nested_json_tree);
+        
         $root_id=$this->baobab->get_root();
         $this->assertNull($root_id);
     }
@@ -233,8 +269,25 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
      * @depends testAppendChildAsRootInEmptyTree
      */
     public function testRoot(){
+        
+        // test with only one tree
         $this->baobab->appendChild();
         $this->assertTrue(1===$this->baobab->get_root());
+        
+        // add a couple more trees
+        $this->baobab->clean();
+        
+        $tree_a='[{
+            "fields":["tree_id","id","lft","rgt"],
+            "values":[1,1,1,2,[]]
+            }]';
+        Baobab::import(self::$db,self::$tree_name,$tree_a);
+        
+        $this->baobab->appendChild();
+        
+        $this->_fillAnyIdTree(2);
+        
+        $this->assertTrue(2===$this->baobab->get_root());
     }
     
     function testInsertNodeAfterRoot(){
@@ -271,6 +324,9 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     }
     
     function testInsertNodeBeforeUnexistentId(){
+        // add a tree with a different id
+        $this->_fillAnyIdTree(2);
+        
         $this->baobab->appendChild();
         
         try {
@@ -282,6 +338,9 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     }
     
     function testInsertChildAtIndexNotExistent(){
+        // add a tree with a different id
+        $this->_fillAnyIdTree(2);
+        
         $root_id=$this->baobab->appendChild();
         $this->baobab->appendChild($root_id);
         $this->baobab->appendChild($root_id);
@@ -304,10 +363,13 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     }
     
     function testGetTreeSize(){
+        // add a tree with a different id
+        $this->_fillAnyIdTree(2);
+        
         // test empty tree
         $this->assertTrue(0===$this->baobab->get_tree_size());
         
-        $this->_fillGenericTree();
+        $this->_fillGenericTree($this->base_tree);
         
         $this->assertTrue(7===$this->baobab->get_tree_size());
         $this->assertTrue(3===$this->baobab->get_tree_size(1));
@@ -315,10 +377,13 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     }
     
     function testGetDescendants(){
+        // add a tree with a different id
+        $this->_fillAnyIdTree(2);
+        
         // test empty tree
         $this->assertEquals(array(),$this->baobab->get_descendants());
         
-        $this->_fillGenericTree();
+        $this->_fillGenericTree($this->base_tree);
         
         $this->assertEquals(array(1,2,3,4,6,7),$this->baobab->get_descendants());
         $this->assertEquals(array(4,6),$this->baobab->get_descendants(3));
@@ -326,10 +391,13 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     }
     
     function testGetLeaves(){
+        // add a tree with a different id
+        $this->_fillAnyIdTree(2);
+        
         // test empty tree
         $this->assertEquals(array(),$this->baobab->get_leaves());
         
-        $this->_fillGenericTree();
+        $this->_fillGenericTree($this->base_tree);
         
         $this->assertEquals(array(4,6,2,7),$this->baobab->get_leaves());
         $this->assertEquals(array(4,6),$this->baobab->get_leaves(3));
@@ -337,10 +405,13 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     }
     
     function testGetLevels(){
+        // add a tree with a different id
+        $this->_fillAnyIdTree(2);
+        
         // test empty tree
         $this->assertEquals(array(),$this->baobab->get_levels());
         
-        $this->_fillGenericTree();
+        $this->_fillGenericTree($this->base_tree);
         
         $res=$this->baobab->get_levels();
         
@@ -360,10 +431,13 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     }
     
     function testGetPath(){
+        // add a tree with a different id
+        $this->_fillAnyIdTree(2);
+        
         // test empty tree
         $this->assertEquals(array(),$this->baobab->get_path(-1));
         
-        $this->_fillGenericTree();
+        $this->_fillGenericTree($this->base_tree);
         
         // test root
         $this->assertEquals(array(array("id"=>5)),$this->baobab->get_path(5));
@@ -398,15 +472,21 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     }
     
     function testGetChildren(){
+        // add a tree with a different id
+        $this->_fillAnyIdTree(2);
+        
         // test empty tree
         $this->assertEquals(array(),$this->baobab->get_children(-1));
         
-        $this->_fillGenericTree();
+        $this->_fillGenericTree($this->base_tree);
         $this->assertEquals(array(2,7),$this->baobab->get_children(1));
     }
     
     function testGetFirstChild(){
-        $this->_fillGenericTree();
+        // add a tree with a different id
+        $this->_fillAnyIdTree(2);
+        
+        $this->_fillGenericTree($this->base_tree);
         
         // find first child of a node with children
         $this->assertTrue(2===$this->baobab->get_first_child(1));
@@ -419,7 +499,10 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     }
     
     function testGetLastChild(){
-        $this->_fillGenericTree();
+        // add a tree with a different id
+        $this->_fillAnyIdTree(2);
+        
+        $this->_fillGenericTree($this->base_tree);
         
         // find last child of a node with children
         $this->assertTrue(7===$this->baobab->get_last_child(1));
@@ -432,20 +515,26 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     }
     
     function testGetTreeHeight() {
+        // add a tree with a different id
+        $this->_fillAnyIdTree(2);
+        
         // test empty tree
         $this->assertTrue(0===$this->baobab->get_tree_height());
         
-        $this->_fillComplexTree();
+        $this->_fillComplexTree($this->base_tree);
         $this->assertTrue(5===$this->baobab->get_tree_height());
         
         
-        $this->_fillGenericTree();
+        $this->_fillGenericTree($this->base_tree);
         $this->assertTrue(3===$this->baobab->get_tree_height());
         
     }
     
     function testGetChildAtIndex(){
-        $this->_fillComplexTree();
+        // add a tree with a different id
+        $this->_fillAnyIdTree(2);
+        
+        $this->_fillComplexTree($this->base_tree);
         
         $this->assertTrue($this->baobab->get_child_at_index(15,0)===14);
         $this->assertTrue($this->baobab->get_child_at_index(15,1)===12);
@@ -493,10 +582,14 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         $fields=$json_obj["fields"];
         $real_data=$json_obj["cases"];
         
+        $random_tree=isset($json_obj["random_tree"]) ? $json_obj["random_tree"] :
+            array("tree_id"=>1000,"from_node_id"=>100000,"num_children"=>100);
+        
         $ar_out=array();
         foreach($real_data as $single_test_info) {
             $single_test_info["methodName"]=$methodName;
             $single_test_info["fields"]=$fields;
+            $single_test_info["random_tree"]=$random_tree;
             $ar_out[]=array($single_test_info);
         }
         return $ar_out;
@@ -512,15 +605,22 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
      */
     function _useTreeTestData(&$whatToTest){
         
+        // add a fake tree
+        $random_tree=$whatToTest["random_tree"];
+        $this->_fillFakeTree($random_tree["tree_id"],$random_tree["from_node_id"],$random_tree["num_children"]);
+        
         // load the data
-        Baobab::import(self::$db,self::$tree_name,array(array("fields"=>$whatToTest["fields"],"values"=>$whatToTest["from"])));
+        Baobab::import(self::$db,self::$tree_name,array(array(
+                "tree_id"=>$this->base_tree,
+                "fields"=>$whatToTest["fields"],
+                "values"=>$whatToTest["from"])));
         // call the func to test
         try {
             call_user_func_array(array($this->baobab,$whatToTest["methodName"]),$whatToTest["params"]);
             if (isset($whatToTest["error"])) $this->fail("Expecting exception ".$whatToTest["error"]);
             
             // get the current tree state (pop because this function work always on a single array)
-            $treeState=current(json_decode(Baobab::export(self::$db,self::$tree_name),TRUE));
+            $treeState=current(json_decode(Baobab::export(self::$db,self::$tree_name,NULL,$this->base_tree),TRUE));
             
             // check that the tree state is what we expected
             $this->assertEquals($whatToTest["to"],$treeState["values"]);
@@ -596,10 +696,11 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     
     // clean the tree and insert a simple tree
     // require import to be yet tested
-    function _fillGenericTree(){
-        $this->baobab->clean();
-        Baobab::import(self::$db,self::$tree_name,'[{
-            "fields":["id","lft","rgt"],
+    function _fillGenericTree($tree_id){
+        $this->baobab->clean($tree_id);
+        Baobab::import(self::$db,self::$tree_name,'[{'.
+            ($tree_id ? '"tree_id":'.$tree_id .',' : '').
+          ' "fields":["id","lft","rgt"],
             "values":
                 [5,1,14,[
                     [3,2,7,[
@@ -617,10 +718,11 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     
     // clean the tree and insert a not trivial tree
     // require import to be yet tested
-    function _fillComplexTree(){
-        $this->baobab->clean();
-        Baobab::import(self::$db,self::$tree_name,'[{
-            "fields":["id","lft","rgt"],
+    function _fillComplexTree($tree_id){
+        $this->baobab->clean($tree_id);
+        Baobab::import(self::$db,self::$tree_name,'[{'.
+            ($tree_id ? '"tree_id":'.$tree_id .',' : '').
+          ' "fields":["id","lft","rgt"],
             "values":
                 [8,1,38,[
                     [15,2,15,[
@@ -656,6 +758,41 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
                 ]]
             }]'
         );
+    }
+    
+    // just add a tree with ids greater than 100000
+    function _fillAnyIdTree($tree_id){
+        $this->baobab->clean($tree_id);
+        Baobab::import(self::$db,self::$tree_name,'[{'.
+            ($tree_id ? '"tree_id":'.$tree_id .',' : '').
+          ' "fields":["id","lft","rgt"],
+            "values":
+                [100001,1,14,[
+                    [100002,2,7,[
+                        [100003,3,4,[]],
+                        [100004,5,6,[]]
+                    ]],
+                    [100005,8,13,[
+                        [100006,9,10,[]],
+                        [100007,11,12,[]]
+                    ]]
+                ]]
+            }]'
+        );
+    }
+    
+    // we don't really need a tree, but something similar
+    function _fillFakeTree($tree_id,$from_node_id,$num_children){
+        
+        $query="INSERT INTO Baobab_".(self::$tree_name)."(tree_id,id,lft,rgt)".
+               "VALUES ";
+        
+        $values=array();
+        for($i=0;$i<$num_children;$i++) {
+            $values[]="(".join(",",array($tree_id,$from_node_id+$i,rand(1,$num_children*2),rand(1,$num_children*2))).")";
+        }
+        
+        self::$db->query($query.join(",",$values));
     }
 }
 
