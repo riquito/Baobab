@@ -1,7 +1,12 @@
 <?php
 
-/**
+/**!
+ * ==============================================
  * Baobab (an implementation of Nested Set Model)
+ * ==============================================
+ *
+ * Copyright and License
+ * ---------------------
  * 
  * Copyright 2010 Riccardo Attilio Galli <riccardo@sideralis.org> [http://www.sideralis.org]
  * 
@@ -16,14 +21,18 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */ 
+ */
 
+/**!
+ * Exceptions
+ * ----------
+ */
 
 /**!
  * .. class:: sp_Error
  *    
  *    Root exception. Each Exception thrown in a Sideralis Programs library
- *      derive from this class
+ *    derive from this class
  */
 class sp_Error extends Exception { }
 
@@ -53,6 +62,11 @@ class sp_MySQL_Error extends sp_Error {
 
 
 /**!
+ * Utils
+ * -----
+ */
+
+/**!
  * .. class:: sp_SQLUtils
  *    
  *    Class with helpers to work with SQL
@@ -71,7 +85,7 @@ class sp_SQLUtils {
      * .. method:: vector_to_sql_tuple($ar)
      *    
      *    Transform an array in a valid SQL tuple. The array can contain only
-     *      values of type int,float,boolean,string.
+     *    values of type int,float,boolean,string.
      *
      *    :param $ar: an array to convert (only array values are used)
      *    :type $ar:  array
@@ -80,7 +94,8 @@ class sp_SQLUtils {
      *    :rtype:  string
      * 
      *    Example:
-     *    .. code-block::
+     *    
+     *    .. code-block:: none
      *       
      *       php> $conn=new mysqli(  connection data )
      *       php> $sql_utils=new sp_SQLUtils($conn)
@@ -102,7 +117,7 @@ class sp_SQLUtils {
      * .. method:: array_to_sql_assignments($ar[,$sep=","])
      *    
      *    Convert an associative array in a series of "columnName = value" expressions
-     *     as valid SQL.
+     *    as valid SQL.
      *    The expressions are separated using the parameter $sep (defaults to ",").
      *    The array can contain only values of type int,float,boolean,string.
      *
@@ -115,7 +130,8 @@ class sp_SQLUtils {
      *    :rtype:  string
      *
      *    Example:
-     *    .. code-block::
+     *    
+     *    .. code-block:: none
      *       
      *       php> $conn=new mysqli( connection data )
      *       php> $sql_utils=new sp_SQLUtils($conn)
@@ -231,19 +247,20 @@ class sp_SQLUtils {
 class sp_Lib {
     
     /**!
-     * .. method:: map_method($array,$obj,$methodName)
+     * .. staticmethod:: map_method($array,$obj,$methodName)
+     *    
      *    Call an object method on each item in an array and return an array
-     *      with the results.
-     *
-     *   :param $array: values to pass to the method
-     *   :type $array:  array
-     *   :param $obj: an object instance
-     *   :type $obj:  object
-     *   :param $methodName: a callable method of $obj
-     *   :type $methodName:  string
-     *   
-     *   :return: the computed results
-     *   :rtype:  array
+     *    with the results.
+     *    
+     *    :param $array: values to pass to the method
+     *    :type $array:  array
+     *    :param $obj: an object instance
+     *    :type $obj:  object
+     *    :param $methodName: a callable method of $obj
+     *    :type $methodName:  string
+     *    
+     *    :return: the computed results
+     *    :rtype:  array
      */
     public static function &map_method(&$array,$obj,$methodName) {
         $tmp=array();
@@ -271,11 +288,13 @@ class sp_Lib {
  *    :param $fields_values: additional fields of the node (mapping fieldName=>value)
  *    :type $fields_values: array or NULL
  *
- *    ..note: this class doesn't involve database interaction, its purposes is
- *        just to have a runtime representation of a Baobab tree
+ *    .. note::
+ *       this class doesn't have database interaction, its purpose is
+ *       just to have a runtime representation of a Baobab tree
  *
- *    ..note: this class doesn't has any kind of data control, so it expects
- *        that the data used makes sense in a Baobab tree
+ *    .. note::
+ *       this class doesn't has any kind of data control, so it expects
+ *       that the data used makes sense in a Baobab tree
  * 
  */
 class BaobabNode {
@@ -378,7 +397,30 @@ class BaobabNode {
     }
 }
 
+/**!
+ * Baobab
+ * ------
+ */
 
+/**!
+ * .. class:: Baobab($db,$tree_name[,$tree_id=NULL[,$must_check_ids=FALSE]])
+ *    
+ *    This class lets you create, populate search and destroy a tree stored
+ *    using the Nested Set Model described by Joe Celko's
+ *
+ *    :param $db: mysqli database connection in object oriented style
+ *    :type $db:  an instance of mysqli_connect
+ *    :param $tree_name: suffix to append to the table, wich will result in
+ *                       Baobab_{$tree_name}
+ *    :type $tree_name: string
+ *    :param $tree_id: id of the tree (to create a new tree it must be NULL or an unused tree_id number).
+ *                      If there is only a tree in the table, you can load it with -1;
+ *                      A new tree created using NULL has $tree_id = 0 until an appendChild occurs.
+ *    :type $tree_id: int or NULL
+ *    
+ *    :param $must_check_ids: whether to constantly check the id consistency or not
+ *    :type $must_check_ids: boolean
+ */
 class Baobab  {
     protected $db;
     protected $tree_name;
@@ -389,25 +431,6 @@ class Baobab  {
     private $_must_check_ids;
     private $_errors;
     
-    /**!
-     * .. class:: Baobab($db,$tree_name[,$tree_id=NULL[,$must_check_ids=FALSE]])
-     *    
-     *    This class lets you create, populate search and destroy a tree stored
-     *    using the Nested Set Model described by Joe Celko's
-     *
-     *    :param $db: mysqli database connection in object oriented style
-     *    :type $db:  an instance of mysqli_connect
-     *    :param $tree_name: suffix to append to the table, wich will result in
-     *                       Baobab_{$tree_name}
-     *    :type $tree_name: string
-     *    :param $tree_id: id of the tree (to create a new tree it must be NULL or an unused tree_id number).
-     *                      If there is only a tree in the table, you can load it with -1;
-     *                      A new tree created using NULL has $tree_id = 0 until an appendChild occurs.
-     *    :type $tree_id: int or NULL
-     *    
-     *    :param $must_check_ids: whether to constantly check the id consistency or not
-     *    :type $must_check_ids: boolean
-     */
     public function __construct($db,$tree_name,$tree_id=NULL,$must_check_ids=FALSE) {
         $this->db=$db;
         $this->sql_utils=new sp_SQLUtils($db);
@@ -495,7 +518,7 @@ class Baobab  {
      * .. method:: enableIdCheck($bool)
      *    
      *    When enabled, if a Baobab method is requested to use an id it checks
-     *      for his existence beforehand.
+     *    for his existence beforehand.
      *
      *    :param $bool: wheter to enable id check or not
      *    :type $bool: boolean
@@ -550,11 +573,11 @@ class Baobab  {
      *    :rtype:  array
      *
      *    .. note::
-     *
      *       An associative array is being returned because it's quicker to
      *       check for fields existence inside it.
      *     
-     *    :note: it is public but for internal use only (see static methods import/export )
+     *    .. note::
+     *       it is public but for internal use only (see static methods import/export )
      */
     public function &_get_fields(){
         
@@ -578,8 +601,8 @@ class Baobab  {
      *    .. warning::
      *
      *       Running this method on a database which has yet loaded the schema
-     *         for the same tree name will end up in errors. The table
-     *         Baobab_{tree_name} will remain intact thought.
+     *       for the same tree name will end up in errors. The table
+     *       Baobab_{tree_name} will remain intact thought.
      *    
      */
     public function build() {
@@ -603,7 +626,7 @@ class Baobab  {
      *    .. warning::
      *
      *       You're going to loose all the data in the table
-     *         Baobab_{tree_name} too.
+     *       Baobab_{tree_name} too.
      *    
      */
     public function destroy() {
@@ -636,7 +659,7 @@ class Baobab  {
      * .. method:: clean([$tree_id])
      *    
      *    Delete all the record from the table Baobab_{yoursuffix}, or from one
-     *      of his trees.
+     *    of his trees.
      *
      *    :param $tree_id: if set only the nodes of this tree will be removed
      *    :type $tree_id:  int
@@ -689,7 +712,7 @@ class Baobab  {
      * .. method:: get_tree_size([$id_node=NULL])
      *    
      *    Retrieve the number of nodes of the subtree starting at $id_node (or
-     *      at tree root if $id_node is NULL).
+     *    at tree root if $id_node is NULL).
      *    
      *    :param $id_node: id of the node to count from (or NULL to count from root)
      *    :type $id_node:  int or NULL
@@ -822,6 +845,7 @@ class Baobab  {
      *
      *    .. note::
      *       tree root is at level 0
+     *
      */
     public function &get_levels(){
     
@@ -867,9 +891,10 @@ class Baobab  {
      *               in $fields plus the field "id" (unless $squash was set),
      *               ordered from root to $id_node
      *    :rtype:  array
-     *
+     *    
      *    Example (considering a tree with two nodes with a field 'name'):
-     *    .. code-block::
+     *    
+     *    .. code-block:: none
      *       
      *       php> $tree->get_path(2,array("name"))
      *       array([0]=>array([id]=>1,[name]=>'rootName'),array([id]=>2,[name]=>'secondNodeName']))
@@ -929,19 +954,19 @@ class Baobab  {
     }
     
     /**!
-     *  .. method:: get_some_children($id_parent[,$howMany=NULL[,$fromLeftToRight=TRUE]])
+     * .. method:: get_some_children($id_parent[,$howMany=NULL[,$fromLeftToRight=TRUE]])
      *
-     *     Find all node's children
+     *    Find all node's children
      *
-     *     :param $id_parent: id of the parent node
-     *     :type $id_parent:  int
-     *     :param $howMany: maximum number of children to retrieve (NULL means all)
-     *     :type $howMany:  int or NULL
-     *     :param $fromLeftToRight: what order the children must follow
-     *     :type $fromLeftToRight:  boolean
-     *     
-     *     :return: ids of the children nodes, ordered from left to right
-     *     :rtype:  array
+     *    :param $id_parent: id of the parent node
+     *    :type $id_parent:  int
+     *    :param $howMany: maximum number of children to retrieve (NULL means all)
+     *    :type $howMany:  int or NULL
+     *    :param $fromLeftToRight: what order the children must follow
+     *    :type $fromLeftToRight:  boolean
+     *    
+     *    :return: ids of the children nodes, ordered from left to right
+     *    :rtype:  array
      *
      */
     public function &get_some_children($id_parent,$howMany=NULL,$fromLeftToRight=TRUE){
@@ -968,15 +993,15 @@ class Baobab  {
     }
     
     /**!
-     *  .. method:: get_children($id_parent)
+     * .. method:: get_children($id_parent)
      *
-     *     Find all node's children
+     *    Find all node's children
      *
-     *     :param $id_parent: id of the parent node
-     *     :type $id_parent:  int
-     *     
-     *     :return: ids of the children nodes, ordered from left to right
-     *     :rtype:  array
+     *    :param $id_parent: id of the parent node
+     *    :type $id_parent:  int
+     *    
+     *    :return: ids of the children nodes, ordered from left to right
+     *    :rtype:  array
      *
      */
     public function &get_children($id_parent) {
@@ -984,15 +1009,15 @@ class Baobab  {
     }
     
     /**!
-     *  .. method:: get_first_child($id_parent)
+     * .. method:: get_first_child($id_parent)
      *
-     *     Find the leftmost child of a node
+     *    Find the leftmost child of a node
      *
-     *     :param $id_parent: id of the parent node
-     *     :type $id_parent:  int
-     *     
-     *     :return: id of the leftmost child node, or 0 if not found
-     *     :rtype:  int
+     *    :param $id_parent: id of the parent node
+     *    :type $id_parent:  int
+     *    
+     *    :return: id of the leftmost child node, or 0 if not found
+     *    :rtype:  int
      *
      */
     public function get_first_child($id_parent) {
@@ -1001,15 +1026,15 @@ class Baobab  {
     }
     
     /**!
-     *  .. method:: get_last_child($id_parent)
+     * .. method:: get_last_child($id_parent)
      *
-     *     Find the rightmost child of a node
+     *    Find the rightmost child of a node
      *
-     *     :param $id_parent: id of the parent node
-     *     :type $id_parent:  int
-     *     
-     *     :return: id of the rightmost child node, or 0 if not found
-     *     :rtype:  int
+     *    :param $id_parent: id of the parent node
+     *    :type $id_parent:  int
+     *    
+     *    :return: id of the rightmost child node, or 0 if not found
+     *    :rtype:  int
      *
      */
     public function get_last_child($id_parent) {
@@ -1018,18 +1043,18 @@ class Baobab  {
     }
     
     /**!
-     *  .. method:: get_child_at_index($id_parent,$index)
+     * .. method:: get_child_at_index($id_parent,$index)
      *
-     *     Find the nth child of a parent node
+     *    Find the nth child of a parent node
      *
-     *     :param $id_parent: id of the parent node
-     *     :type $id_parent:  int
-     *     :param $index: position between his siblings (0 is first).
-     *                    Negative indexes are allowed (-1 is the last sibling).
-     *     :type $index:  int
-     *     
-     *     :return: id of the nth child node
-     *     :rtype:  int
+     *    :param $id_parent: id of the parent node
+     *    :type $id_parent:  int
+     *    :param $index: position between his siblings (0 is first).
+     *                   Negative indexes are allowed (-1 is the last sibling).
+     *    :type $index:  int
+     *    
+     *    :return: id of the nth child node
+     *    :rtype:  int
      *
      */
     public function get_child_at_index($id_parent,$index){
@@ -1051,8 +1076,8 @@ class Baobab  {
      *
      *    Create a tree from the database data.
      *    It's possible to use a default tree or use custom classes/functions
-     *      (it must have the same constructor and public members of class
-     *      :class:`BaobabNode`)
+     *    (it must have the same constructor and public members of class
+     *    :class:`BaobabNode`)
      *
      *    :param $className: name of the class holding a node's information
      *    :type $className:  string
@@ -1137,7 +1162,7 @@ class Baobab  {
      * .. method:: delete_subtree($id_node[,$close_gaps=True])
      *
      *    Delete a node and all of his children. If $close_gaps is TRUE, mantains
-     *      the Modified Preorder Tree consistent closing gaps.
+     *    the Modified Preorder Tree consistent closing gaps.
      *
      *    :param $id_node: id of the node to drop
      *    :type $id_node:  int
@@ -1146,9 +1171,9 @@ class Baobab  {
      *
      *    .. warning::
      *       If the gaps are not closed, you can't use most of the API. Usually
-     *         you want to avoid closing gaps when you're delete different
-     *         subtrees and want to update the numbering just once
-     *         (see :class:`Baobab.update_numbering`)
+     *       you want to avoid closing gaps when you're delete different
+     *       subtrees and want to update the numbering just once
+     *       (see :class:`Baobab.update_numbering`)
      */
     public function delete_subtree($id_node,$close_gaps=TRUE) {
         $id_node=intval($id_node);
@@ -1167,12 +1192,11 @@ class Baobab  {
      * .. method:: close_gaps
      *    
      *    Update right and left values of each node to ensure there are no
-     *      gaps in the tree.
+     *    gaps in the tree.
      *
      *    .. warning::
-     *       
      *       This is a really slow function, use it only if needed (e.g.
-     *         to delete multiple subtrees and close gaps just once)
+     *       to delete multiple subtrees and close gaps just once)
      */
     public function close_gaps() {
         if (!$this->db->multi_query("CALL Baobab_Close_Gaps_{$this->tree_name}({$this->tree_id})"))
@@ -1217,6 +1241,7 @@ class Baobab  {
 
     /**!
      * .. method:: updateNode($id_node,$fields_values)
+     *    
      *    Update data associeted to a node
      *
      *    :param $id_node: id of the node to update
@@ -1247,6 +1272,7 @@ class Baobab  {
     
     /**!
      * .. method:: getNodeData($id_node[,$fields=NULL])
+     *    
      *    Retrieve informations about a node.
      *    
      *    :param $id_node: id of the node
@@ -1280,7 +1306,7 @@ class Baobab  {
      * .. method:: appendChild([$id_parent=NULL[,$fields_values=NULL]])
      *    
      *    Create and append a node as last child of a parent node. If no
-     *      parent is given, the new node will become the root node.
+     *    parent is given, the new node will become the root node.
      *
      *    :param $id_parent: id of the parent node
      *    :type $id_parent: int or NULL
@@ -1316,7 +1342,7 @@ class Baobab  {
      * .. method:: insertNodeAfter($id_sibling[,$fields_values=NULL])
      *
      *    Create a new node and insert it as the next sibling of the node
-     *      chosen (which can not be root)
+     *    chosen (which can not be root)
      *
      *    :param $id_sibling: id of a node in the tree (can not be root)
      *    :type $id_sibling:  int
@@ -1349,7 +1375,7 @@ class Baobab  {
      * .. method:: insertNodeBefore($id_sibling[,$fields_values=NULL])
      *
      *    Create a new node and insert it as the previous sibling of the node
-     *      chosen (which can not be root)
+     *    chosen (which can not be root)
      *
      *    :param $id_sibling: id of a node in the tree (can not be root)
      *    :type $id_sibling:  int
@@ -1382,21 +1408,20 @@ class Baobab  {
      * .. method:: insertChildAtIndex($id_parent,$index[,$fields_values=NULL])
      *
      *    Create a new node and insert it as the nth child of the parent node
-     *      chosen
+     *    chosen
      *
      *    :param $id_parent: id of a node in the tree
      *    :type $id_parent:  int
      *    :param $index: new child position between his siblings (0 is first).
      *                   You cannot insert a child as last sibling.
      *                   Negative indexes are allowed (-1 is the position before
-     *                     the last sibling).
+     *                   the last sibling).
      *    :type $index:  int
      *    :param $fields_values: mapping fields=>values to assign to the new node
-     *    :type $fields_values: array or NULL
-     *
+     *    :type $fields_values:  array or NULL
+     *    
      *    :return: id of the new node
      *    :rtype:  int
-     * 
      */
     public function insertChildAtIndex($id_parent,$index,$fields_values=NULL) {
         $id_parent=intval($id_parent);
@@ -1519,7 +1544,7 @@ class Baobab  {
      *    
      *    Read $numResults query results and return the values mapped to $fields.
      *    If a field named as the value of $error_field is found throw an 
-     *      exception using that error informations.
+     *    exception using that error informations.
      *
      *    :param $fields: name of a field to read or an array of fields names
      *    :type $fields:  string or array
@@ -1563,9 +1588,9 @@ class Baobab  {
     }
     
     /**!
-     * .. method:: import($db,$tree_name,$data)
+     * .. staticmethod:: import($db,$tree_name,$data)
      *    
-     *    [static] Load data about a single tree (as generated by the export method).
+     *    Load data about a single tree (as generated by the export method).
      *    
      *    :param $db: mysqli database connection in object oriented style
      *    :type $db:  an instance of mysqli_connect
@@ -1595,12 +1620,12 @@ class Baobab  {
      *       ]
      *    
      *    .. note::
-     *      If "id" field is used and the nodes values are not NULL, mustn't
-     *        exist in the table a record with that same value.
+     *       If "id" field is used and the nodes values are not NULL, mustn't
+     *       exist in the table a record with that same value.
      *      
      *    .. note::
-     *      If "tree_id" is used (as attribute or field) and not NULL, mustn't
-     *        exist in the table records belonging to that same tree.
+     *       If "tree_id" is used (as attribute or field) and not NULL, mustn't
+     *       exist in the table records belonging to that same tree.
      */
     public static function &import($db,$tree_name,$data){
         if (is_string($data)) $data=json_decode($data,true);
@@ -1734,12 +1759,12 @@ class Baobab  {
     }
     
     /**
-     * ..method:: _traverse_tree_to_export_data($node,&$data,&$fieldsFlags,&$fieldsOrder)
+     * .. staticmethod:: _traverse_tree_to_export_data($node,&$data,&$fieldsFlags,&$fieldsOrder)
      *
      *   Traverse a baobab tree and create an array holding the data about each node.
      *   Each resulting node is represented as an array holding his values ordered as
-     *     $fieldsOrder, with an array as most right element holding children nodes
-     *     (in the same format).
+     *   $fieldsOrder, with an array as most right element holding children nodes
+     *   (in the same format).
      *
      *   :param $node: current node to retrieve values from
      *   :type $node:  BaobabNode
@@ -1776,9 +1801,9 @@ class Baobab  {
     }
     
     /**!
-     * .. method:: export($db,$tree_name[,$fields=NULL[,$tree_id=NULL]])
+     * .. staticmethod:: export($db,$tree_name[,$fields=NULL[,$tree_id=NULL]])
      *    
-     *    [static] Create a JSON dump of one or more trees
+     *    Create a JSON dump of one or more trees
      *    
      *    :param $db: mysqli database connection in object oriented style
      *    :type $db:  an instance of mysqli_connect
@@ -1795,8 +1820,8 @@ class Baobab  {
      *    :rtype:  string
      *
      *    .. note::
-     *      if 'tree_id' is passed as field, it will not appear in the field
-     *        list because redundat (it will be present once in the tree_id attribute)
+     *       if 'tree_id' is passed as field, it will not appear in the field
+     *       list because redundat (it will be present once in the tree_id attribute)
      *    
      *    Example of an exported tree
      *    
