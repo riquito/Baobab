@@ -1,14 +1,16 @@
 <?php
 
 /**!
- * ==============================================
- * Baobab (an implementation of Nested Set Model)
- * ==============================================
+ * .. _api:
+ * 
+ * ==========
+ * Baobab API
+ * ==========
  *
  * Copyright and License
  * ---------------------
  * 
- * Copyright 2010 Riccardo Attilio Galli <riccardo@sideralis.org> [http://www.sideralis.org]
+ * Copyright 2010-2011 Riccardo Attilio Galli <riccardo@sideralis.org> http://www.sideralis.org
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +33,7 @@
 /**!
  * .. class:: sp_Error
  *    
- *    Root exception. Each Exception thrown in a Sideralis Programs library
+ *    Root exception. Each exception thrown in a Sideralis Programs library
  *    derive from this class
  */
 class sp_Error extends Exception { }
@@ -122,9 +124,9 @@ class sp_SQLUtils {
      *    The array can contain only values of type int,float,boolean,string.
      *
      *    :param $ar: an associative array to convert
-     *    :type $ar: array
+     *    :type $ar:  array
      *    :param $sep: expression separator
-     *    :type $sep: string
+     *    :type $sep:  string
      *
      *    :return: the generated SQL snippet
      *    :rtype:  string
@@ -1072,7 +1074,7 @@ class Baobab  {
     
     
     /**!
-     * .. method: get_tree([$className="BaobabNode"[,$addChild="add_child"]])
+     * .. method:: get_tree([$className="BaobabNode"[,$addChild="add_child"]])
      *
      *    Create a tree from the database data.
      *    It's possible to use a default tree or use custom classes/functions
@@ -1171,9 +1173,9 @@ class Baobab  {
      *
      *    .. warning::
      *       If the gaps are not closed, you can't use most of the API. Usually
-     *       you want to avoid closing gaps when you're delete different
+     *       you want to avoid closing gaps when you're deleting different
      *       subtrees and want to update the numbering just once
-     *       (see :class:`Baobab.update_numbering`)
+     *       (see :class:`Baobab.close_gaps`)
      */
     public function delete_subtree($id_node,$close_gaps=TRUE) {
         $id_node=intval($id_node);
