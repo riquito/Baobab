@@ -102,18 +102,19 @@ Here it is a list of the functions provided
 
 * retrieval
   
-  * :class:`get_root() <Baobab.get_root>`
-  * :class:`get_tree_size() <Baobab.get_tree_size>`
-  * :class:`get_descendants() <Baobab.get_descendants>`
-  * :class:`get_leaves() <Baobab.get_leaves>`
-  * :class:`get_levels() <Baobab.get_levels>`
-  * :class:`get_path() <Baobab.get_path>`
-  * :class:`get_children() <Baobab.get_children>`
-  * :class:`get_first_child() <Baobab.get_first_child>`
-  * :class:`get_last_child() <Baobab.get_last_child>`
-  * :class:`get_tree() <Baobab.get_tree>`
-  * :class:`get_tree_height() <Baobab.get_tree_height>`
-  * :class:`get_child_at_index() <Baobab.get_child_at_index>`
+  * :class:`getRoot() <Baobab.getRoot>`
+  * :class:`getTreeSize() <Baobab.getTreeSize>`
+  * :class:`getDescendants() <Baobab.getDescendants>`
+  * :class:`getLeaves() <Baobab.getLeaves>`
+  * :class:`getLevels() <Baobab.getLevels>`
+  * :class:`getPath() <Baobab.getPath>`
+  * :class:`getChildren() <Baobab.getChildren>`
+  * :class:`getFirstNChildren() <Baobab.getFirstNChildren>`
+  * :class:`getFirstChild() <Baobab.getFirstChild>`
+  * :class:`getLastChild() <Baobab.getLastChild>`
+  * :class:`getTree() <Baobab.getTree>`
+  * :class:`getTreeHeight() <Baobab.getTreeHeight>`
+  * :class:`getChildAtIndex() <Baobab.getChildAtIndex>`
   * :class:`getNodeData() <Baobab.getNodeData>`
 
 * insertions
@@ -135,7 +136,7 @@ Here it is a list of the functions provided
 
 * deletion
   
-  * :class:`delete_subtree() <Baobab.delete_subtree>`
+  * :class:`deleteSubtree() <Baobab.deleteSubtree>`
   * :class:`clean() <Baobab.clean>`
   * :class:`close_gaps() <Baobab.close_gaps>`
 
@@ -148,9 +149,6 @@ Here it is a list of the functions provided
 All of the \*_index() functions accept negative numbers too, and all the functions
 that modify the tree preserve the lft/rgt consistency.
 
-
-Examples
---------
 
 
 Dependencies

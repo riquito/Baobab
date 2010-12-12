@@ -1,5 +1,5 @@
 {
- "method":"delete_subtree",
+ "method":"deleteSubtree",
  "fields":["id","lft","rgt"],
  "cases":[
     {

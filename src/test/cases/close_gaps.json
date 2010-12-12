@@ -1,5 +1,5 @@
 {
- "method":"close_gaps",
+ "method":"closeGaps",
  "fields":["id","lft","rgt"],
  "cases":[
     {

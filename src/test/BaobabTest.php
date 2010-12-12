@@ -76,12 +76,12 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         
         
         Baobab::import(self::$db,self::$tree_name,'[]');
-        $this->assertEquals(NULL,$this->baobab->get_tree());
+        $this->assertEquals(NULL,$this->baobab->getTree());
         
         $empty_json_tree='[{"fields":["id","lft","rgt"],"values":null}]';
         
         Baobab::import(self::$db,self::$tree_name,$empty_json_tree);
-        $this->assertEquals(NULL,$this->baobab->get_tree());
+        $this->assertEquals(NULL,$this->baobab->getTree());
         
         
         /* ### test nested tree ### */
@@ -201,7 +201,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     public function testGetTree(){
         
         // check empty tree
-        $this->assertTrue(NULL===$this->baobab->get_tree());
+        $this->assertTrue(NULL===$this->baobab->getTree());
         
         // add a tree with a certain tree_id
         $b_id=5;
@@ -244,7 +244,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     }
     
     public function testEmptyRoot(){
-        $root_id=$this->baobab->get_root();
+        $root_id=$this->baobab->getRoot();
         $this->assertNull($root_id);
         
         // add a tree with a certain tree_id
@@ -261,7 +261,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
             }]';
         Baobab::import(self::$db,self::$tree_name,$nested_json_tree);
         
-        $root_id=$this->baobab->get_root();
+        $root_id=$this->baobab->getRoot();
         $this->assertNull($root_id);
     }
     
@@ -272,7 +272,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         
         // test with only one tree
         $this->baobab->appendChild();
-        $this->assertTrue(1===$this->baobab->get_root());
+        $this->assertTrue(1===$this->baobab->getRoot());
         
         // add a couple more trees
         $this->baobab->clean();
@@ -287,7 +287,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         
         $this->_fillAnyIdTree(2);
         
-        $this->assertTrue(2===$this->baobab->get_root());
+        $this->assertTrue(2===$this->baobab->getRoot());
     }
     
     function testInsertNodeAfterRoot(){
@@ -367,13 +367,13 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         $this->_fillAnyIdTree(2);
         
         // test empty tree
-        $this->assertTrue(0===$this->baobab->get_tree_size());
+        $this->assertTrue(0===$this->baobab->getTreeSize());
         
         $this->_fillGenericTree($this->base_tree);
         
-        $this->assertTrue(7===$this->baobab->get_tree_size());
-        $this->assertTrue(3===$this->baobab->get_tree_size(1));
-        $this->assertTrue(0===$this->baobab->get_tree_size(-1));
+        $this->assertTrue(7===$this->baobab->getTreeSize());
+        $this->assertTrue(3===$this->baobab->getTreeSize(1));
+        $this->assertTrue(0===$this->baobab->getTreeSize(-1));
     }
     
     function testGetDescendants(){
@@ -381,13 +381,13 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         $this->_fillAnyIdTree(2);
         
         // test empty tree
-        $this->assertEquals(array(),$this->baobab->get_descendants());
+        $this->assertEquals(array(),$this->baobab->getDescendants());
         
         $this->_fillGenericTree($this->base_tree);
         
-        $this->assertEquals(array(1,2,3,4,6,7),$this->baobab->get_descendants());
-        $this->assertEquals(array(4,6),$this->baobab->get_descendants(3));
-        $this->assertEquals(array(),$this->baobab->get_descendants(-1));
+        $this->assertEquals(array(1,2,3,4,6,7),$this->baobab->getDescendants());
+        $this->assertEquals(array(4,6),$this->baobab->getDescendants(3));
+        $this->assertEquals(array(),$this->baobab->getDescendants(-1));
     }
     
     function testGetLeaves(){
@@ -395,13 +395,13 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         $this->_fillAnyIdTree(2);
         
         // test empty tree
-        $this->assertEquals(array(),$this->baobab->get_leaves());
+        $this->assertEquals(array(),$this->baobab->getLeaves());
         
         $this->_fillGenericTree($this->base_tree);
         
-        $this->assertEquals(array(4,6,2,7),$this->baobab->get_leaves());
-        $this->assertEquals(array(4,6),$this->baobab->get_leaves(3));
-        $this->assertEquals(array(),$this->baobab->get_leaves(-1));
+        $this->assertEquals(array(4,6,2,7),$this->baobab->getLeaves());
+        $this->assertEquals(array(4,6),$this->baobab->getLeaves(3));
+        $this->assertEquals(array(),$this->baobab->getLeaves(-1));
     }
     
     function testGetLevels(){
@@ -409,11 +409,11 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         $this->_fillAnyIdTree(2);
         
         // test empty tree
-        $this->assertEquals(array(),$this->baobab->get_levels());
+        $this->assertEquals(array(),$this->baobab->getLevels());
         
         $this->_fillGenericTree($this->base_tree);
         
-        $res=$this->baobab->get_levels();
+        $res=$this->baobab->getLevels();
         
         $ordered_ar=array();
         foreach($res as $item) $ordered_ar[$item["id"]]=$item;
@@ -435,40 +435,40 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         $this->_fillAnyIdTree(2);
         
         // test empty tree
-        $this->assertEquals(array(),$this->baobab->get_path(-1));
+        $this->assertEquals(array(),$this->baobab->getPath(-1));
         
         $this->_fillGenericTree($this->base_tree);
         
         // test root
-        $this->assertEquals(array(array("id"=>5)),$this->baobab->get_path(5));
-        $this->assertEquals(array(5),$this->baobab->get_path(5,NULL,TRUE));
+        $this->assertEquals(array(array("id"=>5)),$this->baobab->getPath(5));
+        $this->assertEquals(array(5),$this->baobab->getPath(5,NULL,TRUE));
         
         // test generic node
-        $this->assertEquals(array(array("id"=>5),array("id"=>3),array("id"=>4)),$this->baobab->get_path(4));
-        $this->assertEquals(array(5,3,4),$this->baobab->get_path(4,NULL,TRUE));
-        $this->assertEquals(array(5,3,4),$this->baobab->get_path(4,array(),TRUE));
-        $this->assertEquals(array(5,3,4),$this->baobab->get_path(4,array("id"),TRUE));
+        $this->assertEquals(array(array("id"=>5),array("id"=>3),array("id"=>4)),$this->baobab->getPath(4));
+        $this->assertEquals(array(5,3,4),$this->baobab->getPath(4,NULL,TRUE));
+        $this->assertEquals(array(5,3,4),$this->baobab->getPath(4,array(),TRUE));
+        $this->assertEquals(array(5,3,4),$this->baobab->getPath(4,array("id"),TRUE));
         
         $this->assertEquals(array(
                 array("id"=>5,"lft"=>1),
                 array("id"=>3,"lft"=>2),
                 array("id"=>4,"lft"=>3)
                 ),
-                $this->baobab->get_path(4,"lft"));
+                $this->baobab->getPath(4,"lft"));
         
         $this->assertEquals(array(
                 array("id"=>5,"lft"=>1),
                 array("id"=>3,"lft"=>2),
                 array("id"=>4,"lft"=>3)
                 ),
-                $this->baobab->get_path(4,array("lft")));
+                $this->baobab->getPath(4,array("lft")));
         
         $this->assertEquals(array(
                 array("id"=>5,"lft"=>1),
                 array("id"=>3,"lft"=>2),
                 array("id"=>4,"lft"=>3)
                 ),
-                $this->baobab->get_path(4,array("lft","id")));
+                $this->baobab->getPath(4,array("lft","id")));
     }
     
     function testGetChildren(){
@@ -476,10 +476,10 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         $this->_fillAnyIdTree(2);
         
         // test empty tree
-        $this->assertEquals(array(),$this->baobab->get_children(-1));
+        $this->assertEquals(array(),$this->baobab->getChildren(-1));
         
         $this->_fillGenericTree($this->base_tree);
-        $this->assertEquals(array(2,7),$this->baobab->get_children(1));
+        $this->assertEquals(array(2,7),$this->baobab->getChildren(1));
     }
     
     function testGetFirstChild(){
@@ -489,13 +489,13 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         $this->_fillGenericTree($this->base_tree);
         
         // find first child of a node with children
-        $this->assertTrue(2===$this->baobab->get_first_child(1));
+        $this->assertTrue(2===$this->baobab->getFirstChild(1));
         
         // find first child of unexistent node
-        $this->assertTrue(0===$this->baobab->get_first_child(-1));
+        $this->assertTrue(0===$this->baobab->getFirstChild(-1));
         
         // find first child of a node without children
-        $this->assertTrue(0===$this->baobab->get_first_child(2));
+        $this->assertTrue(0===$this->baobab->getFirstChild(2));
     }
     
     function testGetLastChild(){
@@ -505,13 +505,13 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         $this->_fillGenericTree($this->base_tree);
         
         // find last child of a node with children
-        $this->assertTrue(7===$this->baobab->get_last_child(1));
+        $this->assertTrue(7===$this->baobab->getLastChild(1));
         
         // find last child of unexistent node
-        $this->assertTrue(0===$this->baobab->get_last_child(-1));
+        $this->assertTrue(0===$this->baobab->getLastChild(-1));
         
         // find last child of a node without children
-        $this->assertTrue(0===$this->baobab->get_last_child(2));
+        $this->assertTrue(0===$this->baobab->getLastChild(2));
     }
     
     function testGetTreeHeight() {
@@ -519,14 +519,14 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         $this->_fillAnyIdTree(2);
         
         // test empty tree
-        $this->assertTrue(0===$this->baobab->get_tree_height());
+        $this->assertTrue(0===$this->baobab->getTreeHeight());
         
         $this->_fillComplexTree($this->base_tree);
-        $this->assertTrue(5===$this->baobab->get_tree_height());
+        $this->assertTrue(5===$this->baobab->getTreeHeight());
         
         
         $this->_fillGenericTree($this->base_tree);
-        $this->assertTrue(3===$this->baobab->get_tree_height());
+        $this->assertTrue(3===$this->baobab->getTreeHeight());
         
     }
     
@@ -536,16 +536,16 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         
         $this->_fillComplexTree($this->base_tree);
         
-        $this->assertTrue($this->baobab->get_child_at_index(15,0)===14);
-        $this->assertTrue($this->baobab->get_child_at_index(15,1)===12);
-        $this->assertTrue($this->baobab->get_child_at_index(15,-2)===14);
-        $this->assertTrue($this->baobab->get_child_at_index(15,-1)===12);
-        $this->assertTrue($this->baobab->get_child_at_index(2,0)===16);
-        $this->assertTrue($this->baobab->get_child_at_index(2,-1)===16);
+        $this->assertTrue($this->baobab->getChildAtIndex(15,0)===14);
+        $this->assertTrue($this->baobab->getChildAtIndex(15,1)===12);
+        $this->assertTrue($this->baobab->getChildAtIndex(15,-2)===14);
+        $this->assertTrue($this->baobab->getChildAtIndex(15,-1)===12);
+        $this->assertTrue($this->baobab->getChildAtIndex(2,0)===16);
+        $this->assertTrue($this->baobab->getChildAtIndex(2,-1)===16);
         
         try {
             // index too high
-            $this->baobab->get_child_at_index(15,2);
+            $this->baobab->getChildAtIndex(15,2);
             $this->fail("was expecting an sp_Error Exception to be raised");
         } catch (sp_Error $e) {
             $this->assertTrue($e->getCode()===1300);
@@ -553,7 +553,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         
         try {
             // index too high
-            $this->baobab->get_child_at_index(15,-3);
+            $this->baobab->getChildAtIndex(15,-3);
             $this->fail("was expecting an sp_Error Exception to be raised");
         } catch (sp_Error $e) {
             $this->assertTrue($e->getCode()===1300);
@@ -561,7 +561,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         
         try {
             // index too high
-            $this->baobab->get_child_at_index(17,0);
+            $this->baobab->getChildAtIndex(17,0);
             $this->fail("was expecting an sp_Error Exception to be raised");
         } catch (sp_Error $e) {
             $this->assertTrue($e->getCode()===1300);

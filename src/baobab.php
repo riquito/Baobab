@@ -319,7 +319,7 @@ class BaobabNode {
     }
     
     /**!
-     * .. method:: add_child($child)
+     * .. method:: addChild($child)
      *
      *    Add a child to the node
      *
@@ -327,7 +327,7 @@ class BaobabNode {
      *    :type $child: :class:`BaobabNode`
      *
      */
-    public function add_child($child) {
+    public function addChild($child) {
         $this->children[]=$child;
     }
     
@@ -365,7 +365,7 @@ class BaobabNode {
     }
     
     /**!
-     * .. method:: is_rightmost()
+     * .. method:: isRightmost()
      *    
      *    Check if the node is rightmost between his siblings.
      *
@@ -375,14 +375,14 @@ class BaobabNode {
      *    .. note:
      *       root node is considered to be rightmost
      */
-    public function is_rightmost(){
+    public function isRightmost(){
         if (!$this->parentNode) return TRUE;
         
         return $this->parentNode->children[count($this->parentNode->children)-1]->id===$this->id;
     }
     
     /**!
-     * .. method:: is_leftmost()
+     * .. method:: isLeftmost()
      *    
      *    Check if the node is leftmost between his siblings.
      *
@@ -392,7 +392,7 @@ class BaobabNode {
      *    .. note:
      *       root node is considered to be leftmost
      */
-    public function is_leftmost(){
+    public function isLeftmost(){
         if (!$this->parentNode) return TRUE;
         
         return $this->parentNode->children[0]->id===$this->id;
@@ -679,7 +679,7 @@ class Baobab  {
 
 
     /**!
-     * .. method:: get_root()
+     * .. method:: getRoot()
      *    
      *    Return the id of the first node of the tree.
      *
@@ -687,7 +687,7 @@ class Baobab  {
      *    :rtype:  int or NULL
      *
      */
-    public function get_root(){
+    public function getRoot(){
 
         $query="
           SELECT id AS root
@@ -711,7 +711,7 @@ class Baobab  {
 
 
     /**!
-     * .. method:: get_tree_size([$id_node=NULL])
+     * .. method:: getTreeSize([$id_node=NULL])
      *    
      *    Retrieve the number of nodes of the subtree starting at $id_node (or
      *    at tree root if $id_node is NULL).
@@ -722,7 +722,7 @@ class Baobab  {
      *    :return: the number of nodes in the selected subtree
      *    :rtype:  int
      */
-    public function get_tree_size($id_node=NULL) {
+    public function getTreeSize($id_node=NULL) {
         if ($id_node!==NULL) $this->_check_id($id_node);
 
         $query="
@@ -745,19 +745,19 @@ class Baobab  {
     }
     
     /**!
-     * .. method:: get_descendants([$id_node=NULL])
+     * .. method:: getDescendants([$id_node=NULL])
      *    
      *    Retrieve all the descendants of a node
      *    
      *    :param $id_node: id of the node whose descendants we're searching for,
-     *                       or NULL to start from the tree root.
+     *                     or NULL to start from the tree root.
      *    :type $id_node:  int or NULL
      *    
      *    :return: the ids of node's descendants, in ascending order
      *    :rtype:  array
      *
      */
-    public function &get_descendants($id_node=NULL) {
+    public function &getDescendants($id_node=NULL) {
 
         if ($id_node===NULL) {
             // we search for descendants of root
@@ -792,7 +792,7 @@ class Baobab  {
     }
     
     /**!
-     * .. method:: get_leaves([$id_node=NULL])
+     * .. method:: getLeaves([$id_node=NULL])
      *
      *    Find the leaves of a subtree.
      *    
@@ -802,7 +802,7 @@ class Baobab  {
      *    :return: the ids of the leaves, ordered from left to right
      *    :rtype:  array
      */
-    public function &get_leaves($id_node=NULL){
+    public function &getLeaves($id_node=NULL){
         if ($id_node!==NULL) $this->_check_id($id_node);
         
         $query="
@@ -835,7 +835,7 @@ class Baobab  {
     }
     
     /**!
-     * .. method:: get_levels()
+     * .. method:: getLevels()
      *
      *    Find at what level of the tree each node is.
      *    
@@ -849,7 +849,7 @@ class Baobab  {
      *       tree root is at level 0
      *
      */
-    public function &get_levels(){
+    public function &getLevels(){
     
         $query="
           SELECT T2.id as id, (COUNT(T1.id) - 1) AS level
@@ -874,7 +874,7 @@ class Baobab  {
     }
 
     /**!
-     * .. method:: get_path($id_node[,$fields=NULL[,$squash=FALSE]])
+     * .. method:: getPath($id_node[,$fields=NULL[,$squash=FALSE]])
      *    
      *    Find all the nodes between tree root and a node.
      *    
@@ -898,13 +898,13 @@ class Baobab  {
      *    
      *    .. code-block:: none
      *       
-     *       php> $tree->get_path(2,array("name"))
+     *       php> $tree->getPath(2,array("name"))
      *       array([0]=>array([id]=>1,[name]=>'rootName'),array([id]=>2,[name]=>'secondNodeName']))
-     *       php> join("/",$tree->get_path(2,"name",TRUE))
+     *       php> join("/",$tree->getPath(2,"name",TRUE))
      *       "rootName/secondNodeName"
      * 
      */
-    public function &get_path($id_node,$fields=NULL,$squash=FALSE){
+    public function &getPath($id_node,$fields=NULL,$squash=FALSE){
         $id_node=intval($id_node);
         
         $this->_check_id($id_node);
@@ -956,9 +956,9 @@ class Baobab  {
     }
     
     /**!
-     * .. method:: get_some_children($id_parent[,$howMany=NULL[,$fromLeftToRight=TRUE]])
+     * .. method:: getFirstNChildren($id_parent[,$howMany=NULL[,$fromLeftToRight=TRUE]])
      *
-     *    Find all node's children
+     *    Find the first n node's children starting from left or right.
      *
      *    :param $id_parent: id of the parent node
      *    :type $id_parent:  int
@@ -971,7 +971,7 @@ class Baobab  {
      *    :rtype:  array
      *
      */
-    public function &get_some_children($id_parent,$howMany=NULL,$fromLeftToRight=TRUE){
+    public function &getFirstNChildren($id_parent,$howMany=NULL,$fromLeftToRight=TRUE){
         $id_parent=intval($id_parent);
         $howMany=intval($howMany);
         
@@ -995,7 +995,7 @@ class Baobab  {
     }
     
     /**!
-     * .. method:: get_children($id_parent)
+     * .. method:: getChildren($id_parent)
      *
      *    Find all node's children
      *
@@ -1006,12 +1006,12 @@ class Baobab  {
      *    :rtype:  array
      *
      */
-    public function &get_children($id_parent) {
-        return $this->get_some_children($id_parent);
+    public function &getChildren($id_parent) {
+        return $this->getFirstNChildren($id_parent);
     }
     
     /**!
-     * .. method:: get_first_child($id_parent)
+     * .. method:: getFirstChild($id_parent)
      *
      *    Find the leftmost child of a node
      *
@@ -1022,13 +1022,13 @@ class Baobab  {
      *    :rtype:  int
      *
      */
-    public function get_first_child($id_parent) {
-        $res=$this->get_some_children($id_parent,1,TRUE);
+    public function getFirstChild($id_parent) {
+        $res=$this->getFirstNChildren($id_parent,1,TRUE);
         return empty($res) ? 0 : current($res);
     }
     
     /**!
-     * .. method:: get_last_child($id_parent)
+     * .. method:: getLastChild($id_parent)
      *
      *    Find the rightmost child of a node
      *
@@ -1039,13 +1039,13 @@ class Baobab  {
      *    :rtype:  int
      *
      */
-    public function get_last_child($id_parent) {
-        $res=$this->get_some_children($id_parent,1,FALSE);
+    public function getLastChild($id_parent) {
+        $res=$this->getFirstNChildren($id_parent,1,FALSE);
         return empty($res) ? 0 : current($res);
     }
     
     /**!
-     * .. method:: get_child_at_index($id_parent,$index)
+     * .. method:: getChildAtIndex($id_parent,$index)
      *
      *    Find the nth child of a parent node
      *
@@ -1059,7 +1059,7 @@ class Baobab  {
      *    :rtype:  int
      *
      */
-    public function get_child_at_index($id_parent,$index){
+    public function getChildAtIndex($id_parent,$index){
         $id_parent=intval($id_parent);
         $index=intval($index);
         
@@ -1074,7 +1074,7 @@ class Baobab  {
     
     
     /**!
-     * .. method:: get_tree([$className="BaobabNode"[,$addChild="add_child"]])
+     * .. method:: getTree([$className="BaobabNode"[,$addChild="addChild"]])
      *
      *    Create a tree from the database data.
      *    It's possible to use a default tree or use custom classes/functions
@@ -1090,7 +1090,7 @@ class Baobab  {
      *    :rtype:  instance of $className
      *
      */
-    public function &get_tree($className="BaobabNode",$addChild="add_child") {
+    public function &getTree($className="BaobabNode",$addChild="addChild") {
         
         // this is a specialized version of the query found in get_level()
         //   (the difference lying in the fact that here we retrieve all the
@@ -1161,7 +1161,7 @@ class Baobab  {
     }
 
     /**!
-     * .. method:: delete_subtree($id_node[,$close_gaps=True])
+     * .. method:: deleteSubtree($id_node[,$close_gaps=True])
      *
      *    Delete a node and all of his children. If $close_gaps is TRUE, mantains
      *    the Modified Preorder Tree consistent closing gaps.
@@ -1175,9 +1175,9 @@ class Baobab  {
      *       If the gaps are not closed, you can't use most of the API. Usually
      *       you want to avoid closing gaps when you're deleting different
      *       subtrees and want to update the numbering just once
-     *       (see :class:`Baobab.close_gaps`)
+     *       (see :class:`Baobab.closeGaps`)
      */
-    public function delete_subtree($id_node,$close_gaps=TRUE) {
+    public function deleteSubtree($id_node,$close_gaps=TRUE) {
         $id_node=intval($id_node);
         $close_gaps=$close_gaps ? 1 : 0;
         
@@ -1191,7 +1191,7 @@ class Baobab  {
     }
     
     /**!
-     * .. method:: close_gaps
+     * .. method:: closeGaps
      *    
      *    Update right and left values of each node to ensure there are no
      *    gaps in the tree.
@@ -1200,7 +1200,7 @@ class Baobab  {
      *       This is a really slow function, use it only if needed (e.g.
      *       to delete multiple subtrees and close gaps just once)
      */
-    public function close_gaps() {
+    public function closeGaps() {
         if (!$this->db->multi_query("CALL Baobab_Close_Gaps_{$this->tree_name}({$this->tree_id})"))
             throw new sp_MySQL_Error($this->db);
         
@@ -1209,7 +1209,7 @@ class Baobab  {
     }
 
     /**!
-     * .. method:: get_tree_height()
+     * .. method:: getTreeHeight()
      *    
      *    Calculate the height of the tree
      *
@@ -1220,7 +1220,7 @@ class Baobab  {
      *       A tree with one node has height 1.
      * 
      */
-    public function get_tree_height(){
+    public function getTreeHeight(){
         
         $query="
         SELECT MAX(level)+1 as height
@@ -1896,7 +1896,7 @@ class Baobab  {
             
             // retrieve the data
             $tree=new Baobab($db,$tree_name,$tree_id);
-            $root=$tree->get_tree();
+            $root=$tree->getTree();
             
             if ($root!==NULL) {
                 $data=array(array()); // the inner array emulate a node to gain root as child
