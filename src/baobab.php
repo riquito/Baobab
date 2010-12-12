@@ -63,12 +63,12 @@ class sp_MySQL_Error extends sp_Error {
 }
 
 
-/**!
+/**@
  * Utils
  * -----
  */
 
-/**!
+/**@
  * .. class:: sp_SQLUtils
  *    
  *    Class with helpers to work with SQL
@@ -83,7 +83,7 @@ class sp_SQLUtils {
         $this->conn=$conn;
     }
     
-    /**!
+    /**@
      * .. method:: vector_to_sql_tuple($ar)
      *    
      *    Transform an array in a valid SQL tuple. The array can contain only
@@ -115,7 +115,7 @@ class sp_SQLUtils {
         return sprintf("( %s )",join(",",$tmp));
     }
     
-    /**!
+    /**@
      * .. method:: array_to_sql_assignments($ar[,$sep=","])
      *    
      *    Convert an associative array in a series of "columnName = value" expressions
@@ -155,7 +155,7 @@ class sp_SQLUtils {
         return join($sep,$tmp);
     }
     
-    /**!
+    /**@
      * .. method:: flush_results()
      *    
      *    Empty connection results of the last single or multi query.
@@ -173,7 +173,7 @@ class sp_SQLUtils {
         if ($conn->errno) throw new sp_MySQL_Error($conn);
     }
     
-    /**!
+    /**@
      * .. method:: get_table_fields($table_name)
      *    
      *    Retrieve the names of the fields in a table.
@@ -203,7 +203,7 @@ class sp_SQLUtils {
         return $fields;
     }
     
-    /**!
+    /**@
      * .. method:: table_exists($table_name[,$db_name=NULL])
      *    
      *    Check if a table exists.
@@ -241,14 +241,14 @@ class sp_SQLUtils {
     }
 }
 
-/**!
+/**@
  * .. class:: sp_Lib
  *    
  *    Generic utilities
  */
 class sp_Lib {
     
-    /**!
+    /**@
      * .. staticmethod:: map_method($array,$obj,$methodName)
      *    
      *    Call an object method on each item in an array and return an array
@@ -292,11 +292,9 @@ class sp_Lib {
  *
  *    .. note::
  *       this class doesn't have database interaction, its purpose is
- *       just to have a runtime representation of a Baobab tree
- *
- *    .. note::
- *       this class doesn't has any kind of data control, so it expects
- *       that the data used makes sense in a Baobab tree
+ *       just to have a runtime representation of a Baobab tree. The data
+ *       inserted is supposed to be valid in his tree (e.g. $this->lft cant'
+ *       be -1 or major of any node right value)
  * 
  */
 class BaobabNode {
@@ -319,15 +317,15 @@ class BaobabNode {
     }
     
     /**!
-     * .. method:: addChild($child)
+     * .. method:: appendChild($child)
      *
-     *    Add a child to the node
+     *    Add a node as last sibling of the node's children.
      *
      *    :param $child: append a node to the list of this node children
      *    :type $child: :class:`BaobabNode`
      *
      */
-    public function addChild($child) {
+    public function appendChild($child) {
         $this->children[]=$child;
     }
     
@@ -1013,25 +1011,24 @@ class Baobab  {
     
     
     /**!
-     * .. method:: getTree([$className="BaobabNode"[,$addChild="addChild"]])
+     * .. method:: getTree([$className="BaobabNode"[,$appendChild="appendChild"]])
      *
      *    Create a tree from the database data.
      *    It's possible to use a default tree or use custom classes/functions
-     *    (it must have the same constructor and public members of class
-     *    :class:`BaobabNode`)
+     *    (it must extends the class :class:`BaobabNode`)
      *
      *    :param $className: name of the class holding a node's information
      *    :type $className:  string
-     *    :param $addChild: method of $className to call to append a node
-     *    :type $addChild:  string
+     *    :param $appendChild: method of $className to call to append a node
+     *    :type $appendChild:  string
      *
      *    :return: a node instance
      *    :rtype:  instance of $className
      *
      */
-    public function &getTree($className="BaobabNode",$addChild="addChild") {
+    public function &getTree($className="BaobabNode",$appendChild="appendChild") {
         
-        // this is a specialized version of the query found in get_level()
+        // this is a specialized version of the query found in getLevel()
         //   (the difference lying in the fact that here we retrieve all the
         //    fields of the table)
         $query="
@@ -1066,7 +1063,7 @@ class Baobab  {
                 $node=new $className($id,$lft,$rgt,$parentNode,$row);
                 
                 if (!$root) $root=$node;
-                else $parents[$numParents-1]->$addChild($node);
+                else $parents[$numParents-1]->$appendChild($node);
                 
                 if ($rgt-$lft!=1) { // not a leaf
                     $parents[$numParents]=$node;
