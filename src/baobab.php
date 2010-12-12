@@ -405,10 +405,10 @@ class BaobabNode {
  */
 
 /**!
- * .. class:: Baobab($db,$tree_name[,$tree_id=NULL[,$must_check_ids=FALSE]])
+ * .. class:: Baobab($db,$tree_name[,$tree_id=NULL])
  *    
  *    This class lets you create, populate search and destroy a tree stored
- *    using the Nested Set Model described by Joe Celko's
+ *    using the Nested Set Model described by Joe Celko.
  *
  *    :param $db: mysqli database connection in object oriented style
  *    :type $db:  an instance of mysqli_connect
@@ -419,9 +419,6 @@ class BaobabNode {
  *                      If there is only a tree in the table, you can load it with -1;
  *                      A new tree created using NULL has $tree_id = 0 until an appendChild occurs.
  *    :type $tree_id: int or NULL
- *    
- *    :param $must_check_ids: whether to constantly check the id consistency or not
- *    :type $must_check_ids: boolean
  */
 class Baobab  {
     protected $db;
@@ -430,16 +427,14 @@ class Baobab  {
     protected $fields;
     public $tree_id;
     private $_refresh_fields;
-    private $_must_check_ids;
     private $_errors;
     
-    public function __construct($db,$tree_name,$tree_id=NULL,$must_check_ids=FALSE) {
+    public function __construct($db,$tree_name,$tree_id=NULL) {
         $this->db=$db;
         $this->sql_utils=new sp_SQLUtils($db);
         $this->tree_name=$tree_name;
         $this->fields=array();
         $this->_refresh_fields=TRUE;
-        $this->enableIdCheck($must_check_ids);
         
         // load error's information from db (if tables were created)
         try { $this->_load_errors();
@@ -491,56 +486,6 @@ class Baobab  {
             $result->close();
             
         } else throw new sp_Error("Cannot read info about errors (d'oh!)");
-    }
-
-    /**
-     * .. method:: _check_id($id)
-     * 
-     *    Check an id for validity (it must be an integer present in
-     *      the Baobab table used by the current instance).
-     *    Throws a sp_Error if $id is not valid.
-     *
-     *    Any activity of this function can be stopped setting the instance
-     *      member "must_check_ids" to FALSE at construction time or runtime.
-     */
-    private function _check_id($id) {
-        if (!$this->_must_check_ids) return;
-
-        $id=intVal($id);
-        if ($id>0 && ($result = $this->db->query("SELECT id FROM Baobab_{$this->tree_name} WHERE id = {$id}",MYSQLI_STORE_RESULT))) {
-            if ($result->num_rows) {
-                $result->close();
-                return;
-            }
-        }
-        throw new sp_Error("Not a valid id: {$id}");
-    }
-    
-    /**!
-     * .. method:: enableIdCheck($bool)
-     *    
-     *    When enabled, if a Baobab method is requested to use an id it checks
-     *    for his existence beforehand.
-     *
-     *    :param $bool: wheter to enable id check or not
-     *    :type $bool: boolean
-     *
-     */
-    public function enableIdCheck($bool) {
-        $this->_must_check_ids=$bool;
-    }
-    
-    /**!
-     * .. method:: isIdCheckEnabled()
-     *    
-     *    Verify if id checking is enabled. See :class:`Baobab.enableIdCheck`.
-     *
-     *    :return: wheter to enable id checking is enabled or not
-     *    :rtype:  boolean
-     *
-     */
-    public function isIdCheckEnabled() {
-        return $this->_must_check_ids;
     }
     
     /**
@@ -723,7 +668,6 @@ class Baobab  {
      *    :rtype:  int
      */
     public function getTreeSize($id_node=NULL) {
-        if ($id_node!==NULL) $this->_check_id($id_node);
 
         $query="
           SELECT (rgt-lft+1) DIV 2
@@ -803,7 +747,6 @@ class Baobab  {
      *    :rtype:  array
      */
     public function &getLeaves($id_node=NULL){
-        if ($id_node!==NULL) $this->_check_id($id_node);
         
         $query="
           SELECT id AS leaf
@@ -907,8 +850,6 @@ class Baobab  {
     public function &getPath($id_node,$fields=NULL,$squash=FALSE){
         $id_node=intval($id_node);
         
-        $this->_check_id($id_node);
-        
         if (empty($fields)) {
             if ($squash) $fields=array("id");
             else $fields=array(); // ensure it is not NULL
@@ -974,8 +915,6 @@ class Baobab  {
     public function &getFirstNChildren($id_parent,$howMany=NULL,$fromLeftToRight=TRUE){
         $id_parent=intval($id_parent);
         $howMany=intval($howMany);
-        
-        $this->_check_id($id_parent);
         
         $query=" SELECT child FROM Baobab_AdjTree_{$this->tree_name} ".
                " WHERE parent = {$id_parent} ".
@@ -1181,8 +1120,6 @@ class Baobab  {
         $id_node=intval($id_node);
         $close_gaps=$close_gaps ? 1 : 0;
         
-        $this->_check_id($id_node);
-        
         if (!$this->db->multi_query("CALL Baobab_DropTree_{$this->tree_name}({$id_node},{$close_gaps})"))
             throw new sp_MySQL_Error($this->db);
         
@@ -1256,8 +1193,6 @@ class Baobab  {
     public function updateNode($id_node,$fields_values){
         $id_node=intval($id_node);
         
-        $this->_check_id($id_node);
-        
         if (empty($fields_values)) throw new sp_Error("\$fields_values cannot be empty");
         
         $fields=array_keys($fields_values);
@@ -1288,8 +1223,6 @@ class Baobab  {
      */
     public function getNodeData($id_node,$fields=NULL){
         $id_node=intval($id_node);
-        
-        $this->_check_id($id_node);
         
         if (!empty($fields)) $this->_sql_check_fields($fields);
         
@@ -1323,8 +1256,6 @@ class Baobab  {
         
         $id_parent=intval($id_parent);
         
-        if ($id_parent) $this->_check_id($id_parent);
-        
         if (!$this->db->multi_query("
                 CALL Baobab_AppendChild_{$this->tree_name}({$this->tree_id},{$id_parent},@new_id,@cur_tree_id);
                 SELECT @new_id as new_id,@cur_tree_id as tree_id"))
@@ -1357,8 +1288,6 @@ class Baobab  {
      */
     public function insertNodeAfter($id_sibling,$fields_values=NULL) {
         $id_sibling=intval($id_sibling);
-        
-        $this->_check_id($id_sibling);
 
         if (!$this->db->multi_query("
                 CALL Baobab_InsertNodeAfter_{$this->tree_name}({$id_sibling},@new_id,@error_code);
@@ -1390,8 +1319,6 @@ class Baobab  {
      */
     public function insertNodeBefore($id_sibling,$fields_values=NULL) {
         $id_sibling=intval($id_sibling);
-        
-        $this->_check_id($id_sibling);
 
         if (!$this->db->multi_query("
                 CALL Baobab_InsertNodeBefore_{$this->tree_name}({$id_sibling},@new_id,@error_code);
@@ -1428,8 +1355,6 @@ class Baobab  {
     public function insertChildAtIndex($id_parent,$index,$fields_values=NULL) {
         $id_parent=intval($id_parent);
         $index=intval($index);
-        
-        $this->_check_id($id_parent);
 
         if (!$this->db->multi_query("
                 CALL Baobab_InsertChildAtIndex_{$this->tree_name}({$id_parent},{$index},@new_id,@error_code);
@@ -1463,9 +1388,6 @@ class Baobab  {
     public function moveSubTreeAfter($id_to_move,$reference_node) {
         $id_to_move=intval($id_to_move);
         $reference_node=intval($reference_node);
-        
-        $this->_check_id($id_to_move);
-        $this->_check_id($reference_node);
 
         if (!$this->db->multi_query("
                 CALL Baobab_MoveSubtreeAfter_{$this->tree_name}({$id_to_move},{$reference_node},@error_code);
@@ -1494,9 +1416,6 @@ class Baobab  {
     public function moveSubTreeBefore($id_to_move,$reference_node) {
         $id_to_move=intval($id_to_move);
         $reference_node=intval($reference_node);
-        
-        $this->_check_id($id_to_move);
-        $this->_check_id($reference_node);
 
         if (!$this->db->multi_query("
                 CALL Baobab_MoveSubtreeBefore_{$this->tree_name}({$id_to_move},{$reference_node},@error_code);
@@ -1529,9 +1448,6 @@ class Baobab  {
         $id_to_move=intval($id_to_move);
         $id_parent=intval($id_parent);
         $index=intval($index);
-        
-        $this->_check_id($id_to_move);
-        $this->_check_id($id_parent);
         
         if (!$this->db->multi_query("
                 CALL Baobab_MoveSubtreeAtIndex_{$this->tree_name}({$id_to_move},{$id_parent},{$index},@error_code);
