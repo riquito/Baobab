@@ -59,12 +59,12 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     public function setUp(){
         $this->base_tree=1;
         $this->baobab = new Baobab(self::$db,self::$tree_name,$this->base_tree);
-        $this->baobab->destroy();
+        $this->baobab->destroy(TRUE);
         $this->baobab->build();
     }
     
     public function tearDown(){
-        //$this->baobab->destroy();
+        //$this->baobab->destroy(TRUE);
     }
     
     public function testImportExport(){

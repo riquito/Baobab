@@ -568,13 +568,12 @@ class Baobab  {
      *    Remove every table, procedure or view that were created via
      *      :class:`Baobab.build` for the current tree name
      *
-     *    .. warning::
-     *
-     *       You're going to loose all the data in the table
-     *       Baobab_{tree_name} too.
+     *    :param $removeDataTable: unless this value is TRUE, avoid to delete 
+     *                             the table that holds the tree data
+     *    :type $removeDataTable:  boolean
      *    
      */
-    public function destroy() {
+    public function destroy($removeDataTable=FALSE) {
         if (!$this->db->multi_query(str_replace("GENERIC",$this->tree_name,"
                 DROP PROCEDURE IF EXISTS Baobab_getNthChild_GENERIC;
                 DROP PROCEDURE IF EXISTS Baobab_MoveSubtree_real_GENERIC;
@@ -588,12 +587,11 @@ class Baobab  {
                 DROP PROCEDURE IF EXISTS Baobab_DropTree_GENERIC;
                 DROP PROCEDURE IF EXISTS Baobab_Close_Gaps_GENERIC;
                 DROP VIEW IF EXISTS Baobab_AdjTree_GENERIC;
-                DROP TABLE IF EXISTS Baobab_GENERIC;
-                
                 DROP TABLE IF EXISTS Baobab_Errors_GENERIC;
                 DROP FUNCTION IF EXISTS Baobab_getErrCode_GENERIC;
-                
-                "))) {
+                ".
+                ($removeDataTable ? "DROP TABLE IF EXISTS Baobab_GENERIC;" : "")
+                ))) {
             throw new sp_MySQL_Error($this->db);
         }
         
