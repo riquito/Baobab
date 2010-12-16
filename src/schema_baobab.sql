@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS Baobab_Errors_GENERIC (
 
 INSERT INTO Baobab_Errors_GENERIC(code,name,msg)
 VALUES
+  (1000,'VERSION','1.0'),
   (1100,'ROOT_ERROR','Cannot add or move a node next to root'),
   (1200,'CHILD_OF_YOURSELF_ERROR','Cannot move a node inside his own subtree'),
   (1300,'INDEX_OUT_OF_RANGE','The index is out of range'),
