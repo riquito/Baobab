@@ -1,0 +1,34 @@
+{#
+    sphinxdoc/layout.html modified
+    ~~~~~~~~~~~~~~~~~~~~~
+
+    Sphinx layout template for the sphinxdoc theme.
+
+    :copyright: Copyright 2007-2010 by the Sphinx team, see AUTHORS.
+    :license: BSD, see LICENSE for details.
+    
+    modified by Riccardo Attilio Galli <riccardo@sideralis.org>
+#}
+
+{% extends "!layout.html" %}
+{% block rootrellink %}
+    <li><a href="{{ pathto('index') }}">Intro</a> | </li>
+    <li><a href="{{ pathto('api') }}">API</a> | </li>
+    <li><a href="{{ pathto('faq') }}">FAQ</a></li>
+{% endblock %}
+
+{% block linktags %}
+    {{ super() }}
+    <link rel="stylesheet" href="_static/baobab.css" />
+{% endblock %}
+
+
+{% block relbar1 %}
+    <div id="main_bar">
+        <a href="http://www.sideralis.org/">
+            <img src="_static/images/logo_sideralis.png" style="width:100px;height:100px" />
+            <span class="sp_text">Sideralis Programs</span> 
+        </a>
+    </div>
+    {{ super() }}
+{% endblock %}

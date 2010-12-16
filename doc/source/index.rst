@@ -5,7 +5,7 @@ Baobab ( a library applying the *nested set model* )
    :hidden:
    :maxdepth: 2
    
-   baobab.rst
+   api.rst
    faq.rst
 
 .. role:: raw-html(raw)
@@ -33,16 +33,43 @@ structure).
 We have about one hundred tests to ensure the library is doing The Right Thing (™),
 a straightforward thread safe :ref:`API <api>` and a clean documentation.
 
+.. topic:: Topic Title
+
+    Subsequent indented lines comprise
+    the body of the topic, and are
+    interpreted as body elements.
+
+
+
+
 How does the *nested set model* work ?
 --------------------------------------
 
 Let's say you want to save some hierarchical data in your database.
+
 
 .. image:: images/animals.png
    :width: 400 px
    :height: 210 px
    :alt: alternate text
    :align: right
+
+.. rst-class:: special
+.. sidebar:: Equivalent database table
+
+    =====  =======  =====
+    lft    rgt      label
+    =====  =======  =====
+    1      18       animals
+    2      9        vertebrates
+    3      4        mollusks
+    5      8        insects
+    6      7        mantid
+    10     17       invertebrates
+    11     16       mammals
+    12     13       tiger
+    14     15       horse
+    =====  =======  =====
 
 In the image we can see how each node has two numbers (left and right) assigned
 to it during a depth-first traversal of the tree. Well, the nested set model is
@@ -55,21 +82,8 @@ nodes, knowing all the descendants of a node or discover if a node is ancestor o
 another are blazing fast.
 Too, the horizontal order is preserved without the need of others attributes.
 
-The previous tree could be represented in a SQL table like so
 
-=====  =======  =====
-lft    rgt      label
-=====  =======  =====
-1      18       animals
-2      9        vertebrates
-3      4        mollusks
-5      8        insects
-6      7        mantid
-10     17       invertebrates
-11     16       mammals
-12     13       tiger
-14     15       horse
-=====  =======  =====
+
 
 some simple properties ...
 
@@ -93,7 +107,7 @@ tedious queries) and write your own queries to search what you want in the most
 optimized way. :raw-html:`<br />`
 However Baobab provide functions for the laziest programmers.
 
-Here it is a list of the functions provided
+Here is a list of the functions provided
 
 * creation
   

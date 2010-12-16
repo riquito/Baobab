@@ -1,0 +1,60 @@
+
+.class .method, .class .staticmethod{
+    border-bottom:1px dotted black;
+}
+
+div.warning p.admonition-title {
+    background-color:#EDD26A;
+    color:#AD3535;
+}
+
+div.warning {
+    border-color:#776C0B;
+}
+
+.field-name {
+    white-space:nowrap;
+}
+
+.download-button {
+    -moz-border-radius: 4px 4px 4px 4px;
+    -moz-box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    -webkit-border-radius: 4px 4px 4px 4px;
+    -webkit-box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    border-radius: 4px 4px 4px 4px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    
+    background: -moz-linear-gradient(center top , #50B7D1, #286DA3) repeat scroll 0 0 transparent;
+    border: 1px solid #51A0B3;
+    color: white;
+    display: inline-block;
+    font-size: 14px;
+    font-weight:bold;
+    padding: 8px 20px;
+    text-shadow: -1px -1px 0 rgba(0, 0, 0, 0.25);
+    
+    outline: medium none;
+}
+
+.download-button:hover {
+    background: -moz-linear-gradient(-90deg, #66C7E5, #328FC9) repeat scroll 0 0 transparent;
+    text-decoration: none;
+    color:white;
+}
+
+#main_bar {
+    background-color: black;
+    color: #FFFFFF;
+    font-family: cursive;
+    font-size: 40px;
+    padding: 5px;
+    text-align: left;
+}
+
+#main_bar img{
+    vertical-align:middle;
+}
+
+#main_bar .sp_text{
+    color:white;
+}
