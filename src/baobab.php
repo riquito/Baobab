@@ -543,11 +543,12 @@ class Baobab  {
      *
      *    Apply the database schema.
      *
-     *    .. warning::
+     *    .. note::
      *
      *       Running this method on a database which has yet loaded the schema
-     *       for the same tree name will end up in errors. The table
-     *       Baobab_{tree_name} will remain intact thought.
+     *       for the same tree name will not end up in errors or destroy your
+     *       data, however you're going to destroy and recreate needlessly
+     *       views and procedures.
      *    
      */
     public function build() {

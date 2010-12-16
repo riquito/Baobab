@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS Baobab_GENERIC (
     CONSTRAINT order_okay CHECK (lft < rgt)
 ) ENGINE INNODB;
 
-
+DROP VIEW IF EXISTS Baobab_AdjTree_GENERIC;
 CREATE VIEW Baobab_AdjTree_GENERIC (tree_id,parent,child,lft)
     AS
     SELECT E.tree_id,B.id, E.id, E.lft
@@ -60,8 +60,10 @@ VALUES
   (1100,'ROOT_ERROR','Cannot add or move a node next to root'),
   (1200,'CHILD_OF_YOURSELF_ERROR','Cannot move a node inside his own subtree'),
   (1300,'INDEX_OUT_OF_RANGE','The index is out of range'),
-  (1400,'NODE_DOES_NOT_EXIST',"Node doesn't exist");
+  (1400,'NODE_DOES_NOT_EXIST',"Node doesn't exist")
+ON DUPLICATE KEY UPDATE code=code;
 
+DROP FUNCTION IF EXISTS Baobab_getErrCode_GENERIC;
 CREATE FUNCTION Baobab_getErrCode_GENERIC(x TINYTEXT) RETURNS INT
 DETERMINISTIC
     RETURN (SELECT code from Baobab_Errors_GENERIC WHERE name=x);
@@ -70,6 +72,7 @@ DETERMINISTIC
 /* ######## DROP TREE ####### */
 /* ########################## */
 
+DROP PROCEDURE IF EXISTS Baobab_DropTree_GENERIC;
 CREATE PROCEDURE Baobab_DropTree_GENERIC (
                     IN node INTEGER UNSIGNED,
                     IN update_numbers INTEGER)
@@ -133,6 +136,7 @@ MODIFIES SQL DATA
    If parent_id is 0, insert a new root node, moving the
      previous root (if any) as his child
 */
+DROP PROCEDURE IF EXISTS Baobab_AppendChild_GENERIC;
 CREATE PROCEDURE Baobab_AppendChild_GENERIC(
             IN choosen_tree INTEGER UNSIGNED,
             IN parent_id INTEGER UNSIGNED,
@@ -193,7 +197,7 @@ DETERMINISTIC
 /* ###### INSERT NODE AFTER ###### */
 /* ############################### */
 
-
+DROP PROCEDURE IF EXISTS Baobab_InsertNodeAfter_GENERIC;
 CREATE PROCEDURE Baobab_InsertNodeAfter_GENERIC(
             IN sibling_id INTEGER UNSIGNED,
             OUT new_id INTEGER UNSIGNED,
@@ -254,7 +258,7 @@ DETERMINISTIC
 /* ###### INSERT NODE BEFORE ###### */
 /* ################################ */
 
-
+DROP PROCEDURE IF EXISTS Baobab_InsertNodeBefore_GENERIC;
 CREATE PROCEDURE Baobab_InsertNodeBefore_GENERIC(
             IN sibling_id INTEGER UNSIGNED,
             OUT new_id INTEGER UNSIGNED,
@@ -320,6 +324,7 @@ END;
    index can be negative, where -1 will put the new node before the last one
  */
 
+DROP PROCEDURE IF EXISTS Baobab_InsertChildAtIndex_GENERIC;
 CREATE PROCEDURE Baobab_InsertChildAtIndex_GENERIC(
             IN parent_id INTEGER UNSIGNED,
             IN idx INTEGER,
@@ -347,6 +352,7 @@ DETERMINISTIC
 /* ###### GET NTH CHILD ###### */
 /* ########################### */
 
+DROP PROCEDURE IF EXISTS Baobab_getNthChild_GENERIC;
 CREATE PROCEDURE Baobab_getNthChild_GENERIC(
             IN parent_id INTEGER UNSIGNED,
             IN idx INTEGER,
@@ -397,6 +403,7 @@ DETERMINISTIC
 /* ###### MOVE SUBTREE BEFORE NODE ###### */
 /* ###################################### */
 
+DROP PROCEDURE IF EXISTS Baobab_MoveSubtreeBefore_GENERIC;
 CREATE PROCEDURE Baobab_MoveSubtreeBefore_GENERIC(
         IN node_id_to_move INTEGER UNSIGNED,
         IN reference_node INTEGER UNSIGNED,
@@ -451,6 +458,7 @@ DETERMINISTIC
 /* ###### MOVE SUBTREE AFTER NODE ###### */
 /* ##################################### */
 
+DROP PROCEDURE IF EXISTS Baobab_MoveSubtreeAfter_GENERIC;
 CREATE PROCEDURE Baobab_MoveSubtreeAfter_GENERIC(
         IN node_id_to_move INTEGER UNSIGNED,
         IN reference_node INTEGER UNSIGNED,
@@ -474,6 +482,7 @@ DETERMINISTIC
 /* ####### MOVE SUBTREE AT INDEX ####### */
 /* ##################################### */
 
+DROP PROCEDURE IF EXISTS Baobab_MoveSubtreeAtIndex_GENERIC;
 CREATE PROCEDURE Baobab_MoveSubtreeAtIndex_GENERIC(
         IN node_id_to_move INTEGER UNSIGNED,
         IN parent_id INTEGER UNSIGNED,
@@ -524,6 +533,7 @@ DETERMINISTIC
 /* If move_as_first_sibling is FALSE, move node_id_to_move after reference_node,
      else reference_node is the new father of node_id_to_move */
 
+DROP PROCEDURE IF EXISTS Baobab_MoveSubtree_real_GENERIC;
 CREATE PROCEDURE Baobab_MoveSubtree_real_GENERIC(
         IN node_id_to_move INTEGER UNSIGNED,
         IN reference_node INTEGER UNSIGNED,
@@ -716,7 +726,7 @@ DETERMINISTIC
 /* ####### CLOSE GAPS ####### */
 /* ########################## */
 
-
+DROP PROCEDURE IF EXISTS Baobab_Close_Gaps_GENERIC;
 CREATE PROCEDURE Baobab_Close_Gaps_GENERIC(
     IN choosen_tree INTEGER UNSIGNED)
 LANGUAGE SQL
