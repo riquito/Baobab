@@ -619,7 +619,6 @@ class Baobab  {
         }
     }
 
-
     /**!
      * .. method:: getRoot()
      *    
@@ -650,7 +649,46 @@ class Baobab  {
         
         return $out;
     }
+    
+    /**!
+     * .. method:: getParent($id_node)
+     *    
+     *    Return the id of the node's parent.
+     *
+     *    :return: id of the parent, or NULL if node is root
+     *    :rtype:  int or NULL
+     *
+     */
+    public function getParent($id_node){
+        $id_node=intval($id_node);
+        
+        $query="
+          SELECT parent
+          FROM Baobab_AdjTree_{$this->tree_name}
+          WHERE tree_id={$this->tree_id} AND child = {$id_node};
+        ";
 
+        $out=NULL;
+
+        if ($result=$this->db->query($query,MYSQLI_STORE_RESULT)) {
+            $row=NULL;
+            if ($result->num_rows) $row = $result->fetch_row();
+            $result->close();
+            
+            if ($row) {
+                if ($row[0]===NULL) $out=NULL;
+                else $out=intval($row[0]);
+            }
+            else {
+                throw new sp_Error(sprintf("[%s] %s",
+                    $this->_errors["by_code"][1400]["name"],
+                    $this->_errors["by_code"][1400]["msg"]),1400);
+            }
+        
+        } else throw new sp_MySQL_Error($this->db);
+        
+        return $out;
+    }
 
     /**!
      * .. method:: getTreeSize([$id_node=NULL])

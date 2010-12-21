@@ -362,6 +362,24 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         }
     }
     
+    function testGetParent(){
+        
+        $this->_fillGenericTree($this->base_tree);
+        // add a tree with a different id
+        $this->_fillAnyIdTree(2);
+        
+        $this->assertTrue(NULL===$this->baobab->getParent(5));
+        $this->assertTrue(5===$this->baobab->getParent(3));
+        
+        try {
+            // test unexistent node id
+            $this->baobab->getParent(-1);
+            $this->fail("was expecting an sp_Error Exception to be raised");
+        } catch (sp_Error $e) {
+            $this->assertTrue($e->getCode()===1400);
+        }
+    }
+    
     function testGetTreeSize(){
         // add a tree with a different id
         $this->_fillAnyIdTree(2);
