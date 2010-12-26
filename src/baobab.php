@@ -829,22 +829,37 @@ class Baobab  {
     }
     
     /**!
-     * .. method:: clean([$tree_id])
+     * .. method:: clean()
      *    
-     *    Delete all the record from the table Baobab_{yoursuffix}, or from one
-     *    of his trees.
-     *
-     *    :param $tree_id: if set only the nodes of this tree will be removed
-     *    :type $tree_id:  int
+     *    Delete all the records about this tree.
+     *    Other trees in the same table will be unaffected.
      *
      */
-    public function clean($tree_id=NULL) {
-        if (!$this->db->query(
-            "DELETE FROM {$this->tree_name} ".
-            ($tree_id===NULL ? "" : " WHERE tree_id=".intval($tree_id))
-            )) {
-            if ($this->db->errno!==1146) // do not count "missing table" as an error
-                throw new sp_MySQL_Error($this->db);
+    public function clean() {
+        if (!$this->db->query("
+            DELETE FROM {$this->tree_name}
+            WHERE tree_id={$this->tree_id}"
+            ) && $this->db->errno!==1146) { // do not count "missing table" as an error
+            
+            throw new sp_MySQL_Error($this->db);
+        }
+    }
+    
+    /**!
+     * .. staticmethod:: cleanAll($db,$tree_name)
+     *    
+     *    Delete all the records in $tree_name
+     *    
+     *    :param $db: mysqli database connection in object oriented style
+     *    :type $db:  an instance of mysqli_connect
+     *    :param $tree_name: name of the tree, equals to the name of the table
+     *                       holding the data
+     *    :type $tree_name:  string
+     */
+    public static function cleanAll($db,$tree_name){
+        // delete all records, ignoring "missing table" error if happening
+        if (!$db->query("DELETE FROM {$tree_name}") && $db->errno!==1146) {
+            throw new sp_MySQL_Error($db);
         }
     }
 
@@ -864,9 +879,9 @@ class Baobab  {
           FROM {$this->tree_name}
           WHERE tree_id={$this->tree_id} AND lft = 1;
         ";
-
+        
         $out=NULL;
-
+        
         if ($result=$this->db->query($query,MYSQLI_STORE_RESULT)) {
             if ($result->num_rows) {
                 $row = $result->fetch_row();

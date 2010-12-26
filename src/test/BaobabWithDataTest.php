@@ -87,7 +87,8 @@ class BaobabWithDataTest extends PHPUnit_Framework_TestCase {
     // clean the tree and insert a simple tree
     // require import to be yet tested
     function _fillGenericTree($tree_id){
-        $this->baobab->clean($tree_id);
+        $t=new Baobab(self::$db,self::$tree_name,$tree_id);
+        $t->clean();
         Baobab::import(self::$db,self::$tree_name,'[{'.
             ($tree_id ? '"tree_id":'.$tree_id .',' : '').
           ' "fields":["id","lft","rgt"],
@@ -109,7 +110,8 @@ class BaobabWithDataTest extends PHPUnit_Framework_TestCase {
     // clean the tree and insert a simple tree with labels
     // require import to be yet tested
     function _fillGenericLabelTree($tree_id){
-        $this->baobab->clean($tree_id);
+        $t=new Baobab(self::$db,self::$tree_name,$tree_id);
+        $t->clean();
         Baobab::import(self::$db,self::$tree_name,'[{'.
             ($tree_id ? '"tree_id":'.$tree_id .',' : '').
           ' "fields":["id","lft","label","rgt"],

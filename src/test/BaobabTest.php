@@ -216,7 +216,8 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
             json_decode('[{"tree_id":'.$b_id.',"fields":["id","lft","rgt"],"values":[1,1,2,[]]}]',TRUE),
             json_decode(Baobab::export(self::$db,self::$tree_name,NULL,$b_id),TRUE)
         );
-        $b->clean();
+        
+        Baobab::cleanAll(self::$db,self::$tree_name);
         
         // once again but with a bigger tree
         $this->_fillComplexTree($b_id);
@@ -275,7 +276,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         $this->assertTrue(1===$this->baobab->getRoot());
         
         // add a couple more trees
-        $this->baobab->clean();
+        Baobab::cleanAll(self::$db,self::$tree_name);
         
         $tree_a='[{
             "fields":["tree_id","id","lft","rgt"],
@@ -715,7 +716,8 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     // clean the tree and insert a simple tree
     // require import to be yet tested
     function _fillGenericTree($tree_id){
-        $this->baobab->clean($tree_id);
+        $t=new Baobab(self::$db,self::$tree_name,$tree_id);
+        $t->clean();
         Baobab::import(self::$db,self::$tree_name,'[{'.
             ($tree_id ? '"tree_id":'.$tree_id .',' : '').
           ' "fields":["id","lft","rgt"],
@@ -737,7 +739,8 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     // clean the tree and insert a not trivial tree
     // require import to be yet tested
     function _fillComplexTree($tree_id){
-        $this->baobab->clean($tree_id);
+        $t=new Baobab(self::$db,self::$tree_name,$tree_id);
+        $t->clean();
         Baobab::import(self::$db,self::$tree_name,'[{'.
             ($tree_id ? '"tree_id":'.$tree_id .',' : '').
           ' "fields":["id","lft","rgt"],
@@ -780,7 +783,8 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     
     // just add a tree with ids greater than 100000
     function _fillAnyIdTree($tree_id){
-        $this->baobab->clean($tree_id);
+        $t=new Baobab(self::$db,self::$tree_name,$tree_id);
+        $t->clean();
         Baobab::import(self::$db,self::$tree_name,'[{'.
             ($tree_id ? '"tree_id":'.$tree_id .',' : '').
           ' "fields":["id","lft","rgt"],
