@@ -449,24 +449,27 @@ class Baobab  {
         if ($tree_id== -1 ) {
             $query="SELECT DISTINCT tree_id FROM {$this->tree_name} LIMIT 2";
             if ($result=$this->db->query($query,MYSQLI_STORE_RESULT)) {
-                if ($result->num_rows==1) {
+                $num_trees=$result->num_rows;
+                
+                if ($num_trees==1) {
                     // one and only, let's use it
                     $row = $result->fetch_row();
                     $tree_id=intval($row[0]);
                 }
-                else if ($result->num_rows==0) {
+                else if ($num_trees==0) {
                     // no trees ? it will be the first
+                    $tree_id=0;
                 }
                 $result->close();
+                
+                if ($num_trees>1) {
+                    throw new sp_Error("Too many trees found");
+                }
+                
             } else {
                 if ($this->db->errno==1146) {
                     // table does not exist (skip), so it will be the first tree
                 } else throw new sp_MySQL_Error($this->db);
-            }
-            
-            if ($tree_id) $this->tree_id=$tree_id;
-            else {
-                throw new sp_Error("Too many trees found");
             }
         }
         
