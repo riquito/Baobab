@@ -802,7 +802,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     // we don't really need a tree, but something similar
     function _fillFakeTree($tree_id,$from_node_id,$num_children){
         
-        $query="INSERT INTO Baobab_".(self::$tree_name)."(tree_id,id,lft,rgt)".
+        $query="INSERT INTO ".(self::$tree_name)."(tree_id,id,lft,rgt)".
                "VALUES ";
         
         $values=array();
