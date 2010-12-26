@@ -25,6 +25,10 @@
  * limitations under the License.
  */
 
+// define BAOBAB_SQL_DIR as the absolute path with no leading / pointing to
+// the root directory holding the sql files
+if (!defined("BAOBAB_SQL_DIR")) define("BAOBAB_SQL_DIR",dirname(__FILE__).DIRECTORY_SEPARATOR."sql");
+
 /**!
  * Exceptions
  * ----------
@@ -427,6 +431,8 @@ class Baobab  {
     private $_refresh_fields;
     private $_errors;
     
+    private static $_version="1.0";
+    
     public function __construct($db,$tree_name,$tree_id=NULL) {
         $this->db=$db;
         $this->sql_utils=new sp_SQLUtils($db);
@@ -465,6 +471,8 @@ class Baobab  {
         }
         
         $this->tree_id=intval($tree_id);
+        
+        $this->build();
     }
     
     /**
@@ -475,7 +483,7 @@ class Baobab  {
      */
     private function _load_errors(){
         $this->_errors=array("by_code"=>array(),"by_name"=>array());
-        if ($result=$this->db->query("SELECT code,name,msg FROM Baobab_Errors_{$this->tree_name}")) {
+        if ($result=$this->db->query("SELECT code,name,msg FROM Baobab_Errors")) {
             
             while($row=$result->fetch_assoc()) {
                 $this->_errors["by_code"][$row["code"]]=$row;
@@ -541,26 +549,184 @@ class Baobab  {
     /**!
      * .. method:: build()
      *
-     *    Apply the database schema.
+     *    Apply the database schema i
      *
      *    .. note::
-     *
-     *       Running this method on a database which has yet loaded the schema
-     *       for the same tree name will not end up in errors or destroy your
-     *       data, however you're going to destroy and recreate needlessly
-     *       views and procedures.
-     *    
+     *       This is automatically called while instantiating the class.
+     *       If the version of the library didn't change in the meantime, nothing
+     *       happens, otherwise it will throw an exception to inform you to
+     *       use :class:`Baobab:upgrade()`
      */
     public function build() {
-
-        $sql=file_get_contents(dirname(__FILE__).DIRECTORY_SEPARATOR."schema_baobab.sql");
-        if (!$this->db->multi_query(str_replace("GENERIC",$this->tree_name,$sql))) {
-            throw new sp_MySQL_Error($this->db);
+        
+        // get the current sql version from the loaded db (if any)
+        $sql_version=NULL;
+        if (isset($this->_errors["by_name"]["VERSION"]))
+            $sql_version=$this->_errors["by_name"]["VERSION"]["msg"];
+        
+        // check if the tree was yet built
+        $treeExists=FALSE;
+        if ($result=$this->db->query("SELECT name FROM Baobab_TreeNames WHERE name='{$this->tree_name}'")) {
+            $treeExists= $result->num_rows > 0;
+            $result->close();
+        } else {
+             if ($this->db->errno!==1146) { // do not count "missing table" as an error
+                throw new sp_MySQL_Error($this->db);
+            }
         }
         
-        $this->sql_utils->flush_results();
-        $this->_load_errors();
+        // if there are tables at an older version, ask to upgrade
+        if ($sql_version && $sql_version!=self::$_version) {
+            // old schema found at a lower version, ensure user upgrade the database willingly
+            $codename="VERSION_NOT_MATCH";
+            $errno=$this->_errors["by_name"][$codename]["code"];
+            throw new sp_Error(sprintf(
+                "[%s] %s",$codename,$this->_errors["by_code"][$errno]["msg"]).
+                " (database tables v. ".$sql_version.", library v. ".self::$_version."). Please use Baobab::upgrade().",
+                $errno);
+        }
         
+        // build the tree only if the database schema not yet exists
+        if (!$treeExists) {
+            $sql=file_get_contents(BAOBAB_SQL_DIR.DIRECTORY_SEPARATOR."schema_baobab.sql");
+            if (!$this->db->multi_query(str_replace("GENERIC",$this->tree_name,$sql))) {
+                throw new sp_MySQL_Error($this->db);
+            }
+            
+            $this->sql_utils->flush_results();
+            
+            // load or reload the errors table
+            $this->_load_errors();
+        }
+        
+    }
+    
+    /**!
+     * .. staticmethod:: upgrade($db[,$untilVersion=NULL])
+     * 
+     *    Upgrade the database schema of all the trees to reflect the current
+     *    library's version.
+     *    
+     *    :param $db: mysqli database connection object
+     *    :type $db:  mysqli
+     *    :param $untilVersion: version at which stop (or NULL to update to last version)
+     *    :type $untilVersion:  string or NULL
+     *
+     *    .. warning::
+     *       To avoid any possible data loss you should backup your database's
+     *       tables first.
+     *
+     *    .. warning::
+     *       For each release read release notes and check what's going to happen
+     *       when you upgrade your database (see sql/upgrade/* files).
+     *       Eventually stop with $untilVersion at a certain point to apply
+     *       needed tweaks.
+     */
+    public static function upgrade($db,$untilVersion=NULL){
+        
+        $db->query("START TRANSACTION");
+        try {
+            
+            $currentDbVersion=NULL;
+            
+            // get the current database version
+            if ($result=$db->query("SELECT msg FROM Baobab_Errors WHERE name='VERSION'")) {
+                $row=$result->fetch_assoc();
+                $currentDbVersion=$row["msg"];
+                $result->close();
+            } else throw new sp_Error("You cannot upgrade if you didn't ever built before");
+            
+            // upgrade only if current db version is not yet the most recent
+            //  or we wasn't asked to stop at the current version
+            if ($currentDbVersion==self::$_version ||
+                $untilVersion==$currentDbVersion) return;
+            
+            $upgradeList=array(); // name of the files with sql data to run
+            $versions=array(); // mapping fileName -> version to which it will update
+            
+            $startingFileToUpgrade=NULL; // of the files in $upgradeList, start to update from this one
+            
+            // get all the upgrade files
+            $upgradeDir=BAOBAB_SQL_DIR.DIRECTORY_SEPARATOR."upgrade";
+            $pattern="/^\d{8}_from_(?P<from>.+?)_to_(?P<to>.+?)\.sql$/";
+            
+            if ($handle = opendir($upgradeDir)) {
+                while (false !== ($fName = readdir($handle))) {
+                    if ($fName == "." || $fName == "..") continue;
+                    
+                    $matches=array();
+                    if (preg_match($pattern,$fName,$matches)) {
+                        $upgradeList[]=$fName;
+                        $versions[$fName]=$matches["to"];
+                        
+                        if ($matches["from"]==$currentDbVersion)
+                            $startingFileToUpgrade=$fName;
+                    }
+                }
+                closedir($handle);
+                
+            } else {
+                throw new sp_Error(sprintf('Can not read the directory "%s"',$upgradeDir));
+            }
+            
+            if (empty($upgradeList)) return;
+            
+            sort($upgradeList);
+            
+            // get the starting version (it wasn't added while scanning the directory)
+            $matches=array();
+            preg_match($pattern,$upgradeList[0],$matches);
+            $baseVersion=$matches["from"];
+            
+            if ($untilVersion==$baseVersion) return;
+            
+            $pathToUntilVersion=array_search($untilVersion,$versions);
+            
+            if ($untilVersion!==NULL && FALSE===$pathToUntilVersion)
+                throw new sp_Error("You requested to stop at an unknown version ({$untilVersion})");
+            
+            else if ($startingFileToUpgrade==NULL)
+                throw new sp_Error("Couldn't find a file to upgrade from the current version ({$currentDbVersion})");
+            
+            // filter the availabe upgrades to remove the older than the current version
+            $upgradeList=array_slice($upgradeList,array_search($startingFileToUpgrade,$upgradeList));
+            
+            // get the names of the existing trees
+            $treeNames=array();
+            if ($result=$db->query("SELECT name FROM Baobab_TreeNames",MYSQLI_STORE_RESULT)) {
+                if ($result->num_rows) {
+                    $row = $result->fetch_row();
+                    $treeNames[]=$row[0];
+                }
+                $result->close();
+            
+            } else throw new sp_MySQL_Error($db);
+            
+            $sql_utils=new sp_SQLUtils($db);
+            
+            // upgrade each tree until the choosen (or last) version
+            foreach($upgradeList as $fName){
+                $sql=file_get_contents($upgradeDir.DIRECTORY_SEPARATOR.$fName);
+                
+                foreach($treeNames as $name) {
+                    if (!$db->multi_query(str_replace("GENERIC",$name,$sql))) {
+                        throw new sp_MySQL_Error($db);
+                    }
+                    $sql_utils->flush_results();
+                }
+                
+                if ($pathToUntilVersion==$fName) break;
+            }
+            
+        
+        } catch (Exception $e) {
+            // whatever happens we must rollback
+            $db->query("ROLLBACK");
+            throw $e;
+        }
+        
+        $result=$db->query("COMMIT");
+        if (!$result) throw new sp_MySQL_Error($db);
     }
     
     /**!
@@ -575,28 +741,81 @@ class Baobab  {
      *    
      */
     public function destroy($removeDataTable=FALSE) {
-        if (!$this->db->multi_query(str_replace("GENERIC",$this->tree_name,"
-                DROP PROCEDURE IF EXISTS Baobab_getNthChild_GENERIC;
-                DROP PROCEDURE IF EXISTS Baobab_MoveSubtree_real_GENERIC;
-                DROP PROCEDURE IF EXISTS Baobab_MoveSubtreeAtIndex_GENERIC;
-                DROP PROCEDURE IF EXISTS Baobab_MoveSubtreeBefore_GENERIC;
-                DROP PROCEDURE IF EXISTS Baobab_MoveSubtreeAfter_GENERIC;
-                DROP PROCEDURE IF EXISTS Baobab_InsertChildAtIndex_GENERIC;
-                DROP PROCEDURE IF EXISTS Baobab_InsertNodeBefore_GENERIC;
-                DROP PROCEDURE IF EXISTS Baobab_InsertNodeAfter_GENERIC;
-                DROP PROCEDURE IF EXISTS Baobab_AppendChild_GENERIC;
-                DROP PROCEDURE IF EXISTS Baobab_DropTree_GENERIC;
-                DROP PROCEDURE IF EXISTS Baobab_Close_Gaps_GENERIC;
-                DROP VIEW IF EXISTS Baobab_AdjTree_GENERIC;
-                DROP TABLE IF EXISTS Baobab_Errors_GENERIC;
-                DROP FUNCTION IF EXISTS Baobab_getErrCode_GENERIC;
-                ".
-                ($removeDataTable ? "DROP TABLE IF EXISTS Baobab_GENERIC;" : "")
-                ))) {
-            throw new sp_MySQL_Error($this->db);
+        
+        $this->db->query("START TRANSACTION");
+        
+        try {
+            $Baobab_TreeNamesExists=TRUE;
+            
+            if (!$this->db->multi_query(str_replace("GENERIC",$this->tree_name,"
+                    DROP PROCEDURE IF EXISTS Baobab_getNthChild_GENERIC;
+                    DROP PROCEDURE IF EXISTS Baobab_MoveSubtree_real_GENERIC;
+                    DROP PROCEDURE IF EXISTS Baobab_MoveSubtreeAtIndex_GENERIC;
+                    DROP PROCEDURE IF EXISTS Baobab_MoveSubtreeBefore_GENERIC;
+                    DROP PROCEDURE IF EXISTS Baobab_MoveSubtreeAfter_GENERIC;
+                    DROP PROCEDURE IF EXISTS Baobab_InsertChildAtIndex_GENERIC;
+                    DROP PROCEDURE IF EXISTS Baobab_InsertNodeBefore_GENERIC;
+                    DROP PROCEDURE IF EXISTS Baobab_InsertNodeAfter_GENERIC;
+                    DROP PROCEDURE IF EXISTS Baobab_AppendChild_GENERIC;
+                    DROP PROCEDURE IF EXISTS Baobab_DropTree_GENERIC;
+                    DROP PROCEDURE IF EXISTS Baobab_Close_Gaps_GENERIC;
+                    DROP VIEW IF EXISTS Baobab_AdjTree_GENERIC;
+                    DROP FUNCTION IF EXISTS Baobab_getErrCode_GENERIC;
+                    ".
+                    ($removeDataTable ? "DROP TABLE IF EXISTS Baobab_GENERIC;" : "").
+                    "DELETE FROM Baobab_TreeNames WHERE name='GENERIC';"
+                    ))) {
+                
+                throw new sp_MySQL_Error($this->db);
+            }
+            
+            try { $this->sql_utils->flush_results(); }
+            catch (Exception $e) {
+                
+                if ($this->db->errno===1146) { // do not count "missing table" as an error
+                    // died because BaobabTreeNames was missing (other drop are IF EXISTS)
+                    $Baobab_TreeNamesExists=FALSE;
+                }
+                else throw $e;
+            }
+            
+            if ($Baobab_TreeNamesExists) {
+                
+                if ($result=$this->db->query("SELECT COUNT(*) FROM Baobab_TreeNames",MYSQLI_STORE_RESULT)) {
+                    $dropIt=FALSE;
+                    if ($result->num_rows) {
+                        $row = $result->fetch_row();
+                        $dropIt= ($row[0]==0);
+                    }
+                    
+                    $result->close();
+                    
+                    if ($dropIt) {
+                        if (!$this->db->multi_query("
+                            DROP TABLE Baobab_TreeNames;
+                            DROP TABLE Baobab_Errors;
+                            ")) {
+                            throw new sp_MySQL_Error($this->db);
+                        } else {
+                            $this->sql_utils->flush_results();
+                        }
+                    }
+                
+                } else throw new sp_MySQL_Error($this->db);
+            }
+            
+        } catch (Exception $e) {
+            // whatever happens we must rollback
+            $this->db->query("ROLLBACK");
+            throw $e;
         }
         
-        $this->sql_utils->flush_results();
+        $result=$this->db->query("COMMIT");
+        if (!$result) throw new sp_MySQL_Error($this->db);
+        
+        // reset errors data
+        try { $this->_load_errors();
+        } catch (sp_Error $e) {}
     }
     
     /**!
@@ -1586,7 +1805,7 @@ class Baobab  {
         // check if the table exists before doing anything else
         $sql_utils=new sp_SQLUtils($db);
         if ( ! $sql_utils->table_exists("Baobab_".$tree_name)){
-            throw new sp_Error("Table `{$db_name}`.`Baobab_{$tree_name}` does not exists");
+            throw new sp_Error("Table `{$db_name}`.`Baobab_{$tree_name}` does not exist");
         }
         
         $ar_out=array();
@@ -1797,7 +2016,7 @@ class Baobab  {
         // check if the table exists before doing anything else
         $sql_utils=new sp_SQLUtils($db);
         if ( ! $sql_utils->table_exists("Baobab_".$tree_name)){
-            throw new sp_Error("Table `{$db_name}`.`Baobab_{$tree_name}` does not exists");
+            throw new sp_Error("Table `Baobab_{$tree_name}` does not exist");
         }
         
         // get all the fields to export or check if the passed fields are valid
@@ -1862,7 +2081,3 @@ class Baobab  {
 
 
 }
-
-
-
-?>

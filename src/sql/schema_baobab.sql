@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS Baobab_GENERIC (
     id      INTEGER UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     lft     INTEGER NOT NULL CHECK (lft > 0),
     rgt     INTEGER NOT NULL CHECK (rgt > 1),
+    INDEX(tree_id),
+    INDEX(lft),
     CONSTRAINT order_okay CHECK (lft < rgt)
 ) ENGINE INNODB;
 
@@ -43,31 +45,43 @@ CREATE VIEW Baobab_AdjTree_GENERIC (tree_id,parent,child,lft)
           AND B.tree_id=E.tree_id
     ORDER BY lft ASC;
 
+/* ##### LIST OF TREE NAMES IN USE ##### */
+
+CREATE TABLE IF NOT EXISTS Baobab_TreeNames (
+    name VARCHAR(200) PRIMARY KEY
+) ENGINE INNODB DEFAULT CHARSET=utf8;
+
+INSERT INTO Baobab_TreeNames(name) VALUES ('GENERIC')
+ON DUPLICATE KEY UPDATE name=name;
+
+/* ##################################### */
+
 
 /* ########################### */
 /* ###### ERRORS CONTROL ##### */
 /* ########################### */
 
-CREATE TABLE IF NOT EXISTS Baobab_Errors_GENERIC (
+CREATE TABLE IF NOT EXISTS Baobab_Errors (
     code   INTEGER UNSIGNED NOT NULL PRIMARY KEY,
     name   VARCHAR(50)      NOT NULL,
     msg    TINYTEXT         NOT NULL,
     CONSTRAINT unique_codename UNIQUE (name)
 ) ENGINE INNODB;
 
-INSERT INTO Baobab_Errors_GENERIC(code,name,msg)
+INSERT INTO Baobab_Errors(code,name,msg)
 VALUES
   (1000,'VERSION','1.0'),
   (1100,'ROOT_ERROR','Cannot add or move a node next to root'),
   (1200,'CHILD_OF_YOURSELF_ERROR','Cannot move a node inside his own subtree'),
   (1300,'INDEX_OUT_OF_RANGE','The index is out of range'),
-  (1400,'NODE_DOES_NOT_EXIST',"Node doesn't exist")
-ON DUPLICATE KEY UPDATE code=code;
+  (1400,'NODE_DOES_NOT_EXIST',"Node doesn't exist"),
+  (1500,'VERSION_NOT_MATCH',"The library and the sql schema have different versions")
+ON DUPLICATE KEY UPDATE code=code,name=name,msg=msg;
 
 DROP FUNCTION IF EXISTS Baobab_getErrCode_GENERIC;
 CREATE FUNCTION Baobab_getErrCode_GENERIC(x TINYTEXT) RETURNS INT
 DETERMINISTIC
-    RETURN (SELECT code from Baobab_Errors_GENERIC WHERE name=x);
+    RETURN (SELECT code from Baobab_Errors WHERE name=x);
 
 /* ########################## */
 /* ######## DROP TREE ####### */
