@@ -550,6 +550,11 @@ class Baobab  {
      * .. method:: build()
      *
      *    Apply the database schema
+     *    
+     *    :return: TRUE if any table was added, FALSE if the build was skipped
+     *             (e.g. if the tree yet exists calling build will do nothing
+     *             and return FALSE).
+     *    :rtype:  boolean
      *
      *    .. note::
      *       This is automatically called while instantiating the class.
@@ -599,6 +604,7 @@ class Baobab  {
             $this->_load_errors();
         }
         
+        return ! $treeExists;
     }
     
     /**!

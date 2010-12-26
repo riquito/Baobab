@@ -26,12 +26,13 @@ require_once(dirname(__FILE__).DS.'../baobab.php');
 class BaobabNamed extends Baobab {
 
     public function build() {
-        parent::build();
-
-        $result = $this->db->query("
-            ALTER TABLE Baobab_{$this->tree_name}
-            ADD COLUMN label VARCHAR(50) DEFAULT '' NOT NULL",MYSQLI_STORE_RESULT);
-        if (!$result) throw new sp_MySQL_Error($this->db);
+        if (parent::build()) {
+            
+            $result = $this->db->query("
+                ALTER TABLE {$this->tree_name}
+                ADD COLUMN label VARCHAR(50) DEFAULT '' NOT NULL",MYSQLI_STORE_RESULT);
+            if (!$result) throw new sp_MySQL_Error($this->db);
+        }
     }
     
 
@@ -40,7 +41,10 @@ class BaobabNamed extends Baobab {
 
 class BaobabWithDataTest extends PHPUnit_Framework_TestCase {
     protected static $db;
+    protected static $tree_name;
     protected $baobab;
+    
+    private $base_tree;
     
     public static function setUpBeforeClass() {
         require_once(dirname(__FILE__).DS."conf_database.php");
@@ -60,6 +64,7 @@ class BaobabWithDataTest extends PHPUnit_Framework_TestCase {
             self::fail(sprintf('Connect Error (%s): %s',mysqli_connect_errno(),mysqli_connect_error()));
         }
         
+        self::$tree_name="testNamed";
     }
     
     public static function tearDownAfterClass(){
@@ -68,9 +73,10 @@ class BaobabWithDataTest extends PHPUnit_Framework_TestCase {
     }
     
     public function setUp(){
-        $this->baobab = new BaobabNamed(self::$db,"testNamed");
-        $this->baobab->destroy();
-        $this->baobab->clean();
+        $this->base_tree=1;
+        
+        $this->baobab = new BaobabNamed(self::$db,self::$tree_name,$this->base_tree);
+        $this->baobab->destroy(TRUE);
         $this->baobab->build();
     }
     
@@ -80,10 +86,11 @@ class BaobabWithDataTest extends PHPUnit_Framework_TestCase {
     
     // clean the tree and insert a simple tree
     // require import to be yet tested
-    function _fillGenericTree(){
-        $this->baobab->clean();
-        $this->baobab->import('{
-            "fields":["id","lft","rgt"],
+    function _fillGenericTree($tree_id){
+        $this->baobab->clean($tree_id);
+        Baobab::import(self::$db,self::$tree_name,'[{'.
+            ($tree_id ? '"tree_id":'.$tree_id .',' : '').
+          ' "fields":["id","lft","rgt"],
             "values":
                 [5,1,14,[
                     [3,2,7,[
@@ -101,10 +108,11 @@ class BaobabWithDataTest extends PHPUnit_Framework_TestCase {
     
     // clean the tree and insert a simple tree with labels
     // require import to be yet tested
-    function _fillGenericLabelTree(){
-        $this->baobab->clean();
-        $this->baobab->import('{
-            "fields":["id","lft","label","rgt"],
+    function _fillGenericLabelTree($tree_id){
+        $this->baobab->clean($tree_id);
+        Baobab::import(self::$db,self::$tree_name,'[{'.
+            ($tree_id ? '"tree_id":'.$tree_id .',' : '').
+          ' "fields":["id","lft","label","rgt"],
             "values":
                 [5,1,"A",14,[
                     [3,2,"B",7,[
@@ -116,12 +124,12 @@ class BaobabWithDataTest extends PHPUnit_Framework_TestCase {
                         [7,11,"G",12,[]]
                     ]]
                 ]]
-            }'
+            }]'
         );
     }
     
     public function testUpdateNode(){
-        $this->_fillGenericLabelTree();
+        $this->_fillGenericLabelTree($this->base_tree);
         
         $this->baobab->updateNode(3,array("label"=>"ciao riquito ' ! "));
         
