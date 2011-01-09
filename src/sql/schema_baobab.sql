@@ -574,6 +574,11 @@ DETERMINISTIC
     DECLARE ref_rgt INTEGER UNSIGNED;
     DECLARE choosen_tree INTEGER UNSIGNED;
     
+    DECLARE diff_when_inside_sourcetree BIGINT SIGNED;
+    DECLARE diff_when_next_sourcetree BIGINT SIGNED;
+    DECLARE ext_bound_1 INTEGER UNSIGNED;
+    DECLARE ext_bound_2 INTEGER UNSIGNED;
+    
     SET error_code=0;
     
     START TRANSACTION;
@@ -586,7 +591,7 @@ DETERMINISTIC
     
     /* select left and right of the reference node
         
-       If moving as first, sibling, ref_lft will become the new lft value of node_id_to_move,
+        If moving as first sibling, ref_lft will become the new lft value of node_id_to_move,
          (and ref_rgt is unused), else we're saving left and right value of soon to be
          previous sibling
     
@@ -604,55 +609,25 @@ DETERMINISTIC
                 SELECT Baobab_getErrCode('CHILD_OF_YOURSELF_ERROR') INTO error_code;
                 LEAVE main;
             END;
-        
-        ELSEIF s_lft > ref_lft THEN
+        ELSE
+                
+            IF s_lft > ref_lft THEN BEGIN
+                SET diff_when_inside_sourcetree = -(s_lft-ref_lft);
+                SET diff_when_next_sourcetree = s_rgt-s_lft+1;
+                SET ext_bound_1 = ref_lft;
+                SET ext_bound_2 = s_lft-1;
+                
+                END;
+            ELSE BEGIN
+                SET diff_when_inside_sourcetree = ref_lft-s_rgt-1;
+                SET diff_when_next_sourcetree = -(s_rgt-s_lft+1);
+                SET ext_bound_1 = s_rgt+1;
+                SET ext_bound_2 = ref_lft-1;
+               
+                END;
+            END IF;
             
-            UPDATE GENERIC
-            SET lft =
-                lft + CASE
-
-                  WHEN lft BETWEEN s_lft AND s_rgt
-                  THEN  -(s_lft-ref_lft)
-                  WHEN lft BETWEEN ref_lft AND s_lft-1
-                  THEN s_rgt-s_lft+1
-                  ELSE 0 END
-                ,
-                rgt =
-                rgt + CASE
-
-                  WHEN rgt BETWEEN s_lft AND s_rgt
-                  THEN -(s_lft-ref_lft)
-                  WHEN rgt BETWEEN ref_lft AND s_lft-1
-                  THEN s_rgt-s_lft+1
-                  ELSE 0 END
-            WHERE tree_id=choosen_tree;
-
-
-        ELSEIF s_lft < ref_lft THEN
-
-            UPDATE GENERIC
-            SET lft =
-                lft + CASE
-
-                  WHEN lft BETWEEN s_lft AND s_rgt
-                  THEN ref_lft-s_rgt-1
-                  WHEN lft BETWEEN s_rgt+1 AND ref_lft-1
-                  THEN -(s_rgt-s_lft+1)
-                  ELSE 0 END
-                ,
-                rgt =
-                rgt + CASE
-
-                  WHEN rgt BETWEEN s_lft AND s_rgt
-                  THEN ref_lft-s_rgt-1
-                  WHEN rgt BETWEEN s_rgt+1 AND ref_lft-1
-                  THEN -(s_rgt-s_lft+1)
-                  ELSE 0 END
-            WHERE tree_id=choosen_tree;
-
-
         END IF;
-
     ELSE    /* moving after an existing child */
         
         IF ref_lft = 1 THEN /* cannot move a node before or after root */
@@ -666,79 +641,46 @@ DETERMINISTIC
                 SELECT Baobab_getErrCode('CHILD_OF_YOURSELF_ERROR') INTO error_code;
                 LEAVE main;
             END;
-        ELSEIF s_lft > ref_lft AND s_rgt < ref_rgt THEN
-            /* we're moving a subtree as next sibling of an ancestor*/
-
-            UPDATE GENERIC
-            SET lft =
-                lft + CASE
-
-                  WHEN lft BETWEEN s_lft AND s_rgt
-                  THEN ref_rgt-s_rgt
-                  WHEN lft BETWEEN s_rgt+1 AND ref_rgt-1
-                  THEN -(s_rgt-s_lft+1)
-                  ELSE 0 END
-                ,
-                rgt =
-                rgt + CASE
-
-                  WHEN rgt BETWEEN s_lft AND s_rgt
-                  THEN ref_rgt-s_rgt
-                  WHEN rgt BETWEEN s_rgt+1 AND ref_rgt
-                  THEN -(s_rgt-s_lft+1)
-                  ELSE 0 END
-            WHERE tree_id=choosen_tree;
-
-        ELSEIF s_lft > ref_lft THEN
-
-            UPDATE GENERIC
-            SET lft =
-                lft + CASE
-
-                  WHEN lft BETWEEN s_lft AND s_rgt
-                  THEN  -(s_lft-ref_rgt-1)
-                  WHEN lft BETWEEN ref_rgt+1 AND s_lft-1
-                  THEN s_rgt-s_lft+1
-                  ELSE 0 END
-                ,
-                rgt =
-                rgt + CASE
-
-                  WHEN rgt BETWEEN s_lft AND s_rgt
-                  THEN -(s_lft-ref_rgt-1)
-                  WHEN rgt BETWEEN ref_rgt+1 AND s_lft-1
-                  THEN s_rgt-s_lft+1
-                  ELSE 0 END
-            WHERE tree_id=choosen_tree;
-
-
-        ELSEIF s_lft < ref_lft THEN
-
-            UPDATE GENERIC
-            SET lft =
-                lft + CASE
-
-                  WHEN lft BETWEEN s_lft AND s_rgt
-                  THEN ref_rgt-s_rgt
-                  WHEN lft BETWEEN s_rgt+1 AND ref_rgt
-                  THEN -(s_rgt-s_lft+1)
-                  ELSE 0 END
-                ,
-                rgt =
-                rgt + CASE
-
-                  WHEN rgt BETWEEN s_lft AND s_rgt
-                  THEN ref_rgt-s_rgt
-                  WHEN rgt BETWEEN s_rgt+1 AND ref_rgt
-                  THEN -(s_rgt-s_lft+1)
-                  ELSE 0 END
-            WHERE tree_id=choosen_tree;
+        ELSE
             
-
+            IF s_lft > ref_rgt THEN BEGIN
+                SET diff_when_inside_sourcetree = -(s_lft-ref_rgt-1);
+                SET diff_when_next_sourcetree = s_rgt-s_lft+1;
+                SET ext_bound_1 = ref_rgt+1;
+                SET ext_bound_2 = s_lft-1;
+               
+                END;
+            ELSE BEGIN
+                SET diff_when_inside_sourcetree = ref_rgt-s_rgt;
+                SET diff_when_next_sourcetree = -(s_rgt-s_lft+1);
+                SET ext_bound_1 = s_rgt+1;
+                SET ext_bound_2 = ref_rgt;
+               
+                END;
+            END IF;
+            
         END IF;
 
-
     END IF;
+    
+    UPDATE GENERIC
+    SET lft =
+        lft + CASE
+          WHEN lft BETWEEN s_lft AND s_rgt
+          THEN diff_when_inside_sourcetree
+          WHEN lft BETWEEN ext_bound_1 AND ext_bound_2
+          THEN diff_when_next_sourcetree
+          ELSE 0 END
+        ,
+        rgt =
+        rgt + CASE
+          
+          WHEN rgt BETWEEN s_lft AND s_rgt
+          THEN diff_when_inside_sourcetree
+          WHEN rgt BETWEEN ext_bound_1 AND ext_bound_2
+          THEN diff_when_next_sourcetree
+          ELSE 0 END
+    WHERE tree_id=choosen_tree;
 
     COMMIT;
     
