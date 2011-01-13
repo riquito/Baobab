@@ -601,14 +601,16 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         $fields=$json_obj["fields"];
         $real_data=$json_obj["cases"];
         
-        $random_tree=isset($json_obj["random_tree"]) ? $json_obj["random_tree"] :
-            array("tree_id"=>1000,"from_node_id"=>100000,"num_children"=>100);
+        $random_tree=isset($json_obj["random_tree"]) ? $json_obj["random_tree"] : null;
+        
+        $existing_trees=isset($json_obj["existing_trees"]) ? $json_obj["existing_trees"] : null;
         
         $ar_out=array();
         foreach($real_data as $single_test_info) {
             $single_test_info["methodName"]=$methodName;
             $single_test_info["fields"]=$fields;
             $single_test_info["random_tree"]=$random_tree;
+            $single_test_info["existing_trees"]=$existing_trees;
             $ar_out[]=array($single_test_info);
         }
         return $ar_out;
@@ -624,25 +626,69 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
      */
     function _useTreeTestData(&$whatToTest){
         
-        // add a fake tree
-        $random_tree=$whatToTest["random_tree"];
-        $this->_fillFakeTree($random_tree["tree_id"],$random_tree["from_node_id"],$random_tree["num_children"]);
+        if ($whatToTest["random_tree"]) {
+            // add a fake tree
+            $random_tree=$whatToTest["random_tree"];
+            $this->_fillFakeTree($random_tree["tree_id"],$random_tree["from_node_id"],$random_tree["num_children"]);
+        }
         
-        // load the data
-        Baobab::import(self::$db,self::$tree_name,array(array(
-                "tree_id"=>$this->base_tree,
-                "fields"=>$whatToTest["fields"],
-                "values"=>$whatToTest["from"])));
+        // save the state of the trees before modifications
+        $preTrees=array();
+        
+        if ($whatToTest["existing_trees"]) {
+            
+            // add as much trees as requested
+            $existing_trees=$whatToTest["existing_trees"];
+            foreach($existing_trees as $treeToBuild) {
+                
+                $preTrees[$treeToBuild["tree_id"]]=$treeToBuild["tree"];
+                
+                Baobab::import(self::$db,self::$tree_name,'[{
+                    "tree_id":'.$treeToBuild["tree_id"].',
+                    "fields":["id","lft","rgt"],
+                    "values":'.json_encode($treeToBuild["tree"]).'
+                    }]'
+                );
+            }
+        }
+        
+        if (isset($whatToTest["from"])) {
+            // load the data
+            Baobab::import(self::$db,self::$tree_name,array(array(
+                    "tree_id"=>$this->base_tree,
+                    "fields"=>$whatToTest["fields"],
+                    "values"=>$whatToTest["from"])));
+        }
+        
         // call the func to test
         try {
             call_user_func_array(array($this->baobab,$whatToTest["methodName"]),$whatToTest["params"]);
             if (isset($whatToTest["error"])) $this->fail("Expecting exception ".$whatToTest["error"]);
             
             // get the current tree state (pop because this function work always on a single array)
-            $treeState=current(json_decode(Baobab::export(self::$db,self::$tree_name,NULL,$this->base_tree),TRUE));
+            $treesOnDb=json_decode(Baobab::export(self::$db,self::$tree_name,NULL,
+                        $whatToTest["random_tree"] ? $this->base_tree : NULL),TRUE);
             
-            // check that the tree state is what we expected
-            $this->assertEquals($whatToTest["to"],$treeState["values"]);
+            // $whatToTest has either a 'to' or 'toTrees' keyword
+            
+            if (array_key_exists("to",$whatToTest)) {
+                $treeState=current($treesOnDb);
+                // check that the tree state is what we expected
+                $this->assertEquals($whatToTest["to"],$treeState["values"]);
+            } else {
+                
+                $idToTree=array();
+                foreach($treesOnDb as $treeData) {
+                    $idToTree[$treeData["tree_id"]]=$treeData;
+                }
+                
+                foreach ($whatToTest["toTrees"] as $toTreeData) {
+                    $tree_id=$toTreeData["tree_id"];
+                    
+                    $this->assertEquals($toTreeData["tree"]!==NULL ? $toTreeData["tree"] : $preTrees[$tree_id]
+                                        ,$idToTree[$tree_id]["values"]);
+                }
+            }
             
         } catch (Exception $e) {
             if (isset($whatToTest["error"]))
@@ -711,6 +757,24 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
      */
     function testMoveSubtreeAtIndex($whatToTest){ $this->_useTreeTestData($whatToTest); }
     function _provider_testMoveSubtreeAtIndex(){ return $this->_getJsonTestData("moveSubtreeAtIndex.json"); }
+    
+    /**
+     * @dataProvider _provider_testMoveSubtreeAfter_multiTree
+     */
+    function testMoveSubtreeAfter_multiTree($whatToTest){ $this->_useTreeTestData($whatToTest); }
+    function _provider_testMoveSubtreeAfter_multiTree(){ return $this->_getJsonTestData("moveSubtreeAfter_multiTree.json"); }
+    
+    /**
+     * @dataProvider _provider_testMoveSubtreeBefore_multiTree
+     */
+    function testMoveSubtreeBefore_multiTree($whatToTest){ $this->_useTreeTestData($whatToTest); }
+    function _provider_testMoveSubtreeBefore_multiTree(){ return $this->_getJsonTestData("moveSubtreeBefore_multiTree.json"); }
+    
+    /**
+     * @dataProvider _provider_testMoveSubtreeAtIndex_multiTree
+     */
+    function testMoveSubtreeAtIndex_multiTree($whatToTest){ $this->_useTreeTestData($whatToTest); }
+    function _provider_testMoveSubtreeAtIndex_multiTree(){ return $this->_getJsonTestData("moveSubtreeAtIndex_multiTree.json"); }
     
     
     // clean the tree and insert a simple tree

@@ -762,6 +762,7 @@ class Baobab  {
                     DROP PROCEDURE IF EXISTS Baobab_GENERIC_MoveSubtreeAtIndex;
                     DROP PROCEDURE IF EXISTS Baobab_GENERIC_MoveSubtreeBefore;
                     DROP PROCEDURE IF EXISTS Baobab_GENERIC_MoveSubtreeAfter;
+                    DROP PROCEDURE IF EXISTS Baobab_GENERIC_MoveSubtree_Different_Trees;
                     DROP PROCEDURE IF EXISTS Baobab_GENERIC_InsertChildAtIndex;
                     DROP PROCEDURE IF EXISTS Baobab_GENERIC_InsertNodeBefore;
                     DROP PROCEDURE IF EXISTS Baobab_GENERIC_InsertNodeAfter;

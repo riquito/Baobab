@@ -439,13 +439,13 @@ DETERMINISTIC
     DECLARE node_revised INTEGER UNSIGNED;
     DECLARE is_first_child BOOLEAN;
     DECLARE ref_left INTEGER UNSIGNED;
-    DECLARE choosen_tree INTEGER UNSIGNED;
+    DECLARE ref_node_tree INTEGER UNSIGNED;
     
     SET error_code=0; /* 0 means no error */
     SET is_first_child = TRUE;
     
     SELECT tree_id,lft
-    INTO choosen_tree,ref_left
+    INTO ref_node_tree,ref_left
     FROM GENERIC WHERE id = reference_node;
     
     IF ref_left = 1 THEN
@@ -456,19 +456,18 @@ DETERMINISTIC
         END;
     END IF;
     
-    /* if node_id_to_move is the first child of his parent, set node_revised
+    /* if reference_node is the first child of his parent, set node_revised
        to the parent id, else set node_revised to NULL */
-    SET node_revised = ( SELECT id FROM GENERIC WHERE tree_id=choosen_tree AND lft = -1+ ref_left);
-    
+    SET node_revised = ( SELECT id FROM GENERIC WHERE tree_id=ref_node_tree AND lft = -1+ ref_left);
     
     IF ISNULL(node_revised) THEN    /* if node_revised is NULL we must find the previous sibling */
       BEGIN
         SET node_revised= (SELECT id FROM GENERIC
-                           WHERE tree_id=choosen_tree AND rgt = -1 + ref_left);
+                           WHERE tree_id=ref_node_tree AND rgt = -1 + ref_left);
         SET is_first_child = FALSE;
       END;
     END IF;
-
+    
     CALL Baobab_GENERIC_MoveSubtree_real(
         node_id_to_move, node_revised , is_first_child,error_code
     );
@@ -572,7 +571,9 @@ DETERMINISTIC
     DECLARE s_rgt INTEGER UNSIGNED;
     DECLARE ref_lft INTEGER UNSIGNED;
     DECLARE ref_rgt INTEGER UNSIGNED;
-    DECLARE choosen_tree INTEGER UNSIGNED;
+    
+    DECLARE source_node_tree INTEGER UNSIGNED;
+    DECLARE ref_node_tree INTEGER UNSIGNED;
     
     DECLARE diff_when_inside_sourcetree BIGINT SIGNED;
     DECLARE diff_when_next_sourcetree BIGINT SIGNED;
@@ -585,7 +586,7 @@ DETERMINISTIC
 
     /* select tree, left and right of the node to move */
     SELECT tree_id,lft, rgt
-    INTO choosen_tree, s_lft, s_rgt
+    INTO source_node_tree, s_lft, s_rgt
     FROM GENERIC
     WHERE id = node_id_to_move;
     
@@ -596,14 +597,15 @@ DETERMINISTIC
          previous sibling
     
     */
-    SELECT IF(move_as_first_sibling,lft+1,lft), rgt
-    INTO ref_lft, ref_rgt
+    SELECT tree_id, IF(move_as_first_sibling,lft+1,lft), rgt
+    INTO ref_node_tree, ref_lft, ref_rgt
     FROM GENERIC
     WHERE id = reference_node;
     
+    
     IF move_as_first_sibling = TRUE THEN
         
-        IF s_lft <= ref_lft AND s_rgt >= ref_rgt THEN
+        IF s_lft <= ref_lft AND s_rgt >= ref_rgt AND source_node_tree=ref_node_tree THEN
             /* cannot move a parent node inside his own subtree */
             BEGIN
                 SELECT Baobab_getErrCode('CHILD_OF_YOURSELF_ERROR') INTO error_code;
@@ -635,7 +637,7 @@ DETERMINISTIC
                 SELECT Baobab_getErrCode('ROOT_ERROR') INTO error_code;
                 LEAVE main;
             END;
-        ELSEIF s_lft < ref_lft AND s_rgt > ref_rgt THEN
+        ELSEIF s_lft < ref_lft AND s_rgt > ref_rgt AND source_node_tree=ref_node_tree THEN
             /* cannot move a parent node inside his own subtree */
             BEGIN
                 SELECT Baobab_getErrCode('CHILD_OF_YOURSELF_ERROR') INTO error_code;
@@ -663,6 +665,15 @@ DETERMINISTIC
 
     END IF;
     
+    
+    IF source_node_tree <> ref_node_tree THEN
+        BEGIN
+            CALL Baobab_GENERIC_MoveSubtree_Different_Trees(
+                node_id_to_move,reference_node,move_as_first_sibling);
+            LEAVE main;
+        END;
+    END IF;
+    
     UPDATE GENERIC
     SET lft =
         lft + CASE
@@ -680,12 +691,104 @@ DETERMINISTIC
           WHEN rgt BETWEEN ext_bound_1 AND ext_bound_2
           THEN diff_when_next_sourcetree
           ELSE 0 END
-    WHERE tree_id=choosen_tree;
+    WHERE tree_id=source_node_tree;
 
     COMMIT;
     
   END;
 
+
+DROP PROCEDURE IF EXISTS Baobab_GENERIC_MoveSubtree_Different_Trees;
+CREATE PROCEDURE Baobab_GENERIC_MoveSubtree_Different_Trees(
+        IN node_id_to_move INTEGER UNSIGNED,
+        IN reference_node INTEGER UNSIGNED,
+        IN move_as_first_sibling BOOLEAN
+        )
+LANGUAGE SQL
+DETERMINISTIC
+
+  main:BEGIN
+  
+    DECLARE s_lft INTEGER UNSIGNED;
+    DECLARE s_rgt INTEGER UNSIGNED;
+    DECLARE ref_lft INTEGER UNSIGNED;
+    DECLARE ref_rgt INTEGER UNSIGNED;
+    
+    DECLARE source_node_tree INTEGER UNSIGNED;
+    DECLARE ref_node_tree INTEGER UNSIGNED;
+    
+    START TRANSACTION;
+
+    /* select tree, left and right of the node to move */
+    SELECT tree_id,lft, rgt
+    INTO source_node_tree, s_lft, s_rgt
+    FROM GENERIC
+    WHERE id = node_id_to_move;
+    
+    /* The current select will behave differently whether we're moving
+       the node as first sibling or not.
+        
+       If move_as_first_sibling,
+         ref_lft will have the value of the "lft" field of node_id_to_move at end
+            of move (ref_rgt here is discarded)
+       else
+         ref_lft and ref_rgt will have the values of the node before node_id_to_move
+            at end of move
+    */
+    SELECT tree_id, IF(move_as_first_sibling,lft+1,lft), rgt
+    INTO ref_node_tree, ref_lft, ref_rgt
+    FROM GENERIC
+    WHERE id = reference_node;
+    
+    IF (move_as_first_sibling) THEN BEGIN
+        
+        /* create a gap in the destination tree to hold the subtree */
+        UPDATE GENERIC
+        SET lft = CASE WHEN lft < ref_lft
+                       THEN lft
+                       ELSE lft + s_rgt-s_lft+1 END,
+            rgt = CASE WHEN rgt < ref_lft
+                       THEN rgt
+                       ELSE rgt + s_rgt-s_lft+1 END
+        WHERE tree_id=ref_node_tree AND rgt >= ref_lft;
+        
+        /* move the subtree to the new tree */
+        UPDATE GENERIC
+        SET lft = ref_lft + (lft-s_lft),
+            rgt = ref_lft + (rgt-s_lft),
+            tree_id = ref_node_tree
+        WHERE tree_id = source_node_tree AND lft >= s_lft AND rgt <= s_rgt;
+        
+        END;
+    ELSE BEGIN
+        
+        /* create a gap in the destination tree to hold the subtree */
+        UPDATE GENERIC
+        SET lft = CASE WHEN lft < ref_rgt
+                       THEN lft
+                       ELSE lft + s_rgt-s_lft+1 END,
+            rgt = CASE WHEN rgt <= ref_rgt
+                       THEN rgt
+                       ELSE rgt + s_rgt-s_lft+1 END
+        WHERE tree_id=ref_node_tree AND rgt > ref_rgt;
+        
+        /* move the subtree to the new tree */
+        UPDATE GENERIC
+        SET lft = ref_rgt+1 + (lft-s_lft),
+            rgt = ref_rgt+1 + (rgt-s_lft),
+            tree_id = ref_node_tree
+        WHERE tree_id = source_node_tree AND lft >= s_lft AND rgt <= s_rgt;
+    
+        END;
+    
+    END IF;
+    
+    /* close the gap in the source tree */
+    CALL Baobab_GENERIC_Close_Gaps(source_node_tree);
+    
+    COMMIT;
+  
+  END;
 
 /* ########################## */
 /* ####### CLOSE GAPS ####### */
