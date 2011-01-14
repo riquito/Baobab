@@ -437,12 +437,12 @@ DETERMINISTIC
   main:BEGIN
   
     DECLARE node_revised INTEGER UNSIGNED;
-    DECLARE is_first_child BOOLEAN;
+    DECLARE move_as_first_sibling BOOLEAN;
     DECLARE ref_left INTEGER UNSIGNED;
     DECLARE ref_node_tree INTEGER UNSIGNED;
     
     SET error_code=0; /* 0 means no error */
-    SET is_first_child = TRUE;
+    SET move_as_first_sibling = TRUE;
     
     SELECT tree_id,lft
     INTO ref_node_tree,ref_left
@@ -464,12 +464,12 @@ DETERMINISTIC
       BEGIN
         SET node_revised= (SELECT id FROM GENERIC
                            WHERE tree_id=ref_node_tree AND rgt = -1 + ref_left);
-        SET is_first_child = FALSE;
+        SET move_as_first_sibling = FALSE;
       END;
     END IF;
     
     CALL Baobab_GENERIC_MoveSubtree_real(
-        node_id_to_move, node_revised , is_first_child,error_code
+        node_id_to_move, node_revised , move_as_first_sibling, error_code
     );
 
   END;
