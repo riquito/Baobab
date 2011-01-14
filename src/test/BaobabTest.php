@@ -244,6 +244,18 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         $this->assertTrue(2===$b_root_id);
     }
     
+    public function testTreeId(){
+        
+        $tree = new Baobab(self::$db,self::$tree_name);
+        $this->assertEquals(0,$tree->tree_id);
+        $tree->appendChild();
+        $this->assertEquals(1,$tree->tree_id);
+        
+        $reloadedTree = new Baobab(self::$db,self::$tree_name,1);
+        $reloadedTree->appendChild();
+        $this->assertEquals(1,$reloadedTree->tree_id);
+    }
+    
     public function testEmptyRoot(){
         $root_id=$this->baobab->getRoot();
         $this->assertNull($root_id);

@@ -157,7 +157,9 @@ MODIFIES SQL DATA
 
 /* Add a new child to a parent as last sibling
    If parent_id is 0, insert a new root node, moving the
-     previous root (if any) as his child
+     previous root (if any) as his child.
+   If choosen_tree is 0, use the first available integer as id.
+   If choosen_tree is not present as tree_id in the table, it is used.
 */
 DROP PROCEDURE IF EXISTS Baobab_GENERIC_AppendChild;
 CREATE PROCEDURE Baobab_GENERIC_AppendChild(
@@ -174,18 +176,21 @@ DETERMINISTIC
 
     START TRANSACTION;
     
-    /* XXX TODO need to throw an error if choosen_tree doesn't exist */
-
+    SET cur_tree_id = IF(choosen_tree > 0,
+                         choosen_tree,
+                         IFNULL((SELECT MAX(tree_id)+1 FROM GENERIC),1)
+                        );
+    
     IF parent_id = 0 THEN /* inserting a new root node*/
 
         UPDATE GENERIC
         SET lft = lft+1, rgt = rgt+1
-        WHERE tree_id=choosen_tree;
+        WHERE tree_id=cur_tree_id;
 
-        SET num = IFNULL((SELECT MAX(rgt)+1 FROM GENERIC WHERE tree_id=choosen_tree),2);
+        SET num = IFNULL((SELECT MAX(rgt)+1 FROM GENERIC WHERE tree_id=cur_tree_id),2);
 
         INSERT INTO GENERIC(tree_id, id, lft, rgt)
-        VALUES (choosen_tree, NULL, 1, num);
+        VALUES (cur_tree_id, NULL, 1, num);
 
     ELSE /* append a new node as last right child of his parent */
         
@@ -201,16 +206,14 @@ DETERMINISTIC
             rgt = CASE WHEN rgt >= num
                      THEN rgt + 2
                      ELSE rgt END
-        WHERE tree_id=choosen_tree AND rgt >= num;
+        WHERE tree_id=cur_tree_id AND rgt >= num;
 
         INSERT INTO GENERIC(tree_id, id, lft, rgt)
-        VALUES (choosen_tree,NULL, num, (num + 1));
+        VALUES (cur_tree_id,NULL, num, (num + 1));
 
     END IF;
 
-    SELECT id,tree_id INTO new_id,cur_tree_id
-    FROM GENERIC
-    WHERE id = LAST_INSERT_ID();
+    SELECT LAST_INSERT_ID() INTO new_id;
 
     COMMIT;
 
