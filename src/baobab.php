@@ -1981,7 +1981,7 @@ class Baobab  {
             else if ($fieldName=='rgt') $value=$node->rgt;
             else $value=$node->fields_values[$fieldName];
             
-            if ($fieldsFlags[$i++]&MYSQLI_NUM_FLAG!=0) $value=floatval($value);
+            if ($fieldsFlags[$i++]&MYSQLI_NUM_FLAG) $value=floatval($value);
             
             $tmp_ar[]=$value;
         }

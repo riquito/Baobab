@@ -30,12 +30,11 @@ class BaobabNamed extends Baobab {
             
             $result = $this->db->query("
                 ALTER TABLE {$this->tree_name}
-                ADD COLUMN label VARCHAR(50) DEFAULT '' NOT NULL",MYSQLI_STORE_RESULT);
+                ADD COLUMN label VARCHAR(50) DEFAULT '' NOT NULL");
             if (!$result) throw new sp_MySQL_Error($this->db);
         }
     }
     
-
 }
 
 
@@ -116,14 +115,14 @@ class BaobabWithDataTest extends PHPUnit_Framework_TestCase {
             ($tree_id ? '"tree_id":'.$tree_id .',' : '').
           ' "fields":["id","lft","label","rgt"],
             "values":
-                [5,1,"A",14,[
-                    [3,2,"B",7,[
-                        [4,3,"C",4,[]],
-                        [6,5,"D",6,[]]
+                [5,1,"AAA",14,[
+                    [3,2,"BBB",7,[
+                        [4,3,"CCC",4,[]],
+                        [6,5,"DDD",6,[]]
                     ]],
-                    [1,8,"E",13,[
-                        [2,9,"F",10,[]],
-                        [7,11,"G",12,[]]
+                    [1,8,"EEE",13,[
+                        [2,9,"FFF",10,[]],
+                        [7,11,"GGG",12,[]]
                     ]]
                 ]]
             }]'
@@ -137,5 +136,65 @@ class BaobabWithDataTest extends PHPUnit_Framework_TestCase {
         
         $this->assertEquals($this->baobab->getNodeData(3,array("lft","label")),
                             array("lft"=>2,"label"=>"ciao riquito ' ! "));
+    }
+    
+    public function testImportExport(){
+        /* ### test empty tree ### */
+        
+        $this->assertEquals(
+            array(),
+            json_decode(Baobab::export(self::$db,self::$tree_name),TRUE));
+        
+        
+        Baobab::import(self::$db,self::$tree_name,'[]');
+        $this->assertEquals(NULL,$this->baobab->getTree());
+        
+        $empty_json_tree='[{"fields":["id","lft","rgt","label"],"values":null}]';
+        
+        Baobab::import(self::$db,self::$tree_name,$empty_json_tree);
+        $this->assertEquals(NULL,$this->baobab->getTree());
+        
+        /* ### test import/export not empty tree with non numeric values ### */
+        
+        $json_tree='[{
+            "fields":["id","lft","label","rgt"],
+            "values":
+                [5,1,"AAA",14,[
+                    [3,2,"BBB",7,[
+                        [4,3,"CCC",4,[]],
+                        [6,5,"DDD",6,[]]
+                    ]],
+                    [1,8,"EEE",13,[
+                        [2,9,"FFF",10,[]],
+                        [7,11,"GGG",12,[]]
+                    ]]
+                ]]
+            }]';
+        
+        Baobab::import(self::$db,self::$tree_name,$json_tree);
+        
+        $this->assertEquals(
+            array(array(
+                "tree_id"=>1,
+                "fields"=>array("id","label","rgt"),
+                "values"=>array(
+                    5,"AAA",14,array(
+                        array(
+                            3,"BBB",7,array(
+                                array(4,"CCC",4,array()),
+                                array(6,"DDD",6,array())
+                            )
+                        ),
+                        array(
+                            1,"EEE",13,array(
+                                array(2,"FFF",10,array()),
+                                array(7,"GGG",12,array())
+                            )
+                        )
+                    )
+                )
+            )),
+            json_decode(Baobab::export(self::$db,self::$tree_name,array("id","label","rgt")),TRUE)
+        );
     }
 }
