@@ -765,7 +765,7 @@ class Baobab  {
                     DROP PROCEDURE IF EXISTS Baobab_GENERIC_MoveSubtree_Different_Trees;
                     DROP PROCEDURE IF EXISTS Baobab_GENERIC_InsertChildAtIndex;
                     DROP PROCEDURE IF EXISTS Baobab_GENERIC_insertBefore;
-                    DROP PROCEDURE IF EXISTS Baobab_GENERIC_InsertNodeAfter;
+                    DROP PROCEDURE IF EXISTS Baobab_GENERIC_insertAfter;
                     DROP PROCEDURE IF EXISTS Baobab_GENERIC_AppendChild;
                     DROP PROCEDURE IF EXISTS Baobab_GENERIC_DropTree;
                     DROP PROCEDURE IF EXISTS Baobab_GENERIC_Close_Gaps;
@@ -1551,7 +1551,7 @@ class Baobab  {
     }
     
     /**!
-     * .. method:: insertNodeAfter($id_sibling[,$fields_values=NULL])
+     * .. method:: insertAfter($id_sibling[,$fields_values=NULL])
      *
      *    Create a new node and insert it as the next sibling of the node
      *    chosen (which can not be root)
@@ -1565,11 +1565,11 @@ class Baobab  {
      *    :rtype:  int
      * 
      */
-    public function insertNodeAfter($id_sibling,$fields_values=NULL) {
+    public function insertAfter($id_sibling,$fields_values=NULL) {
         $id_sibling=intval($id_sibling);
 
         if (!$this->db->multi_query("
-                CALL Baobab_{$this->tree_name}_InsertNodeAfter({$id_sibling},@new_id,@error_code);
+                CALL Baobab_{$this->tree_name}_insertAfter({$id_sibling},@new_id,@error_code);
                 SELECT @new_id as new_id,@error_code as error_code"))
                 throw new sp_MySQL_Error($this->db);
 

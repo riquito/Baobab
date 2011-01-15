@@ -223,8 +223,8 @@ DETERMINISTIC
 /* ###### INSERT NODE AFTER ###### */
 /* ############################### */
 
-DROP PROCEDURE IF EXISTS Baobab_GENERIC_InsertNodeAfter;
-CREATE PROCEDURE Baobab_GENERIC_InsertNodeAfter(
+DROP PROCEDURE IF EXISTS Baobab_GENERIC_insertAfter;
+CREATE PROCEDURE Baobab_GENERIC_insertAfter(
             IN sibling_id INTEGER UNSIGNED,
             OUT new_id INTEGER UNSIGNED,
             OUT error_code INTEGER UNSIGNED)
