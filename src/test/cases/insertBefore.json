@@ -1,5 +1,5 @@
 {
- "method":"insertNodeBefore",
+ "method":"insertBefore",
  "fields":["id","lft","rgt"],
  "random_tree":{"tree_id":1000,"from_node_id":100000,"num_children":100},
  "cases":[

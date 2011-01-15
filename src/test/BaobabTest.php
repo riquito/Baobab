@@ -325,25 +325,25 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         }
     }
     
-    function testInsertNodeBeforeRoot(){
+    function testinsertBeforeRoot(){
         $root_id=$this->baobab->appendChild();
         
         try {
-            $this->baobab->insertNodeBefore($root_id);
+            $this->baobab->insertBefore($root_id);
             $this->fail("was expecting an sp_Error Exception to be raised");
         } catch (sp_Error $e) {
             $this->assertTrue($e->getCode()===1100);
         }
     }
     
-    function testInsertNodeBeforeUnexistentId(){
+    function testinsertBeforeUnexistentId(){
         // add a tree with a different id
         $this->_fillAnyIdTree(2);
         
         $this->baobab->appendChild();
         
         try {
-            $this->baobab->insertNodeBefore(100);
+            $this->baobab->insertBefore(100);
             $this->fail("was expecting an sp_Error Exception to be raised");
         } catch (sp_Error $e) {
             $this->assertTrue($e->getCode()===1400);
@@ -747,10 +747,10 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     function _provider_testInsertNodeAfter(){ return $this->_getJsonTestData("insertNodeAfter.json"); }
     
     /**
-     * @dataProvider _provider_testInsertNodeBefore
+     * @dataProvider _provider_testinsertBefore
      */
-    function testInsertNodeBefore($whatToTest){ $this->_useTreeTestData($whatToTest); }
-    function _provider_testInsertNodeBefore(){ return $this->_getJsonTestData("insertNodeBefore.json"); }
+    function testinsertBefore($whatToTest){ $this->_useTreeTestData($whatToTest); }
+    function _provider_testinsertBefore(){ return $this->_getJsonTestData("insertBefore.json"); }
     
     /**
      * @dataProvider _provider_testMoveSubtreeAfter

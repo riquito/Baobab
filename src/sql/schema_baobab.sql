@@ -284,8 +284,8 @@ DETERMINISTIC
 /* ###### INSERT NODE BEFORE ###### */
 /* ################################ */
 
-DROP PROCEDURE IF EXISTS Baobab_GENERIC_InsertNodeBefore;
-CREATE PROCEDURE Baobab_GENERIC_InsertNodeBefore(
+DROP PROCEDURE IF EXISTS Baobab_GENERIC_insertBefore;
+CREATE PROCEDURE Baobab_GENERIC_insertBefore(
             IN sibling_id INTEGER UNSIGNED,
             OUT new_id INTEGER UNSIGNED,
             OUT error_code INTEGER UNSIGNED)
@@ -369,7 +369,7 @@ DETERMINISTIC
     CALL Baobab_GENERIC_getNthChild(parent_id,idx,nth_child,error_code);
     
     IF NOT error_code THEN
-        CALL Baobab_GENERIC_InsertNodeBefore(nth_child,new_id,error_code);
+        CALL Baobab_GENERIC_insertBefore(nth_child,new_id,error_code);
     END IF;
 
   END;
