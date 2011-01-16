@@ -1,5 +1,5 @@
 {
- "method":"moveSubtreeAfter",
+ "method":"moveAfter",
  "fields":["id","lft","rgt"],
  "existing_trees":[
     {
