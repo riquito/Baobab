@@ -726,7 +726,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
      * @dataProvider _provider_testDeleteSubtree
      */
     function testDeleteSubtree($whatToTest){ $this->_useTreeTestData($whatToTest); }
-    function _provider_testDeleteSubtree(){ return $this->_getJsonTestData("delete_subtree.json"); }
+    function _provider_testDeleteSubtree(){ return $this->_getJsonTestData("deleteNode.json"); }
     
     /**
      * @dataProvider _provider_testInsertChildAtIndexNegative

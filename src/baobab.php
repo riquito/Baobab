@@ -1379,7 +1379,7 @@ class Baobab  {
     }
 
     /**!
-     * .. method:: deleteSubtree($id_node[,$close_gaps=True])
+     * .. method:: deleteNode($id_node[,$close_gaps=True])
      *
      *    Delete a node and all of his children. If $close_gaps is TRUE, mantains
      *    the Modified Preorder Tree consistent closing gaps.
@@ -1395,7 +1395,7 @@ class Baobab  {
      *       subtrees and want to update the numbering just once
      *       (see :class:`Baobab.closeGaps`)
      */
-    public function deleteSubtree($id_node,$close_gaps=TRUE) {
+    public function deleteNode($id_node,$close_gaps=TRUE) {
         $id_node=intval($id_node);
         $close_gaps=$close_gaps ? 1 : 0;
         
