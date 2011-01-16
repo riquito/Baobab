@@ -1,5 +1,5 @@
 {
- "method":"moveSubTreeBefore",
+ "method":"moveSubtreeBefore",
  "fields":["id","lft","rgt"],
  "cases":[
     {
