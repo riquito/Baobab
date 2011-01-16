@@ -393,7 +393,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         }
     }
     
-    function testGetTreeSize(){
+    function testGetSize(){
         // add a tree with a different id
         $this->_fillAnyIdTree(2);
         
@@ -723,10 +723,10 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     function _provider_testAppendChild(){ return $this->_getJsonTestData("appendChild.json"); }
     
     /**
-     * @dataProvider _provider_testDeleteSubtree
+     * @dataProvider _provider_testDeleteNode
      */
-    function testDeleteSubtree($whatToTest){ $this->_useTreeTestData($whatToTest); }
-    function _provider_testDeleteSubtree(){ return $this->_getJsonTestData("deleteNode.json"); }
+    function testDeleteNode($whatToTest){ $this->_useTreeTestData($whatToTest); }
+    function _provider_testDeleteNode(){ return $this->_getJsonTestData("deleteNode.json"); }
     
     /**
      * @dataProvider _provider_testInsertChildAtIndexNegative
@@ -741,52 +741,52 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     function _provider_testInsertChildAtIndexPositive(){ return $this->_getJsonTestData("insertChildAtIndexPositive.json"); }
     
     /**
-     * @dataProvider _provider_testinsertAfter
+     * @dataProvider _provider_testInsertAfter
      */
-    function testinsertAfter($whatToTest){ $this->_useTreeTestData($whatToTest); }
-    function _provider_testinsertAfter(){ return $this->_getJsonTestData("insertAfter.json"); }
+    function testInsertAfter($whatToTest){ $this->_useTreeTestData($whatToTest); }
+    function _provider_testInsertAfter(){ return $this->_getJsonTestData("insertAfter.json"); }
     
     /**
-     * @dataProvider _provider_testinsertBefore
+     * @dataProvider _provider_testInsertBefore
      */
-    function testinsertBefore($whatToTest){ $this->_useTreeTestData($whatToTest); }
-    function _provider_testinsertBefore(){ return $this->_getJsonTestData("insertBefore.json"); }
+    function testInsertBefore($whatToTest){ $this->_useTreeTestData($whatToTest); }
+    function _provider_testInsertBefore(){ return $this->_getJsonTestData("insertBefore.json"); }
     
     /**
-     * @dataProvider _provider_testMoveSubtreeAfter
+     * @dataProvider _provider_testMoveAfter
      */
-    function testMoveSubtreeAfter($whatToTest){ $this->_useTreeTestData($whatToTest); }
-    function _provider_testMoveSubtreeAfter(){ return $this->_getJsonTestData("moveAfter.json"); }
+    function testMoveAfter($whatToTest){ $this->_useTreeTestData($whatToTest); }
+    function _provider_testMoveAfter(){ return $this->_getJsonTestData("moveAfter.json"); }
     
     /**
-     * @dataProvider _provider_testMoveSubtreeBefore
+     * @dataProvider _provider_testMoveBefore
      */
-    function testMoveSubtreeBefore($whatToTest){ $this->_useTreeTestData($whatToTest); }
-    function _provider_testMoveSubtreeBefore(){ return $this->_getJsonTestData("moveBefore.json"); }
+    function testMoveBefore($whatToTest){ $this->_useTreeTestData($whatToTest); }
+    function _provider_testMoveBefore(){ return $this->_getJsonTestData("moveBefore.json"); }
     
     /**
-     * @dataProvider _provider_testMoveSubtreeAtIndex
+     * @dataProvider _provider_testMoveNodeAtIndex
      */
-    function testMoveSubtreeAtIndex($whatToTest){ $this->_useTreeTestData($whatToTest); }
-    function _provider_testMoveSubtreeAtIndex(){ return $this->_getJsonTestData("moveNodeAtIndex.json"); }
+    function testMoveNodeAtIndex($whatToTest){ $this->_useTreeTestData($whatToTest); }
+    function _provider_testMoveNodeAtIndex(){ return $this->_getJsonTestData("moveNodeAtIndex.json"); }
     
     /**
-     * @dataProvider _provider_testMoveSubtreeAfter_multiTree
+     * @dataProvider _provider_testMoveAfter_multiTree
      */
-    function testMoveSubtreeAfter_multiTree($whatToTest){ $this->_useTreeTestData($whatToTest); }
-    function _provider_testMoveSubtreeAfter_multiTree(){ return $this->_getJsonTestData("moveAfter_multiTree.json"); }
+    function testMoveAfter_multiTree($whatToTest){ $this->_useTreeTestData($whatToTest); }
+    function _provider_testMoveAfter_multiTree(){ return $this->_getJsonTestData("moveAfter_multiTree.json"); }
     
     /**
-     * @dataProvider _provider_testMoveSubtreeBefore_multiTree
+     * @dataProvider _provider_testMoveBefore_multiTree
      */
-    function testMoveSubtreeBefore_multiTree($whatToTest){ $this->_useTreeTestData($whatToTest); }
-    function _provider_testMoveSubtreeBefore_multiTree(){ return $this->_getJsonTestData("moveBefore_multiTree.json"); }
+    function testMoveBefore_multiTree($whatToTest){ $this->_useTreeTestData($whatToTest); }
+    function _provider_testMoveBefore_multiTree(){ return $this->_getJsonTestData("moveBefore_multiTree.json"); }
     
     /**
-     * @dataProvider _provider_testMoveSubtreeAtIndex_multiTree
+     * @dataProvider _provider_testMoveNodeAtIndex_multiTree
      */
-    function testMoveSubtreeAtIndex_multiTree($whatToTest){ $this->_useTreeTestData($whatToTest); }
-    function _provider_testMoveSubtreeAtIndex_multiTree(){ return $this->_getJsonTestData("moveNodeAtIndex_multiTree.json"); }
+    function testMoveNodeAtIndex_multiTree($whatToTest){ $this->_useTreeTestData($whatToTest); }
+    function _provider_testMoveNodeAtIndex_multiTree(){ return $this->_getJsonTestData("moveNodeAtIndex_multiTree.json"); }
     
     
     // clean the tree and insert a simple tree
