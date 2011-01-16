@@ -14,6 +14,8 @@
 {% block rootrellink %}
     <li><a href="{{ pathto('index') }}">Intro</a> | </li>
     <li><a href="{{ pathto('api') }}">API</a> | </li>
+    <li><a href="http://forum.sideralis.org">Forum</a> | </li>
+    <li><a href="{{ pathto('sql_api') }}">SQL API</a> | </li>
     <li><a href="{{ pathto('faq') }}">FAQ</a></li>
 {% endblock %}
 
@@ -26,9 +28,11 @@
 {% block relbar1 %}
     <div id="main_bar">
         <a href="http://www.sideralis.org/">
-            <img src="_static/images/logo_sideralis.png" style="width:100px;height:100px" />
+            <img src="_static/images/logo_sideralis.png" alt="Sideralis Programs Logo" style="width:100px;height:100px" />
             <span class="sp_text">Sideralis Programs</span> 
         </a>
     </div>
     {{ super() }}
 {% endblock %}
+
+{% block relbar2 %}{% endblock %}

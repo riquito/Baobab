@@ -58,3 +58,25 @@ div.warning {
 #main_bar .sp_text{
     color:white;
 }
+
+.clearLeft {
+    clear:left;
+}
+
+.tree-example {
+    padding:15px 0 0 0;
+}
+
+.tree-example img.animals {
+    float:left;
+}
+
+.tree-example table.animals {
+    margin-left:35px;
+    float:left;
+}
+
+.half {
+    width:50%;
+    float:left;
+}

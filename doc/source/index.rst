@@ -6,6 +6,7 @@ Baobab ( a library applying the *nested set model* )
    :maxdepth: 2
    
    api.rst
+   sql_api.rst
    faq.rst
 
 .. role:: raw-html(raw)
@@ -30,33 +31,28 @@ modified so that a table can hold more than one tree, to help with cases such as
 storing threads of a forum (each thread is a tree and they all have an identical
 structure).
 
-We have about one hundred tests to ensure the library is doing The Right Thing (™),
+In fact when the library asks you for a "tree name", it's reallyh asking for a
+forest name, because each table created can hold more than one tree.
+
+We have more than one hundred tests to ensure the library is doing The Right Thing (™),
 a straightforward thread safe :ref:`API <api>` and a clean documentation.
-
-.. topic:: Topic Title
-
-    Subsequent indented lines comprise
-    the body of the topic, and are
-    interpreted as body elements.
-
-
 
 
 How does the *nested set model* work ?
 --------------------------------------
 
-Let's say you want to save some hierarchical data in your database.
 
-
-.. image:: images/animals.png
-   :width: 400 px
-   :height: 210 px
-   :alt: alternate text
-   :align: right
-
-.. rst-class:: special
-.. sidebar:: Equivalent database table
-
+.. container:: tree-example
+    
+    .. image:: images/animals.png
+        :width: 400 px
+        :height: 210 px
+        :alt: alternate text
+        :class: animals
+    
+    
+    .. rst-class:: animals
+    
     =====  =======  =====
     lft    rgt      label
     =====  =======  =====
@@ -71,25 +67,30 @@ Let's say you want to save some hierarchical data in your database.
     14     15       horse
     =====  =======  =====
 
-In the image we can see how each node has two numbers (left and right) assigned
-to it during a depth-first traversal of the tree. Well, the nested set model is
+    .. raw:: html
+        
+        <div class="clearLeft"></div>
+    
+
+Each node in the graph has two numbers (left and right) assigned
+to it during a [#dfs]_ depth-first search of the tree: we assign the left (*lft*) value
+the first time we pass by and the right (*rgt*) value the following time.
+Well, the *nested set model* is
 all about assigning this numbers and mantain them coherent whenever a node is
-inserted, moved or deleted.
-With this numbers in place we gain various benefits. The tree structure of the
-data his mantained in a relational database and we're able to do some
+inserted, moved or deleted. :raw-html:`<br />`
+With this numbers in place we gain various benefits. The **tree structure** of the
+data is mantained in a relational database and we're able to do some
 really fast searches. Normally slow operations like finding the path between two
 nodes, knowing all the descendants of a node or discover if a node is ancestor of
 another are blazing fast.
-Too, the horizontal order is preserved without the need of others attributes.
+Too, **the horizontal order is preserved** without the need of others attributes.
 
+Some simple properties of this data structure ...
 
-
-
-some simple properties ...
-
-* root node has halways lft equals to 1.
-* the number of a node's descendants is ⌊(rgt-left)/2⌋
-* the ancestors of a node have both lft ≤ nodeLft and rgt ≥ nodeRgt
+* root node has halways lft = 1
+* the number of a node's descendants is ⌊(rgt-lft)/2⌋
+* the ancestors of a node have both lft < nodeLft and rgt > nodeRgt
+* a leaf has always rgt = lft+1
 
 This is just an introduction, if you want to know more about *nested set models* I suggest you to read 
 [#joe_celko_trees]_ **Trees and hierarchies in SQL for smarties** and/or
@@ -99,65 +100,78 @@ Online you could read a couple [#more]_ more resources.
 How can Baobab help ?
 ---------------------
 
-Baobab leverage the works of administering such table. In particular moving or
-inserting after a particular node can be pretty complicated, and Baobab do the
+Baobab leverages the works of administering such table. In particular moving or
+inserting after a particular node can be pretty complicated, and Baobab does the
 hard work for you. :raw-html:`<br />`
 If you feel like so, you can use Baobab for all the tree changing tasks (the most
 tedious queries) and write your own queries to search what you want in the most
-optimized way. :raw-html:`<br />`
-However Baobab provide functions for the laziest programmers.
+optimized way for your schema. :raw-html:`<br />`
+However Baobab provides functions for the laziest programmers.
 
-Here is a list of the functions provided
+Here are the functions the :class:`Baobab <Baobab>` class provide
 
-* creation
-  
-  * :class:`build() <Baobab.build>`
-  * :class:`destroy() <Baobab.destroy>`
-
-* retrieval
-  
-  * :class:`getRoot() <Baobab.getRoot>`
-  * :class:`getTreeSize() <Baobab.getTreeSize>`
-  * :class:`getDescendants() <Baobab.getDescendants>`
-  * :class:`getLeaves() <Baobab.getLeaves>`
-  * :class:`getLevels() <Baobab.getLevels>`
-  * :class:`getPath() <Baobab.getPath>`
-  * :class:`getChildren() <Baobab.getChildren>`
-  * :class:`getFirstNChildren() <Baobab.getFirstNChildren>`
-  * :class:`getFirstChild() <Baobab.getFirstChild>`
-  * :class:`getLastChild() <Baobab.getLastChild>`
-  * :class:`getTree() <Baobab.getTree>`
-  * :class:`getTreeHeight() <Baobab.getTreeHeight>`
-  * :class:`getChildAtIndex() <Baobab.getChildAtIndex>`
-  * :class:`getNodeData() <Baobab.getNodeData>`
-
-* insertions
-  
-  * :class:`appendChild() <Baobab.appendChild>`
-  * :class:`insertNodeAfter() <Baobab.insertNodeAfter>`
-  * :class:`insertNodeBefore() <Baobab.insertNodeBefore>`
-  * :class:`insertChildAtIndex() <Baobab.insertChildAtIndex>`
-
-* editing
-
-  * :class:`updateNode() <Baobab.updateNode>`
-
-* tree moving
-  
-  * :class:`moveSubTreeAfter() <Baobab.moveSubTreeAfter>`
-  * :class:`moveSubTreeBefore() <Baobab.moveSubTreeBefore>`
-  * :class:`moveSubTreeAtIndex() <Baobab.moveSubTreeAtIndex>`
-
-* deletion
-  
-  * :class:`deleteSubtree() <Baobab.deleteSubtree>`
-  * :class:`clean() <Baobab.clean>`
-  * :class:`close_gaps() <Baobab.close_gaps>`
-
-* data liberation
-  
-  * :class:`import() <Baobab.import>`
-  * :class:`exort() <Baobab.export>`
+.. container:: funcList
+   
+    .. container:: half
+        
+        * create
+          
+          * :class:`build() <Baobab.build>`
+          * :class:`destroy() <Baobab.destroy>`
+          * :class:`upgrade() <Baobab.upgrade>`
+        
+        * retrieve
+          
+          * :class:`getRoot() <Baobab.getRoot>`
+          * :class:`getParent() <Baobab.getParent>`
+          * :class:`getDescendants() <Baobab.getDescendants>`
+          * :class:`getLeaves() <Baobab.getLeaves>`
+          * :class:`getLevels() <Baobab.getLevels>`
+          * :class:`getPath() <Baobab.getPath>`
+          * :class:`getChildren() <Baobab.getChildren>`
+          * :class:`getFirstNChildren() <Baobab.getFirstNChildren>`
+          * :class:`getFirstChild() <Baobab.getFirstChild>`
+          * :class:`getLastChild() <Baobab.getLastChild>`
+          * :class:`getChildAtIndex() <Baobab.getChildAtIndex>`
+          * :class:`getTree() <Baobab.getTree>`
+          * :class:`getSize() <Baobab.getSize>`
+          * :class:`getTreeHeight() <Baobab.getTreeHeight>`
+          * :class:`getNodeData() <Baobab.getNodeData>`
+    
+    .. container:: half
+        
+        * insert
+          
+          * :class:`appendChild() <Baobab.appendChild>`
+          * :class:`insertAfter() <Baobab.insertAfter>`
+          * :class:`insertBefore() <Baobab.insertBefore>`
+          * :class:`insertChildAtIndex() <Baobab.insertChildAtIndex>`
+        
+        * edit
+        
+          * :class:`updateNode() <Baobab.updateNode>`
+        
+        * move
+          
+          * :class:`movefter() <Baobab.moveAfter>`
+          * :class:`moveBefore() <Baobab.moveBefore>`
+          * :class:`moveNodeAtIndex() <Baobab.moveNodeAtIndex>`
+        
+        * delete
+          
+          * :class:`deleteNode() <Baobab.deleteNode>`
+          * :class:`clean() <Baobab.clean>`
+          * :class:`cleanAll() <Baobab.cleanAll>`
+          * :class:`closeGaps() <Baobab.closeGaps>`
+        
+        * data liberation
+          
+          * :class:`import() <Baobab.import>`
+          * :class:`export() <Baobab.export>`
+    
+    .. raw:: html
+        
+        <div class="clearLeft"></div>
 
 
 All of the \*_index() functions accept negative numbers too, and all the functions
@@ -173,13 +187,13 @@ Dependencies
 
 .. rubric:: Footnotes
 
+.. [#dfs] `Depth-first search <http://en.wikipedia.org/wiki/Depth-first_search>`_
+    
 .. [#joe_celko] `Joe Celko <http://www.simple-talk.com/author/joe-celko/>`_
 
 .. [#nested_set_model] `Wikipedia on Nested set model <http://en.wikipedia.org/wiki/Nested_set_model>`_
 
 .. [#more] `Managing Hierarchical Data in MySQL <http://dev.mysql.com/tech-resources/articles/hierarchical-data.html>`_
-
-
 
 .. [#joe_celko_trees] `Joe Celko's Trees and hierarchies in SQL for smarties <http://books.google.com/books?id=uw2lq2o4VbUC&lpg=PP1&ots=DrPX6ljhOC&dq=Trees%20and%20Hierarchies%20in%20SQL%20for%20Smarties&pg=PP1#v=onepage&q&f=false>`_
 

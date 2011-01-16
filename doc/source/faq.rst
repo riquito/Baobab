@@ -3,7 +3,7 @@ Frequently Asked Questions
 This is a list of Frequently Asked Questions about Baobab. Feel free to suggest new entries!
 
 ... Is this open source ?
-   Yes it is. Baobab is licensed under the `Apache License, Version 2.0. <http://www.apache.org/licenses/LICENSE-2.0>`_.
+   Yes it is. Baobab is licensed under the `Apache License, Version 2.0. <http://www.apache.org/licenses/LICENSE-2.0>`_
 
 ... How fast is it?
    We haven't yet made any benchmarks, so we can't really say. The theory tell us
@@ -14,4 +14,8 @@ This is a list of Frequently Asked Questions about Baobab. Feel free to suggest 
 
 ... How did you build the documentation ?
    We used the `Sphinx documentation generator <http://sphinx.pocoo.org/>`_
-   
+
+... What's next ?
+   Current plans are to have export starting from a particular node, a cache
+   system and refactoring of some not so clean functions.
+   We're also plannings more examples and pictures.
