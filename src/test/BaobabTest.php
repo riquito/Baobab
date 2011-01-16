@@ -762,7 +762,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
      * @dataProvider _provider_testMoveSubtreeBefore
      */
     function testMoveSubtreeBefore($whatToTest){ $this->_useTreeTestData($whatToTest); }
-    function _provider_testMoveSubtreeBefore(){ return $this->_getJsonTestData("moveSubtreeBefore.json"); }
+    function _provider_testMoveSubtreeBefore(){ return $this->_getJsonTestData("moveBefore.json"); }
     
     /**
      * @dataProvider _provider_testMoveSubtreeAtIndex
@@ -780,7 +780,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
      * @dataProvider _provider_testMoveSubtreeBefore_multiTree
      */
     function testMoveSubtreeBefore_multiTree($whatToTest){ $this->_useTreeTestData($whatToTest); }
-    function _provider_testMoveSubtreeBefore_multiTree(){ return $this->_getJsonTestData("moveSubtreeBefore_multiTree.json"); }
+    function _provider_testMoveSubtreeBefore_multiTree(){ return $this->_getJsonTestData("moveBefore_multiTree.json"); }
     
     /**
      * @dataProvider _provider_testMoveSubtreeAtIndex_multiTree

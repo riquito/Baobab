@@ -1677,7 +1677,7 @@ class Baobab  {
     }
     
     /**!
-     * .. method:: moveSubtreeBefore($id_to_move,$reference_node)
+     * .. method:: moveBefore($id_to_move,$reference_node)
      *
      *    Move a node and all of his children as left sibling of another node.
      *
@@ -1692,7 +1692,7 @@ class Baobab  {
      *         throw a sp_Error exception
      * 
      */
-    public function moveSubtreeBefore($id_to_move,$reference_node) {
+    public function moveBefore($id_to_move,$reference_node) {
         $id_to_move=intval($id_to_move);
         $reference_node=intval($reference_node);
 
