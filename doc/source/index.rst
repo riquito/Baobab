@@ -31,7 +31,7 @@ modified so that a table can hold more than one tree, to help with cases such as
 storing threads of a forum (each thread is a tree and they all have an identical
 structure).
 
-In fact when the library asks you for a "tree name", it's reallyh asking for a
+In fact when the library asks you for a "tree name", it's really asking for a
 forest name, because each table created can hold more than one tree.
 
 We have more than one hundred tests to ensure the library is doing The Right Thing (™),
