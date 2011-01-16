@@ -294,6 +294,19 @@ class sp_Lib {
  *    :param $fields_values: additional fields of the node (mapping fieldName=>value)
  *    :type $fields_values: array or NULL
  *
+ *    **Attributes**:
+ *       **id** int, node id
+ *       
+ *       **lft**  int, left value
+ *       
+ *       **rgt**  int, right value
+ *       
+ *       **parentNode**  int, the parent node id
+ *       
+ *       **fields_values**  array, additional fields of the node
+ *       
+ *       **children** array, instances of BaobabNode children of the current node 
+ *
  *    .. note::
  *       this class doesn't have database interaction, its purpose is
  *       just to have a runtime representation of a Baobab tree. The data
@@ -307,7 +320,6 @@ class BaobabNode {
     public $rgt;
     public $parentNode;
     public $fields_values;
-    
     public $children;
 
     public function __construct($id,$lft,$rgt,$parentNode,&$fields_values=NULL) {
@@ -421,17 +433,21 @@ class BaobabNode {
  *                      If there is only a tree in the table, you can load it with -1;
  *                      A new tree created using NULL has $tree_id = 0 until an appendChild occurs.
  *    :type $tree_id: int or NULL
+ *
+ *    **Attributes**:
+ *       **tree_id** int, id of the tree (0 means it's new with no nodes added yet)
  */
 class Baobab  {
+    private $_refresh_fields;
+    private $_errors;
+    private static $_version="1.0";
+    
     protected $db;
     protected $tree_name;
     protected $sql_utils;
     protected $fields;
-    public $tree_id;
-    private $_refresh_fields;
-    private $_errors;
     
-    private static $_version="1.0";
+    public $tree_id;
     
     public function __construct($db,$tree_name,$tree_id=NULL) {
         $this->db=$db;
