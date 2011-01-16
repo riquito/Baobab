@@ -18,4 +18,4 @@ forest name, because each table created can hold more than one tree.
 We have more than one hundred tests to ensure the library is doing The Right Thing (™),
 a straightforward API and a clean documentation.
 
-You can find the library's documentation at `<http://www.sideralis.org>`_
+You can find the library's documentation at `<http://baobab.sideralis.org>`_
