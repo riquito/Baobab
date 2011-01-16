@@ -80,3 +80,7 @@ div.warning {
     width:50%;
     float:left;
 }
+
+div.sphinxsidebar ul ul, div.sphinxsidebar ul.want-points {
+    word-wrap: break-word;
+}
