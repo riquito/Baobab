@@ -1705,9 +1705,9 @@ class Baobab  {
     }
     
     /**!
-     * .. method:: moveSubtreeAtIndex($id_to_move,$id_parent,$index)
+     * .. method:: moveNodeAtIndex($id_to_move,$id_parent,$index)
      *
-     *    Move a subtree's root as nth child of another node
+     *    Move a node as nth child of another node.
      *
      *    :param $id_to_move: id of a node in the tree
      *    :type $id_to_move:  int
@@ -1723,7 +1723,7 @@ class Baobab  {
      *         throw a sp_Error exception
      * 
      */
-    public function moveSubtreeAtIndex($id_to_move,$id_parent,$index) {
+    public function moveNodeAtIndex($id_to_move,$id_parent,$index) {
         $id_to_move=intval($id_to_move);
         $id_parent=intval($id_parent);
         $index=intval($index);
