@@ -398,13 +398,13 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         $this->_fillAnyIdTree(2);
         
         // test empty tree
-        $this->assertTrue(0===$this->baobab->getTreeSize());
+        $this->assertTrue(0===$this->baobab->getSize());
         
         $this->_fillGenericTree($this->base_tree);
         
-        $this->assertTrue(7===$this->baobab->getTreeSize());
-        $this->assertTrue(3===$this->baobab->getTreeSize(1));
-        $this->assertTrue(0===$this->baobab->getTreeSize(-1));
+        $this->assertTrue(7===$this->baobab->getSize());
+        $this->assertTrue(3===$this->baobab->getSize(1));
+        $this->assertTrue(0===$this->baobab->getSize(-1));
     }
     
     function testGetDescendants(){

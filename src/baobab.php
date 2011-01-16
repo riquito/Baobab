@@ -936,7 +936,7 @@ class Baobab  {
     }
 
     /**!
-     * .. method:: getTreeSize([$id_node=NULL])
+     * .. method:: getSize([$id_node=NULL])
      *    
      *    Retrieve the number of nodes of the subtree starting at $id_node (or
      *    at tree root if $id_node is NULL).
@@ -947,7 +947,7 @@ class Baobab  {
      *    :return: the number of nodes in the selected subtree
      *    :rtype:  int
      */
-    public function getTreeSize($id_node=NULL) {
+    public function getSize($id_node=NULL) {
 
         $query="
           SELECT (rgt-lft+1) DIV 2
