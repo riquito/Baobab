@@ -53,11 +53,11 @@ CREATE VIEW GENERIC_AdjTree (tree_id,parent,child,lft)
 
 /* ##### LIST OF TREE NAMES IN USE ##### */
 
-CREATE TABLE IF NOT EXISTS Baobab_TreeNames (
+CREATE TABLE IF NOT EXISTS Baobab_ForestsNames (
     name VARCHAR(200) PRIMARY KEY
 ) ENGINE INNODB DEFAULT CHARSET=utf8;
 
-INSERT INTO Baobab_TreeNames(name) VALUES ('GENERIC')
+INSERT INTO Baobab_ForestsNames(name) VALUES ('GENERIC')
 ON DUPLICATE KEY UPDATE name=name;
 
 /* ##################################### */

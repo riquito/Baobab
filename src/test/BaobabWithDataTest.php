@@ -29,7 +29,7 @@ class BaobabNamed extends Baobab {
         if (parent::build()) {
             
             $result = $this->db->query("
-                ALTER TABLE {$this->tree_name}
+                ALTER TABLE {$this->forest_name}
                 ADD COLUMN label VARCHAR(50) DEFAULT '' NOT NULL");
             if (!$result) throw new sp_MySQL_Error($this->db);
         }
@@ -40,7 +40,7 @@ class BaobabNamed extends Baobab {
 
 class BaobabWithDataTest extends PHPUnit_Framework_TestCase {
     protected static $db;
-    protected static $tree_name;
+    protected static $forest_name;
     protected $baobab;
     
     private $base_tree;
@@ -63,7 +63,7 @@ class BaobabWithDataTest extends PHPUnit_Framework_TestCase {
             self::fail(sprintf('Connect Error (%s): %s',mysqli_connect_errno(),mysqli_connect_error()));
         }
         
-        self::$tree_name="testNamed";
+        self::$forest_name="testNamed";
     }
     
     public static function tearDownAfterClass(){
@@ -74,7 +74,7 @@ class BaobabWithDataTest extends PHPUnit_Framework_TestCase {
     public function setUp(){
         $this->base_tree=1;
         
-        $this->baobab = new BaobabNamed(self::$db,self::$tree_name,$this->base_tree);
+        $this->baobab = new BaobabNamed(self::$db,self::$forest_name,$this->base_tree);
         $this->baobab->destroy(TRUE);
         $this->baobab->build();
     }
@@ -86,9 +86,9 @@ class BaobabWithDataTest extends PHPUnit_Framework_TestCase {
     // clean the tree and insert a simple tree
     // require import to be yet tested
     function _fillGenericTree($tree_id){
-        $t=new Baobab(self::$db,self::$tree_name,$tree_id);
+        $t=new Baobab(self::$db,self::$forest_name,$tree_id);
         $t->clean();
-        Baobab::import(self::$db,self::$tree_name,'[{'.
+        Baobab::import(self::$db,self::$forest_name,'[{'.
             ($tree_id ? '"tree_id":'.$tree_id .',' : '').
           ' "fields":["id","lft","rgt"],
             "values":
@@ -109,9 +109,9 @@ class BaobabWithDataTest extends PHPUnit_Framework_TestCase {
     // clean the tree and insert a simple tree with labels
     // require import to be yet tested
     function _fillGenericLabelTree($tree_id){
-        $t=new Baobab(self::$db,self::$tree_name,$tree_id);
+        $t=new Baobab(self::$db,self::$forest_name,$tree_id);
         $t->clean();
-        Baobab::import(self::$db,self::$tree_name,'[{'.
+        Baobab::import(self::$db,self::$forest_name,'[{'.
             ($tree_id ? '"tree_id":'.$tree_id .',' : '').
           ' "fields":["id","lft","label","rgt"],
             "values":
@@ -143,15 +143,15 @@ class BaobabWithDataTest extends PHPUnit_Framework_TestCase {
         
         $this->assertEquals(
             array(),
-            json_decode(Baobab::export(self::$db,self::$tree_name),TRUE));
+            json_decode(Baobab::export(self::$db,self::$forest_name),TRUE));
         
         
-        Baobab::import(self::$db,self::$tree_name,'[]');
+        Baobab::import(self::$db,self::$forest_name,'[]');
         $this->assertEquals(NULL,$this->baobab->getTree());
         
         $empty_json_tree='[{"fields":["id","lft","rgt","label"],"values":null}]';
         
-        Baobab::import(self::$db,self::$tree_name,$empty_json_tree);
+        Baobab::import(self::$db,self::$forest_name,$empty_json_tree);
         $this->assertEquals(NULL,$this->baobab->getTree());
         
         /* ### test import/export not empty tree with non numeric values ### */
@@ -171,7 +171,7 @@ class BaobabWithDataTest extends PHPUnit_Framework_TestCase {
                 ]]
             }]';
         
-        Baobab::import(self::$db,self::$tree_name,$json_tree);
+        Baobab::import(self::$db,self::$forest_name,$json_tree);
         
         $this->assertEquals(
             array(array(
@@ -194,7 +194,7 @@ class BaobabWithDataTest extends PHPUnit_Framework_TestCase {
                     )
                 )
             )),
-            json_decode(Baobab::export(self::$db,self::$tree_name,array("id","label","rgt")),TRUE)
+            json_decode(Baobab::export(self::$db,self::$forest_name,array("id","label","rgt")),TRUE)
         );
     }
 }
