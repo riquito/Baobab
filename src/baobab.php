@@ -426,7 +426,7 @@ class BaobabNode {
  *
  *    :param $db: mysqli database connection in object oriented style
  *    :type $db:  an instance of mysqli_connect
- *    :param $forest_name: name of the forest, will be used to create an homonymous
+ *    :param $forest_name: name of the forest, will be used to create an homonym
  *                       table that will hold the data.
  *    :type $forest_name: string
  *    :param $tree_id: id of the tree (to create a new tree it must be NULL or an unused tree_id number).
@@ -538,7 +538,7 @@ class Baobab  {
      * .. method:: _get_fields()
      *
      *    Return the fields' names of the Baobab main table.
-     *    It mantains the fields array in memory, and refresh it if the
+     *    It maintains the fields array in memory, and refresh it if the
      *    private variable _refresh_fields is TRUE
      *
      *    :return: associative array fieldName=>TRUE
@@ -1476,7 +1476,7 @@ class Baobab  {
     /**!
      * .. method:: updateNode($id_node,$fields_values)
      *    
-     *    Update data associeted to a node
+     *    Update data associated to a node
      *
      *    :param $id_node: id of the node to update
      *    :type $id_node:  int

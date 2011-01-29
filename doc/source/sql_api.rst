@@ -44,7 +44,7 @@ This view holds the id of each parent of GENERIC nodes. Root has parent NULL.
 
 
 TABLE Baobab_ForestsNames
-----------------------
+-------------------------
 
 This table store the set of names in use from Baobab. If you construct a new "GENERIC"
 table, you must insert his name here, and remove it if that table is dropped.
