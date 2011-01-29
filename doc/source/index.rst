@@ -23,23 +23,23 @@ Baobab ( a library applying the *nested set model* )
 Baobab is a library to save tree structured data in a relational database.
 
 Currently there is only a PHP implementation working with MySQL, but it shouldn't
-be too difficult to port to other languages or databases (most of the work is
-done via SQL queries and the code is mostly a support to them).
+be too difficult to port to other languages or databases (the hard work is
+done via pure SQL queries and the code is mostly a support to them).
 
 The technique used is [#joe_celko]_ Joe Celko's [#nested_set_model]_ *nested set model*,
 modified so that a table can hold more than one tree, to help with cases such as
 storing threads of a forum (each thread is a tree and they all have an identical
 structure).
 
-In fact when the library asks you for a "tree name", it's really asking for a
-forest name, because each table created can hold more than one tree.
+In fact when the library often asks you for a "forest name", because each table
+created can hold more than one tree.
 
 We have more than one hundred tests to ensure the library is doing The Right Thing (™),
 a straightforward thread safe :ref:`API <api>` and a clean documentation.
 
 
-How does the *nested set model* work ?
---------------------------------------
+The *nested set model* in brief
+-------------------------------
 
 
 .. container:: tree-example
@@ -60,7 +60,7 @@ How does the *nested set model* work ?
     2      9        vertebrates
     3      4        mollusks
     5      8        insects
-    6      7        mantid
+    6      7        mantis
     10     17       invertebrates
     11     16       mammals
     12     13       tiger
@@ -76,10 +76,10 @@ Each node in the graph has two numbers (left and right) assigned
 to it during a [#dfs]_ depth-first search of the tree: we assign the left (*lft*) value
 the first time we pass by and the right (*rgt*) value the following time.
 Well, the *nested set model* is
-all about assigning this numbers and mantain them coherent whenever a node is
+all about assigning this numbers and maintain them coherent whenever a node is
 inserted, moved or deleted. :raw-html:`<br />`
 With this numbers in place we gain various benefits. The **tree structure** of the
-data is mantained in a relational database and we're able to do some
+data is maintained in a relational database and we're able to do some
 really fast searches. Normally slow operations like finding the path between two
 nodes, knowing all the descendants of a node or discover if a node is ancestor of
 another are blazing fast.
@@ -87,7 +87,7 @@ Too, **the horizontal order is preserved** without the need of others attributes
 
 Some simple properties of this data structure ...
 
-* root node has halways lft = 1
+* root node has halfways lft = 1
 * the number of a node's descendants is ⌊(rgt-lft)/2⌋
 * the ancestors of a node have both lft < nodeLft and rgt > nodeRgt
 * a leaf has always rgt = lft+1
@@ -186,15 +186,15 @@ Dependencies
 * MySQL >= 5.0 with *innodb* tables available
 
 .. rubric:: Footnotes
-
-.. [#dfs] `Depth-first search <http://en.wikipedia.org/wiki/Depth-first_search>`_
     
 .. [#joe_celko] `Joe Celko <http://www.simple-talk.com/author/joe-celko/>`_
 
 .. [#nested_set_model] `Wikipedia on Nested set model <http://en.wikipedia.org/wiki/Nested_set_model>`_
 
-.. [#more] `Managing Hierarchical Data in MySQL <http://dev.mysql.com/tech-resources/articles/hierarchical-data.html>`_
+.. [#dfs] `Depth-first search <http://en.wikipedia.org/wiki/Depth-first_search>`_
 
 .. [#joe_celko_trees] `Joe Celko's Trees and hierarchies in SQL for smarties <http://books.google.com/books?id=uw2lq2o4VbUC&lpg=PP1&ots=DrPX6ljhOC&dq=Trees%20and%20Hierarchies%20in%20SQL%20for%20Smarties&pg=PP1#v=onepage&q&f=false>`_
 
 .. [#joe_celko_sql_for_smarties] `Joe Celko's SQL for smarties: advanced SQL programming <http://books.google.com/books?id=Hi9fMnOoRtAC&lpg=PP1&dq=joe%20celko's%20sql%20for%20smarties&pg=PP1#v=onepage&q&f=false>`_
+
+.. [#more] `Managing Hierarchical Data in MySQL <http://dev.mysql.com/tech-resources/articles/hierarchical-data.html>`_

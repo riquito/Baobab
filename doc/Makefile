@@ -38,6 +38,7 @@ clean:
 
 html:
 	python rst_aggregator.py > source/api.rst
+	python highlight_examples.py
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."

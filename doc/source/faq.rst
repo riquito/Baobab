@@ -16,6 +16,9 @@ This is a list of Frequently Asked Questions about Baobab. Feel free to suggest 
    We used the `Sphinx documentation generator <http://sphinx.pocoo.org/>`_
 
 ... What's next ?
-   Current plans are to have export starting from a particular node, a cache
-   system and refactoring of some not so clean functions.
-   We're also plannings more examples and pictures.
+   Current plans are to have :class:`export() <Baobab.export>` start from a particular node, a cache
+   system, refactoring of some not so clean functions, allowing
+   :class:`insertChildAtIndex() <Baobab.insertChildAtIndex>`
+   to insert a 0th child to a leaf node.
+   We're also planning to provide more examples and pictures in documentation.
+   Later we will develop a more object oriented interface.

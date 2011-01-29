@@ -84,3 +84,12 @@ div.warning {
 div.sphinxsidebar ul ul, div.sphinxsidebar ul.want-points {
     word-wrap: break-word;
 }
+
+#sql-api .section {
+    border-bottom: 1px dashed black;
+    margin-bottom:5px;
+}
+
+#sql-api .section h2 {
+    font-size:1.2em;
+}

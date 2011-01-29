@@ -14,9 +14,11 @@
 {% block rootrellink %}
     <li><a href="{{ pathto('index') }}">Intro</a> | </li>
     <li><a href="{{ pathto('api') }}">API</a> | </li>
-    <li><a href="http://forum.sideralis.org">Forum</a> | </li>
     <li><a href="{{ pathto('sql_api') }}">SQL API</a> | </li>
-    <li><a href="{{ pathto('faq') }}">FAQ</a></li>
+    <li><a href="{{ pathto('faq') }}">FAQ</a> | </li>
+    <li><a href="{{ pathto('example_animals') }}">Example 1 (single tree)</a> | </li>
+    <li><a href="{{ pathto('example_forum') }}">Example 2 (multiple tree)</a> | </li>
+    <li><a href="http://forum.sideralis.org">Forum</a></li>
 {% endblock %}
 
 {% block linktags %}

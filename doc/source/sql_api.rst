@@ -5,12 +5,12 @@ become a nightmare. That's why here you can find some informations about the
 model used by Baobab and the functions or procedures that you could call
 if you need them.
 
-Please note that each tree has his own set of tables and function, and you must
-replace the term "GENERIC" with your tree name. (if "GENERIC" is not present
-it means that table is one and only).
+Please note that each tree has his own set of tables and functions, and
+whenever you find the term "GENERIC" you must replace it with your forest name.
+(tables or functions without "GENERIC" in it are shared between forests).
 
 .. note::
-   Each table is indeed a forest, with one or many trees.
+   Each table holds indeed a forest, with zero, one or many trees.
 
 TABLE GENERIC
 -------------
@@ -43,7 +43,7 @@ This view holds the id of each parent of GENERIC nodes. Root has parent NULL.
    VIEW GENERIC_AdjTree (tree_id,parent,child,lft)
 
 
-TABLE Baobab_TreeNames
+TABLE Baobab_ForestsNames
 ----------------------
 
 This table store the set of names in use from Baobab. If you construct a new "GENERIC"
@@ -51,7 +51,7 @@ table, you must insert his name here, and remove it if that table is dropped.
 
 .. code-block:: sql
 
-   TABLE Baobab_TreeNames (
+   TABLE Baobab_ForestsNames (
        name VARCHAR(200) PRIMARY KEY
    )
 
@@ -61,7 +61,7 @@ TABLE Baobab_Errors
 
 This table contains general errors that could occur in some situations.
 "code" is the error number and it's associated to a unique codename "name" and
-to a human understable message "msg".
+to a human understandable message "msg".
 
 .. code-block:: sql
 
@@ -100,7 +100,7 @@ his subtree. If update_numbers is 1 then close the gap created.
 PROCEDURE Baobab_GENERIC_AppendChild
 ------------------------------------
 
-Add a child as last right sibling in a choseen tree. Returns the id of the new
+Add a child as last right sibling in a choosen tree. Returns the id of the new
 node created and the id of his tree. If choosen_tree is 0 a new tree will be created.
 
 .. code-block:: sql

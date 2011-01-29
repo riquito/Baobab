@@ -1,0 +1,85 @@
+<div class="highlight"><pre><span class="cp">&lt;?php</span>
+
+<span class="k">class</span> <span class="nc">ForumBaobab</span> <span class="k">extends</span> <span class="nx">Baobab</span> <span class="p">{</span>
+    
+    <span class="c1">// override build function to create the table the way we want it</span>
+    <span class="k">public</span> <span class="k">function</span> <span class="nf">build</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="k">parent</span><span class="o">::</span><span class="na">build</span><span class="p">())</span> <span class="p">{</span> <span class="c1">// the table wasn&#39;t existing and has been built</span>
+            
+            <span class="nv">$result</span> <span class="o">=</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">db</span><span class="o">-&gt;</span><span class="na">query</span><span class="p">(</span><span class="s2">&quot;</span>
+<span class="s2">                ALTER TABLE </span><span class="si">{</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">forest_name</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">                ADD COLUMN username VARCHAR(100) NOT NULL,</span>
+<span class="s2">                ADD COLUMN body MEDIUMTEXT</span>
+<span class="s2">                &quot;</span>
+            <span class="p">);</span>
+            <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nv">$result</span><span class="p">)</span> <span class="k">throw</span> <span class="k">new</span> <span class="nx">sp_MySQL_Error</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">db</span><span class="p">);</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">function</span> <span class="nf">start_over</span><span class="p">(</span><span class="nv">$conn</span><span class="p">,</span><span class="nv">$forestName</span><span class="p">){</span>
+    <span class="nv">$tree</span><span class="o">=</span><span class="k">new</span> <span class="nx">ForumBaobab</span><span class="p">(</span><span class="nv">$conn</span><span class="p">,</span><span class="nv">$forestName</span><span class="p">);</span>
+    <span class="nv">$tree</span><span class="o">-&gt;</span><span class="na">destroy</span><span class="p">(</span><span class="k">TRUE</span><span class="p">);</span>
+    <span class="nv">$tree</span><span class="o">-&gt;</span><span class="na">build</span><span class="p">();</span>
+<span class="p">}</span>
+
+<span class="k">function</span> <span class="nf">main</span><span class="p">(</span><span class="nv">$conn</span><span class="p">){</span> <span class="c1">// $conn is a mysqli connection object</span>
+    
+    <span class="nv">$forestName</span><span class="o">=</span><span class="s2">&quot;forum&quot;</span><span class="p">;</span>
+    <span class="nx">start_over</span><span class="p">(</span><span class="nv">$conn</span><span class="p">,</span><span class="nv">$forestName</span><span class="p">);</span>
+    
+    <span class="c1">// utility function to have something more readable later</span>
+    <span class="k">function</span> <span class="nf">makeFields</span><span class="p">(</span><span class="nv">$username</span><span class="p">,</span><span class="nv">$body</span><span class="p">){</span>
+        <span class="k">return</span> <span class="k">array</span><span class="p">(</span><span class="s2">&quot;username&quot;</span><span class="o">=&gt;</span><span class="nv">$username</span><span class="p">,</span><span class="s2">&quot;body&quot;</span><span class="o">=&gt;</span><span class="nv">$body</span><span class="p">);</span>
+    <span class="p">}</span>
+    
+    <span class="c1">// Create two trees in the forest and populate them with some children.</span>
+    
+    <span class="nv">$thread1</span><span class="o">=</span><span class="k">new</span> <span class="nx">ForumBaobab</span><span class="p">(</span><span class="nv">$conn</span><span class="p">,</span><span class="nv">$forestName</span><span class="p">);</span>
+    <span class="nv">$thread2</span><span class="o">=</span><span class="k">new</span> <span class="nx">ForumBaobab</span><span class="p">(</span><span class="nv">$conn</span><span class="p">,</span><span class="nv">$forestName</span><span class="p">);</span>
+    
+    <span class="nv">$a</span><span class="o">=</span><span class="nv">$thread1</span><span class="o">-&gt;</span><span class="na">appendChild</span><span class="p">(</span><span class="k">NULL</span><span class="p">,</span><span class="nx">makeFields</span><span class="p">(</span><span class="s2">&quot;joe&quot;</span><span class="p">,</span><span class="s2">&quot;I like flowers&quot;</span><span class="p">));</span>
+    <span class="nv">$b</span><span class="o">=</span><span class="nv">$thread1</span><span class="o">-&gt;</span><span class="na">appendChild</span><span class="p">(</span><span class="nv">$a</span><span class="p">,</span><span class="nx">makeFields</span><span class="p">(</span><span class="s2">&quot;max&quot;</span><span class="p">,</span><span class="s2">&quot;mee too&quot;</span><span class="p">));</span>
+    <span class="nv">$c</span><span class="o">=</span><span class="nv">$thread1</span><span class="o">-&gt;</span><span class="na">appendChild</span><span class="p">(</span><span class="nv">$a</span><span class="p">,</span><span class="nx">makeFields</span><span class="p">(</span><span class="s2">&quot;carol&quot;</span><span class="p">,</span><span class="s2">&quot;I don&#39;t&quot;</span><span class="p">));</span>
+    <span class="nv">$d</span><span class="o">=</span><span class="nv">$thread1</span><span class="o">-&gt;</span><span class="na">appendChild</span><span class="p">(</span><span class="nv">$c</span><span class="p">,</span><span class="nx">makeFields</span><span class="p">(</span><span class="s2">&quot;joe&quot;</span><span class="p">,</span><span class="s2">&quot;why not?&quot;</span><span class="p">));</span>
+    
+    <span class="nv">$x</span><span class="o">=</span><span class="nv">$thread2</span><span class="o">-&gt;</span><span class="na">appendChild</span><span class="p">(</span><span class="k">NULL</span><span class="p">,</span><span class="nx">makeFields</span><span class="p">(</span><span class="s2">&quot;carol&quot;</span><span class="p">,</span><span class="s2">&quot;why should do this?&quot;</span><span class="p">));</span>
+    <span class="nv">$y</span><span class="o">=</span><span class="nv">$thread2</span><span class="o">-&gt;</span><span class="na">appendChild</span><span class="p">(</span><span class="nv">$x</span><span class="p">,</span><span class="nx">makeFields</span><span class="p">(</span><span class="s2">&quot;joe&quot;</span><span class="p">,</span><span class="s2">&quot;because we can&quot;</span><span class="p">));</span>
+    <span class="nv">$z</span><span class="o">=</span><span class="nv">$thread2</span><span class="o">-&gt;</span><span class="na">appendChild</span><span class="p">(</span><span class="nv">$y</span><span class="p">,</span><span class="nx">makeFields</span><span class="p">(</span><span class="s2">&quot;max&quot;</span><span class="p">,</span><span class="s2">&quot;isn&#39;t it just lame?&quot;</span><span class="p">));</span>
+    <span class="nv">$w</span><span class="o">=</span><span class="nv">$thread2</span><span class="o">-&gt;</span><span class="na">appendChild</span><span class="p">(</span><span class="nv">$z</span><span class="p">,</span><span class="nx">makeFields</span><span class="p">(</span><span class="s2">&quot;joe&quot;</span><span class="p">,</span><span class="s2">&quot;uh?&quot;</span><span class="p">));</span>
+    
+    
+    <span class="c1">// we can freely move the nodes around the same forest (any tree could ask</span>
+    <span class="c1">// for the movements beeing the node ids unique in the forest)</span>
+    <span class="nv">$thread1</span><span class="o">-&gt;</span><span class="na">moveAfter</span><span class="p">(</span><span class="nv">$z</span><span class="p">,</span><span class="nv">$c</span><span class="p">);</span>
+    
+    
+    <span class="cm">/*</span>
+<span class="cm">    Now the content of the &#39;forum&#39; table is</span>
+<span class="cm">    </span>
+<span class="cm">    =======  ==  ===  ===  ========  ===================</span>
+<span class="cm">    tree_id  id  lft  rgt  username  body</span>
+<span class="cm">    =======  ==  ===  ===  ========  ===================</span>
+<span class="cm">          1   1    1   12  joe       I like flowers</span>
+<span class="cm">          1   2    2    3  max       mee too</span>
+<span class="cm">          1   3    4    7  carol     I don&#39;t</span>
+<span class="cm">          1   4    5    6  joe       why not?</span>
+<span class="cm">          2   5    1    4  carol     why should do this?</span>
+<span class="cm">          2   6    2    3  joe       because we can</span>
+<span class="cm">          1   7    8   11  max       isn&#39;t it just lame?</span>
+<span class="cm">          1   8    9   10  joe       uh?</span>
+<span class="cm">    =======  ==  ===  ===  ========  ===================</span>
+<span class="cm">    </span>
+<span class="cm">    */</span>
+    
+    <span class="c1">// to visualize simply our trees...</span>
+    <span class="nb">print_r</span><span class="p">(</span><span class="nv">$thread1</span><span class="o">-&gt;</span><span class="na">getTree</span><span class="p">()</span><span class="o">-&gt;</span><span class="na">stringify</span><span class="p">());</span>
+    <span class="k">echo</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">---</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+    <span class="nb">print_r</span><span class="p">(</span><span class="nv">$thread2</span><span class="o">-&gt;</span><span class="na">getTree</span><span class="p">()</span><span class="o">-&gt;</span><span class="na">stringify</span><span class="p">());</span>
+    <span class="k">echo</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">;</span>
+    
+    <span class="c1">// Next time you want to access a particular tree, you have to know</span>
+    <span class="c1">// his forest name and his tree id</span>
+    <span class="nv">$tread1LoadedAgain</span><span class="o">=</span><span class="k">new</span> <span class="nx">AnimalsBaobab</span><span class="p">(</span><span class="nv">$conn</span><span class="p">,</span><span class="nv">$forestName</span><span class="p">,</span><span class="nv">$tread1</span><span class="o">-&gt;</span><span class="na">id</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
