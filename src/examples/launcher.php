@@ -29,8 +29,8 @@ try {
     mysqli_set_charset($conn,$DB_CONFIG["charset"]);
     
     if (count($argv)!=2 || FALSE===array_search($argv[1],
-                                    array('menu'))) {
-        print_r("Usage: launcher.php [menu]\n");
+                                    array('animals','forum'))) {
+        print_r("Usage: launcher.php [animals|forum]\n");
     } else {
         include($argv[1].".php");
         main($conn);
