@@ -558,6 +558,8 @@ DETERMINISTIC
 /* If move_as_first_sibling is FALSE, move node_id_to_move after reference_node,
      else reference_node is the new father of node_id_to_move */
 
+SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_UNSIGNED_SUBTRACTION';
+
 DROP PROCEDURE IF EXISTS Baobab_GENERIC_MoveSubtree_real;
 CREATE PROCEDURE Baobab_GENERIC_MoveSubtree_real(
         IN node_id_to_move INTEGER UNSIGNED,
@@ -700,6 +702,7 @@ DETERMINISTIC
     
   END;
 
+SET sql_mode=@OLD_SQL_MODE;
 
 DROP PROCEDURE IF EXISTS Baobab_GENERIC_MoveSubtree_Different_Trees;
 CREATE PROCEDURE Baobab_GENERIC_MoveSubtree_Different_Trees(
