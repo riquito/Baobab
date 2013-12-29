@@ -182,8 +182,8 @@ that modify the tree preserve the lft/rgt consistency.
 Dependencies
 ------------
 
-* PHP >= 5.2 with *mysqli* module
-* MySQL >= 5.0 with *innodb* tables available
+* PHP >= 5.2 with *mysqli* module (tested on PHP 5.2 -> 5.5)
+* MySQL >= 5.0 with *innodb* tables available (tested on MySQL 5.1, 5.5)
 
 .. rubric:: Footnotes
     
