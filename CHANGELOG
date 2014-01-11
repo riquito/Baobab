@@ -1,0 +1,14 @@
+v1.1.1 (2014-01-11)
+
+* added a README file in the test directory
+* fixed version in the sql main file (was too old)
+* added this CHANGELOG file
+
+v1.1 (2013-12-29)
+
+* fixed errors caused by new default behaviour of MySQL 5.5
+  during subtractions between positive integers
+
+v1.0 (2011-01-29)
+
+* first public release
