@@ -527,13 +527,6 @@ DETERMINISTIC
     INTO num_children
     FROM GENERIC_AdjTree WHERE parent = parent_id;
     
-    IF num_children = 0 THEN
-      BEGIN
-        SELECT Baobab_getErrCode('INDEX_OUT_OF_RANGE') INTO error_code;
-        LEAVE main;
-      END;
-    END IF;
-    
     SET idx = IF(idx<0,num_children+idx,idx);
     
     IF idx = 0 THEN /* moving as first child, special case */
