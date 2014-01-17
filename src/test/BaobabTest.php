@@ -700,6 +700,12 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
                     $this->assertEquals($toTreeData["tree"]!==NULL ? $toTreeData["tree"] : $preTrees[$tree_id]
                                         ,$idToTree[$tree_id]["values"]);
                 }
+                
+                // if $whatToTest["toTrees"] is empty we didn't check anything yet
+                if (empty($whatToTest["toTrees"]))
+                {
+                    $this->assertEmpty($treesOnDb);
+                }
             }
             
         } catch (Exception $e) {
