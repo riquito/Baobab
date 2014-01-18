@@ -1,3 +1,8 @@
+v1.2.0 (2014-01-19)
+
+* insertNodeAtIndex can insert nodes at index 0
+* moveNodeAtIndex can move nodes at index 0
+
 v1.1.1 (2014-01-11)
 
 * added a README file in the test directory
