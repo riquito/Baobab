@@ -39,4 +39,47 @@ DETERMINISTIC
 
   END; 
 
+/* ################################### */
+/* ###### INSERT CHILD AT INDEX ###### */
+/* ################################### */
+
+/* Add a new child to parent 'parent_id' at index 'index'.
+   index is the new child position, 0 will put the new node as first.
+   index can be negative, where -1 will put the new node before the last one
+ */
+
+DROP PROCEDURE IF EXISTS Baobab_GENERIC_InsertChildAtIndex;
+CREATE PROCEDURE Baobab_GENERIC_InsertChildAtIndex(
+            IN parent_id INTEGER UNSIGNED,
+            IN idx INTEGER,
+            OUT new_id INTEGER UNSIGNED,
+            OUT error_code INTEGER UNSIGNED)
+LANGUAGE SQL
+DETERMINISTIC
+
+  BEGIN
+    
+    DECLARE nth_child INTEGER UNSIGNED;
+    DECLARE cur_tree_id INTEGER UNSIGNED;
+    
+    SET error_code=0;
+    SET new_id=0;
+
+    CALL Baobab_GENERIC_getNthChild(parent_id,idx,nth_child,error_code);
+    
+    IF NOT error_code THEN
+        CALL Baobab_GENERIC_insertBefore(nth_child,new_id,error_code);
+    ELSE IF idx = 0 AND error_code = (SELECT Baobab_getErrCode('INDEX_OUT_OF_RANGE')) THEN
+        BEGIN
+          SET error_code = 0;
+          CALL Baobab_GENERIC_AppendChild((SELECT tree_id FROM GENERIC WHERE id = parent_id),
+                                           parent_id,
+                                           new_id,
+                                           cur_tree_id);
+        END;
+      END IF;
+    END IF;
+    
+  END;
+
 UPDATE Baobab_Errors SET msg="1.2.0" WHERE code=1000;

@@ -362,6 +362,7 @@ DETERMINISTIC
   BEGIN
     
     DECLARE nth_child INTEGER UNSIGNED;
+    DECLARE cur_tree_id INTEGER UNSIGNED;
     
     SET error_code=0;
     SET new_id=0;
@@ -370,8 +371,17 @@ DETERMINISTIC
     
     IF NOT error_code THEN
         CALL Baobab_GENERIC_insertBefore(nth_child,new_id,error_code);
+    ELSE IF idx = 0 AND error_code = (SELECT Baobab_getErrCode('INDEX_OUT_OF_RANGE')) THEN
+        BEGIN
+          SET error_code = 0;
+          CALL Baobab_GENERIC_AppendChild((SELECT tree_id FROM GENERIC WHERE id = parent_id),
+                                           parent_id,
+                                           new_id,
+                                           cur_tree_id);
+        END;
+      END IF;
     END IF;
-
+    
   END;
 
 /* ########################### */

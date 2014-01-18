@@ -4,6 +4,12 @@
  "random_tree":{"tree_id":1000,"from_node_id":100000,"num_children":100},
  "cases":[
     {
+     "comment":"add a child to a leaf",
+     "from":[1,1,6,[[3,2,3,[]],[2,4,5,[]]]],
+     "params":[3,0],
+     "to":[1,1,8,[[3,2,5,[[100100,3,4,[]]]],[2,6,7,[]]]]
+    },
+    {
      "comment":"Index too low",
      "from":[1,1,6,[[3,2,3,[]],[2,4,5,[]]]],
      "params":[1,-3],
