@@ -27,7 +27,7 @@
 
 // define BAOBAB_SQL_DIR as the absolute path with no leading / pointing to
 // the root directory holding the sql files
-if (!defined("BAOBAB_SQL_DIR")) define("BAOBAB_SQL_DIR",dirname(__FILE__).DIRECTORY_SEPARATOR."sql");
+if (!defined("BAOBAB_SQL_DIR")) define("BAOBAB_SQL_DIR", dirname(__FILE__).DIRECTORY_SEPARATOR."sql");
 
 /**!
  * Exceptions
@@ -56,13 +56,13 @@ class sp_MySQL_Error extends sp_Error {
 
     public function __construct($conn_or_msg,$err_code=NULL) {
         if ($conn_or_msg instanceof mysqli || $conn_or_msg instanceof mysql) {
-            $err_str=$conn_or_msg->error;
-            $err_code=$conn_or_msg->errno;
+            $err_str = $conn_or_msg->error;
+            $err_code = $conn_or_msg->errno;
         } else {
-            $err_str=$conn_or_msg;
+            $err_str = $conn_or_msg;
         }
         
-        parent::__construct($err_str,$err_code);
+        parent::__construct($err_str, $err_code);
     }
 }
 
@@ -84,14 +84,14 @@ class sp_SQLUtils {
     private $conn;
     
     public function __construct($conn){
-        $this->conn=$conn;
+        $this->conn = $conn;
     }
     
     /**@
      * .. method:: vector_to_sql_tuple($ar)
      *    
      *    Transform an array in a valid SQL tuple. The array can contain only
-     *    values of type int,float,boolean,string.
+     *    values of type int, float, boolean, string.
      *
      *    :param $ar: an array to convert (only array values are used)
      *    :type $ar:  array
@@ -103,20 +103,20 @@ class sp_SQLUtils {
      *    
      *    .. code-block:: none
      *       
-     *       php> $conn=new mysqli(  connection data )
-     *       php> $sql_utils=new sp_SQLUtils($conn)
-     *       php> echo $sql_utils->vector_to_sql_tuple(array("i'm a string",28,NULL,FALSE));
-     *       ( 'i\'m a string','28',NULL,FALSE )
+     *       php> $conn = new mysqli(  connection data )
+     *       php> $sql_utils = new sp_SQLUtils($conn)
+     *       php> echo $sql_utils->vector_to_sql_tuple(array("i'm a string", 28, NULL, FALSE));
+     *       ( 'i\'m a string', '28', NULL, FALSE )
      * 
      */
     public function vector_to_sql_tuple($ar) {
-        $tmp=array();
+        $tmp = array();
         foreach($ar as $value) {
-            if ($value===NULL) $tmp[]="NULL";
-            else if (is_bool($value)) $tmp[]=($value ? "TRUE" : "FALSE");
-            else $tmp[]="'".($this->conn->real_escape_string($value))."'";
+            if ($value === NULL) $tmp[] = "NULL";
+            else if (is_bool($value)) $tmp[] = ($value ? "TRUE" : "FALSE");
+            else $tmp[] = "'".($this->conn->real_escape_string($value))."'";
         }
-        return sprintf("( %s )",join(",",$tmp));
+        return sprintf("( %s )", join(",", $tmp));
     }
     
     /**@
@@ -125,7 +125,7 @@ class sp_SQLUtils {
      *    Convert an associative array in a series of "columnName = value" expressions
      *    as valid SQL.
      *    The expressions are separated using the parameter $sep (defaults to ",").
-     *    The array can contain only values of type int,float,boolean,string.
+     *    The array can contain only values of type int, float, boolean, string.
      *
      *    :param $ar: an associative array to convert
      *    :type $ar:  array
@@ -139,24 +139,24 @@ class sp_SQLUtils {
      *    
      *    .. code-block:: none
      *       
-     *       php> $conn=new mysqli( connection data )
-     *       php> $sql_utils=new sp_SQLUtils($conn)
-     *       php> $myArray=array("city address"=>"main street","married"=>false);
+     *       php> $conn = new mysqli( connection data )
+     *       php> $sql_utils = new sp_SQLUtils($conn)
+     *       php> $myArray = array("city address" => "main street", "married" => FALSE);
      *       php> echo $sql_utils->array_to_sql_assignments($myArray);
      *        `city address` = 'main street' , `married` = FALSE
-     *       php> echo $sql_utils->array_to_sql_assignments($myArray,"AND");
+     *       php> echo $sql_utils->array_to_sql_assignments($myArray, "AND");
      *        `city address` = 'main street' AND `married` = FALSE 
      */
     public function array_to_sql_assignments($ar,$sep=",") {
-        $tmp=array();
-        foreach($ar as $key=>$value) {
-            if ($value===NULL) $value="NULL";
-            else if (is_bool($value)) $value=($value ? "TRUE" : "FALSE");
-            else $value= "'".($this->conn->real_escape_string($value))."'";
+        $tmp = array();
+        foreach($ar as $key => $value) {
+            if ($value === NULL) $value = "NULL";
+            else if (is_bool($value)) $value = ($value ? "TRUE" : "FALSE");
+            else $value =  "'".($this->conn->real_escape_string($value))."'";
             
-            $tmp[]=sprintf(" `%s` = %s ",str_replace("`","``",$key),$value);
+            $tmp[] = sprintf(" `%s` = %s ", str_replace("`", "``", $key), $value);
         }
-        return join($sep,$tmp);
+        return join($sep, $tmp);
     }
     
     /**@
@@ -168,7 +168,7 @@ class sp_SQLUtils {
      *    Mostly useful after calling sql functions or procedures.
      */
     public function flush_results(){
-        $conn=$this->conn;
+        $conn = $this->conn;
         while($conn->more_results()) {
             if ($result = $conn->use_result()) $result->close();
             $conn->next_result();
@@ -194,14 +194,14 @@ class sp_SQLUtils {
      *       sql injection is a given.
      */
     public function &get_table_fields($table_name){
-        $table_name=str_replace('`','``',$table_name);
+        $table_name = str_replace('`', '``', $table_name);
         
-        $result=$this->conn->query("SHOW COLUMNS FROM `{$table_name}`;",MYSQLI_STORE_RESULT);
-        if (!$result)  throw new sp_MySQL_Error($this->conn);
+        $result = $this->conn->query("SHOW COLUMNS FROM `{$table_name}`;", MYSQLI_STORE_RESULT);
+        if (!$result) throw new sp_MySQL_Error($this->conn);
         
-        $fields=array();
+        $fields = array();
         while($row = $result->fetch_array(MYSQLI_ASSOC)) {
-            $fields[]=$row["Field"];
+            $fields[] = $row["Field"];
         }
         $result->close();
         return $fields;
@@ -217,31 +217,31 @@ class sp_SQLUtils {
      *    :param $db_name: name of the database (if different from the current in use)
      *    :type $db_name:  string
      *    
-     *    :return: true if exists, false otherwise
+     *    :return: TRUE if exists, FALSE otherwise
      *    :rtype:  boolean
      */
     public function table_exists($table_name,$db_name=NULL){
         if (!$db_name) {
-            $result = $this->conn->query("SELECT DATABASE()",MYSQLI_STORE_RESULT);
+            $result = $this->conn->query("SELECT DATABASE()", MYSQLI_STORE_RESULT);
             if (!$result) throw new sp_MySQL_Error($this->conn);
             $row = $result->fetch_row();
-            $db_name=$row[0];
+            $db_name = $row[0];
             $result->close();
         }
         
-        $result =$this->conn->query("
+        $result = $this->conn->query("
             SELECT COUNT(*)
             FROM information_schema.tables 
             WHERE table_schema = '{$db_name}' 
             AND ".($this->array_to_sql_assignments(array(
-                 "table_name"=>$table_name)))
+                 "table_name" => $table_name)))
         );
         
         if (!$result) throw new sp_MySQL_Error($this->conn);
         $row = $result->fetch_row();
         $result->close();
         
-        return $row[0]!=0;
+        return $row[0] != 0;
     }
 }
 
@@ -268,10 +268,10 @@ class sp_Lib {
      *    :return: the computed results
      *    :rtype:  array
      */
-    public static function &map_method(&$array,$obj,$methodName) {
-        $tmp=array();
+    public static function &map_method(&$array, $obj, $methodName) {
+        $tmp = array();
         foreach ($array as $item){
-            $tmp[]=$obj->$methodName($item);
+            $tmp[] = $obj->$methodName($item);
         }
         return $tmp;
     }
@@ -291,7 +291,7 @@ class sp_Lib {
  *    :type $rgt: int
  *    :param $parentId: the parent's node id, if any
  *    :type $parentId: int or NULL
- *    :param $fields_values: additional fields of the node (mapping fieldName=>value)
+ *    :param $fields_values: additional fields of the node (mapping fieldName => value)
  *    :type $fields_values: array or NULL
  *
  *    **Attributes**:
@@ -323,13 +323,13 @@ class BaobabNode {
     public $children;
 
     public function __construct($id,$lft,$rgt,$parentNode,&$fields_values=NULL) {
-        $this->id=$id;
-        $this->lft=$lft;
-        $this->rgt=$rgt;
-        $this->parentNode=$parentNode;
-        $this->fields_values=$fields_values;
+        $this->id = $id;
+        $this->lft = $lft;
+        $this->rgt = $rgt;
+        $this->parentNode = $parentNode;
+        $this->fields_values = $fields_values;
         
-        $this->children=array();
+        $this->children = array();
     }
     
     /**!
@@ -342,7 +342,7 @@ class BaobabNode {
      *
      */
     public function appendChild($child) {
-        $this->children[]=$child;
+        $this->children[] = $child;
     }
     
     /**!
@@ -350,7 +350,7 @@ class BaobabNode {
      *
      *    Return a representation of the tree as a string.
      *
-     *    :param $fields: what node fields include in the output. id,lft and rgt
+     *    :param $fields: what node fields include in the output. id, lft and rgt
      *                      are always included.
      *    :type $fields:  array
      *    :param $diveInto: wheter to continue with node's children or not
@@ -371,10 +371,11 @@ class BaobabNode {
      */
     public function stringify($fields=NULL,$diveInto=TRUE,$indentChar=" ",$indentLevel=0) {
         // XXX TODO $fields is not used at present (and remove the notice from documentation)
-        $out=str_repeat($indentChar,$indentLevel*4)."({$this->id}) [{$this->lft},{$this->rgt}]";
+        $out = str_repeat($indentChar, $indentLevel*4)."({$this->id}) [{$this->lft}, {$this->rgt}]";
         if (!$diveInto) return $out;
-        foreach($this->children as $child) $out.="\n".$child->stringify(
-                            $fields,TRUE,$indentChar,$indentLevel+1);
+        foreach ($this->children as $child) {
+            $out .= "\n".$child->stringify($fields, TRUE, $indentChar, $indentLevel+1);
+        }
         return $out;
     }
     
@@ -392,7 +393,7 @@ class BaobabNode {
     public function isRightmost(){
         if (!$this->parentNode) return TRUE;
         
-        return $this->parentNode->children[count($this->parentNode->children)-1]->id===$this->id;
+        return $this->parentNode->children[count($this->parentNode->children)-1]->id === $this->id;
     }
     
     /**!
@@ -409,7 +410,7 @@ class BaobabNode {
     public function isLeftmost(){
         if (!$this->parentNode) return TRUE;
         
-        return $this->parentNode->children[0]->id===$this->id;
+        return $this->parentNode->children[0]->id === $this->id;
     }
 }
 
@@ -440,7 +441,7 @@ class BaobabNode {
 class Baobab  {
     private $_refresh_fields;
     private $_errors;
-    private static $_version="1.2.0";
+    private static $_version = "1.2.0";
     
     protected $db;
     protected $forest_name;
@@ -450,11 +451,11 @@ class Baobab  {
     public $tree_id;
     
     public function __construct($db,$forest_name,$tree_id=NULL) {
-        $this->db=$db;
-        $this->sql_utils=new sp_SQLUtils($db);
-        $this->forest_name=$forest_name;
-        $this->fields=array();
-        $this->_refresh_fields=TRUE;
+        $this->db = $db;
+        $this->sql_utils = new sp_SQLUtils($db);
+        $this->forest_name = $forest_name;
+        $this->fields = array();
+        $this->_refresh_fields = TRUE;
         
         // load error's information from db (if tables were created)
         try { $this->_load_errors();
@@ -463,18 +464,18 @@ class Baobab  {
         // if $tree_id is -1 we suppose there is one and only one tree yet in
         //   the table, and we automatically retrieve his id
         if ($tree_id== -1 ) {
-            $query="SELECT DISTINCT tree_id FROM {$this->forest_name} LIMIT 2";
-            if ($result=$this->db->query($query,MYSQLI_STORE_RESULT)) {
-                $num_trees=$result->num_rows;
+            $query = "SELECT DISTINCT tree_id FROM {$this->forest_name} LIMIT 2";
+            if ($result = $this->db->query($query, MYSQLI_STORE_RESULT)) {
+                $num_trees = $result->num_rows;
                 
-                if ($num_trees==1) {
+                if ($num_trees == 1) {
                     // one and only, let's use it
                     $row = $result->fetch_row();
-                    $tree_id=intval($row[0]);
+                    $tree_id = intval($row[0]);
                 }
-                else if ($num_trees==0) {
+                else if ($num_trees == 0) {
                     // no trees ? it will be the first
-                    $tree_id=0;
+                    $tree_id = 0;
                 }
                 $result->close();
                 
@@ -483,13 +484,13 @@ class Baobab  {
                 }
                 
             } else {
-                if ($this->db->errno==1146) {
+                if ($this->db->errno == 1146) {
                     // table does not exist (skip), so it will be the first tree
                 } else throw new sp_MySQL_Error($this->db);
             }
         }
         
-        $this->tree_id=intval($tree_id);
+        $this->tree_id = intval($tree_id);
         
         $this->build();
     }
@@ -501,12 +502,12 @@ class Baobab  {
      *      messages
      */
     private function _load_errors(){
-        $this->_errors=array("by_code"=>array(),"by_name"=>array());
-        if ($result=$this->db->query("SELECT code,name,msg FROM Baobab_Errors")) {
+        $this->_errors = array("by_code" => array(), "by_name" => array());
+        if ($result = $this->db->query("SELECT code,name,msg FROM Baobab_Errors")) {
             
-            while($row=$result->fetch_assoc()) {
-                $this->_errors["by_code"][$row["code"]]=$row;
-                $this->_errors["by_name"][$row["name"]]=&$this->_errors["by_code"][$row["code"]];
+            while($row = $result->fetch_assoc()) {
+                $this->_errors["by_code"][$row["code"]] = $row;
+                $this->_errors["by_name"][$row["name"]] = &$this->_errors["by_code"][$row["code"]];
             }
             $result->close();
             
@@ -527,7 +528,7 @@ class Baobab  {
      */
     public function _sql_check_fields(&$fields) {
         
-        $real_fields=$this->_get_fields();
+        $real_fields = $this->_get_fields();
         // check that the requested fields exist
         foreach($fields as $fieldName) {
             if (!isset($real_fields[$fieldName])) throw new sp_Error("`{$fieldName}` wrong field name for table `{$this->forest_name}`");
@@ -541,7 +542,7 @@ class Baobab  {
      *    It mantains the fields array in memory, and refresh it if the
      *    private variable _refresh_fields is TRUE
      *
-     *    :return: associative array fieldName=>TRUE
+     *    :return: associative array fieldName => TRUE
      *    :rtype:  array
      *
      *    .. note::
@@ -554,12 +555,12 @@ class Baobab  {
     public function &_get_fields(){
         
         if ($this->_refresh_fields) {
-            $fields=$this->sql_utils->get_table_fields($this->forest_name);
-            $this->fields=array();
+            $fields = $this->sql_utils->get_table_fields($this->forest_name);
+            $this->fields = array();
             for($i=0,$il=count($fields);$i<$il;$i++) {
-                $this->fields[$fields[$i]]=TRUE;
+                $this->fields[$fields[$i]] = TRUE;
             }
-            $this->_refresh_fields=FALSE;
+            $this->_refresh_fields = FALSE;
         }
         
         return $this->fields;
@@ -584,36 +585,36 @@ class Baobab  {
     public function build() {
         
         // get the current sql version from the loaded db (if any)
-        $sql_version=NULL;
+        $sql_version = NULL;
         if (isset($this->_errors["by_name"]["VERSION"]))
-            $sql_version=$this->_errors["by_name"]["VERSION"]["msg"];
+            $sql_version = $this->_errors["by_name"]["VERSION"]["msg"];
         
         // check if the tree was yet built
-        $treeExists=FALSE;
-        if ($result=$this->db->query("SELECT name FROM Baobab_ForestsNames WHERE name='{$this->forest_name}'")) {
-            $treeExists= $result->num_rows > 0;
+        $treeExists = FALSE;
+        if ($result = $this->db->query("SELECT name FROM Baobab_ForestsNames WHERE name='{$this->forest_name}'")) {
+            $treeExists = $result->num_rows > 0;
             $result->close();
         } else {
-             if ($this->db->errno!==1146) { // do not count "missing table" as an error
+             if ($this->db->errno !== 1146) { // do not count "missing table" as an error
                 throw new sp_MySQL_Error($this->db);
             }
         }
         
         // if there are tables at an older version, ask to upgrade
-        if ($sql_version && $sql_version!=self::$_version) {
+        if ($sql_version && $sql_version != self::$_version) {
             // old schema found at a lower version, ensure user upgrade the database willingly
-            $codename="VERSION_NOT_MATCH";
-            $errno=$this->_errors["by_name"][$codename]["code"];
+            $codename = "VERSION_NOT_MATCH";
+            $errno = $this->_errors["by_name"][$codename]["code"];
             throw new sp_Error(sprintf(
-                "[%s] %s",$codename,$this->_errors["by_code"][$errno]["msg"]).
+                "[%s] %s", $codename, $this->_errors["by_code"][$errno]["msg"]).
                 " (database tables v. ".$sql_version.", library v. ".self::$_version."). Please use Baobab::upgrade().",
                 $errno);
         }
         
         // build the tree only if the database schema not yet exists
         if (!$treeExists) {
-            $sql=file_get_contents(BAOBAB_SQL_DIR.DIRECTORY_SEPARATOR."schema_baobab.sql");
-            if (!$this->db->multi_query(str_replace("GENERIC",$this->forest_name,$sql))) {
+            $sql = file_get_contents(BAOBAB_SQL_DIR.DIRECTORY_SEPARATOR."schema_baobab.sql");
+            if (!$this->db->multi_query(str_replace("GENERIC", $this->forest_name, $sql))) {
                 throw new sp_MySQL_Error($this->db);
             }
             
@@ -652,46 +653,46 @@ class Baobab  {
         $db->query("START TRANSACTION");
         try {
             
-            $currentDbVersion=NULL;
+            $currentDbVersion = NULL;
             
             // get the current database version
-            if ($result=$db->query("SELECT msg FROM Baobab_Errors WHERE name='VERSION'")) {
-                $row=$result->fetch_assoc();
-                $currentDbVersion=$row["msg"];
+            if ($result = $db->query("SELECT msg FROM Baobab_Errors WHERE name='VERSION'")) {
+                $row = $result->fetch_assoc();
+                $currentDbVersion = $row["msg"];
                 $result->close();
             } else throw new sp_Error("You cannot upgrade if you didn't ever built before");
             
             // upgrade only if current db version is not yet the most recent
             //  or we wasn't asked to stop at the current version
-            if ($currentDbVersion==self::$_version ||
-                $untilVersion==$currentDbVersion) return;
+            if ($currentDbVersion == self::$_version ||
+                $untilVersion == $currentDbVersion) return;
             
-            $upgradeList=array(); // name of the files with sql data to run
-            $versions=array(); // mapping fileName -> version to which it will update
+            $upgradeList = array(); // name of the files with sql data to run
+            $versions = array(); // mapping fileName -> version to which it will update
             
-            $startingFileToUpgrade=NULL; // of the files in $upgradeList, start to update from this one
+            $startingFileToUpgrade = NULL; // of the files in $upgradeList, start to update from this one
             
             // get all the upgrade files
-            $upgradeDir=BAOBAB_SQL_DIR.DIRECTORY_SEPARATOR."upgrade";
-            $pattern="/^\d{8}_from_(?P<from>.+?)_to_(?P<to>.+?)\.sql$/";
+            $upgradeDir = BAOBAB_SQL_DIR.DIRECTORY_SEPARATOR."upgrade";
+            $pattern = "/^\d{8}_from_(?P<from>.+?)_to_(?P<to>.+?)\.sql$/";
             
             if ($handle = opendir($upgradeDir)) {
-                while (false !== ($fName = readdir($handle))) {
+                while (FALSE !== ($fName = readdir($handle))) {
                     if ($fName == "." || $fName == "..") continue;
                     
-                    $matches=array();
-                    if (preg_match($pattern,$fName,$matches)) {
-                        $upgradeList[]=$fName;
-                        $versions[$fName]=$matches["to"];
+                    $matches = array();
+                    if (preg_match($pattern, $fName, $matches)) {
+                        $upgradeList[] = $fName;
+                        $versions[$fName] = $matches["to"];
                         
-                        if ($matches["from"]==$currentDbVersion)
-                            $startingFileToUpgrade=$fName;
+                        if ($matches["from"] == $currentDbVersion)
+                            $startingFileToUpgrade = $fName;
                     }
                 }
                 closedir($handle);
                 
             } else {
-                throw new sp_Error(sprintf('Can not read the directory "%s"',$upgradeDir));
+                throw new sp_Error(sprintf('Can not read the directory "%s"', $upgradeDir));
             }
             
             if (empty($upgradeList)) return;
@@ -699,48 +700,48 @@ class Baobab  {
             sort($upgradeList);
             
             // get the starting version (it wasn't added while scanning the directory)
-            $matches=array();
-            preg_match($pattern,$upgradeList[0],$matches);
-            $baseVersion=$matches["from"];
+            $matches = array();
+            preg_match($pattern, $upgradeList[0], $matches);
+            $baseVersion = $matches["from"];
             
-            if ($untilVersion==$baseVersion) return;
+            if ($untilVersion == $baseVersion) return;
             
-            $pathToUntilVersion=array_search($untilVersion,$versions);
+            $pathToUntilVersion = array_search($untilVersion, $versions);
             
-            if ($untilVersion!==NULL && FALSE===$pathToUntilVersion)
+            if ($untilVersion !== NULL && FALSE === $pathToUntilVersion)
                 throw new sp_Error("You requested to stop at an unknown version ({$untilVersion})");
             
-            else if ($startingFileToUpgrade==NULL)
+            else if ($startingFileToUpgrade == NULL)
                 throw new sp_Error("Couldn't find a file to upgrade from the current version ({$currentDbVersion})");
             
             // filter the availabe upgrades to remove the older than the current version
-            $upgradeList=array_slice($upgradeList,array_search($startingFileToUpgrade,$upgradeList));
+            $upgradeList = array_slice($upgradeList, array_search($startingFileToUpgrade, $upgradeList));
             
             // get the names of the existing forests
-            $forestNames=array();
-            if ($result=$db->query("SELECT name FROM Baobab_ForestsNames",MYSQLI_STORE_RESULT)) {
+            $forestNames = array();
+            if ($result = $db->query("SELECT name FROM Baobab_ForestsNames", MYSQLI_STORE_RESULT)) {
                 if ($result->num_rows) {
                     $row = $result->fetch_row();
-                    $forestNames[]=$row[0];
+                    $forestNames[] = $row[0];
                 }
                 $result->close();
             
             } else throw new sp_MySQL_Error($db);
             
-            $sql_utils=new sp_SQLUtils($db);
+            $sql_utils = new sp_SQLUtils($db);
             
             // upgrade each tree until the choosen (or last) version
             foreach($upgradeList as $fName){
-                $sql=file_get_contents($upgradeDir.DIRECTORY_SEPARATOR.$fName);
+                $sql = file_get_contents($upgradeDir.DIRECTORY_SEPARATOR.$fName);
                 
                 foreach($forestNames as $name) {
-                    if (!$db->multi_query(str_replace("GENERIC",$name,$sql))) {
+                    if (!$db->multi_query(str_replace("GENERIC", $name, $sql))) {
                         throw new sp_MySQL_Error($db);
                     }
                     $sql_utils->flush_results();
                 }
                 
-                if ($pathToUntilVersion==$fName) break;
+                if ($pathToUntilVersion == $fName) break;
             }
             
         
@@ -750,7 +751,7 @@ class Baobab  {
             throw $e;
         }
         
-        $result=$db->query("COMMIT");
+        $result = $db->query("COMMIT");
         if (!$result) throw new sp_MySQL_Error($db);
     }
     
@@ -770,9 +771,9 @@ class Baobab  {
         $this->db->query("START TRANSACTION");
         
         try {
-            $forestsExist=TRUE;
+            $forestsExist = TRUE;
             
-            if (!$this->db->multi_query(str_replace("GENERIC",$this->forest_name,"
+            if (!$this->db->multi_query(str_replace("GENERIC", $this->forest_name,"
                     DROP PROCEDURE IF EXISTS Baobab_GENERIC_getNthChild;
                     DROP PROCEDURE IF EXISTS Baobab_GENERIC_MoveSubtree_real;
                     DROP PROCEDURE IF EXISTS Baobab_GENERIC_MoveSubtreeAtIndex;
@@ -797,20 +798,20 @@ class Baobab  {
             try { $this->sql_utils->flush_results(); }
             catch (Exception $e) {
                 
-                if ($this->db->errno===1146) { // do not count "missing table" as an error
+                if ($this->db->errno === 1146) { // do not count "missing table" as an error
                     // died because BaobabTreeNames was missing (other drop are IF EXISTS)
-                    $forestsExist=FALSE;
+                    $forestsExist = FALSE;
                 }
                 else throw $e;
             }
             
             if ($forestsExist) {
                 
-                if ($result=$this->db->query("SELECT COUNT(*) FROM Baobab_ForestsNames",MYSQLI_STORE_RESULT)) {
-                    $dropIt=FALSE;
+                if ($result = $this->db->query("SELECT COUNT(*) FROM Baobab_ForestsNames", MYSQLI_STORE_RESULT)) {
+                    $dropIt = FALSE;
                     if ($result->num_rows) {
                         $row = $result->fetch_row();
-                        $dropIt= ($row[0]==0);
+                        $dropIt = ($row[0] == 0);
                     }
                     
                     $result->close();
@@ -837,7 +838,7 @@ class Baobab  {
             throw $e;
         }
         
-        $result=$this->db->query("COMMIT");
+        $result = $this->db->query("COMMIT");
         if (!$result) throw new sp_MySQL_Error($this->db);
         
         // reset errors data
@@ -856,7 +857,7 @@ class Baobab  {
         if (!$this->db->query("
             DELETE FROM {$this->forest_name}
             WHERE tree_id={$this->tree_id}"
-            ) && $this->db->errno!==1146) { // do not count "missing table" as an error
+            ) && $this->db->errno !== 1146) { // do not count "missing table" as an error
             
             throw new sp_MySQL_Error($this->db);
         }
@@ -873,9 +874,9 @@ class Baobab  {
      *                       holding the data
      *    :type $forest_name:  string
      */
-    public static function cleanAll($db,$forest_name){
+    public static function cleanAll($db, $forest_name){
         // delete all records, ignoring "missing table" error if happening
-        if (!$db->query("DELETE FROM {$forest_name}") && $db->errno!==1146) {
+        if (!$db->query("DELETE FROM {$forest_name}") && $db->errno !== 1146) {
             throw new sp_MySQL_Error($db);
         }
     }
@@ -891,18 +892,18 @@ class Baobab  {
      */
     public function getRoot(){
 
-        $query="
+        $query = "
           SELECT id AS root
           FROM {$this->forest_name}
           WHERE tree_id={$this->tree_id} AND lft = 1;
         ";
         
-        $out=NULL;
+        $out = NULL;
         
-        if ($result=$this->db->query($query,MYSQLI_STORE_RESULT)) {
+        if ($result = $this->db->query($query, MYSQLI_STORE_RESULT)) {
             if ($result->num_rows) {
                 $row = $result->fetch_row();
-                $out=intval($row[0]);
+                $out = intval($row[0]);
             }
             $result->close();
         
@@ -921,29 +922,29 @@ class Baobab  {
      *
      */
     public function getParent($id_node){
-        $id_node=intval($id_node);
+        $id_node = intval($id_node);
         
-        $query="
+        $query = "
           SELECT parent
           FROM {$this->forest_name}_AdjTree
           WHERE tree_id={$this->tree_id} AND child = {$id_node};
         ";
 
-        $out=NULL;
+        $out = NULL;
 
-        if ($result=$this->db->query($query,MYSQLI_STORE_RESULT)) {
-            $row=NULL;
+        if ($result = $this->db->query($query, MYSQLI_STORE_RESULT)) {
+            $row = NULL;
             if ($result->num_rows) $row = $result->fetch_row();
             $result->close();
             
             if ($row) {
-                if ($row[0]===NULL) $out=NULL;
-                else $out=intval($row[0]);
+                if ($row[0] === NULL) $out = NULL;
+                else $out = intval($row[0]);
             }
             else {
                 throw new sp_Error(sprintf("[%s] %s",
                     $this->_errors["by_code"][1400]["name"],
-                    $this->_errors["by_code"][1400]["msg"]),1400);
+                    $this->_errors["by_code"][1400]["msg"]), 1400);
             }
         
         } else throw new sp_MySQL_Error($this->db);
@@ -965,17 +966,17 @@ class Baobab  {
      */
     public function getSize($id_node=NULL) {
 
-        $query="
+        $query = "
           SELECT (rgt-lft+1) DIV 2
           FROM {$this->forest_name}
-          WHERE ". ($id_node!==NULL ? "id = ".intval($id_node) : "lft = 1").
+          WHERE ". ($id_node !== NULL ? "id = ".intval($id_node) : "lft = 1").
                 " AND tree_id={$this->tree_id}";
         
-        $out=0;
+        $out = 0;
 
-        if ($result = $this->db->query($query,MYSQLI_STORE_RESULT)) {
+        if ($result = $this->db->query($query, MYSQLI_STORE_RESULT)) {
             $row = $result->fetch_row();
-            $out=intval($row[0]);
+            $out = intval($row[0]);
             $result->close();
 
         } else throw new sp_MySQL_Error($this->db);
@@ -999,15 +1000,15 @@ class Baobab  {
      */
     public function &getDescendants($id_node=NULL) {
 
-        if ($id_node===NULL) {
+        if ($id_node === NULL) {
             // we search for descendants of root
-            $query="SELECT id FROM {$this->forest_name}
+            $query = "SELECT id FROM {$this->forest_name}
                     WHERE tree_id={$this->tree_id} AND lft <> 1 ORDER BY id";
         } else {
             // we search for a node descendants
-            $id_node=intval($id_node);
+            $id_node = intval($id_node);
             
-            $query="
+            $query = "
               SELECT id
               FROM {$this->forest_name}
               WHERE tree_id = {$this->tree_id}
@@ -1017,11 +1018,11 @@ class Baobab  {
             ";
         }
         
-        $ar_out=array();
+        $ar_out = array();
 
-        if ($result = $this->db->query($query,MYSQLI_STORE_RESULT)) {
+        if ($result = $this->db->query($query, MYSQLI_STORE_RESULT)) {
             while($row = $result->fetch_row()) {
-                array_push($ar_out,intval($row[0]));
+                array_push($ar_out, intval($row[0]));
             }
             $result->close();
 
@@ -1044,27 +1045,27 @@ class Baobab  {
      */
     public function &getLeaves($id_node=NULL){
         
-        $query="
+        $query = "
           SELECT id AS leaf
           FROM {$this->forest_name}
           WHERE tree_id={$this->tree_id} AND lft = (rgt - 1)";
         
-        if ($id_node!==NULL) {
+        if ($id_node !== NULL) {
             // check only leaves of a subtree adding a "where" condition
             
-            $id_node=intval($id_node);
+            $id_node = intval($id_node);
         
-            $query.=" AND lft > (SELECT lft FROM {$this->forest_name} WHERE id = {$id_node}) ".
-                    " AND rgt < (SELECT rgt FROM {$this->forest_name} WHERE id = {$id_node}) ";
+            $query .= " AND lft > (SELECT lft FROM {$this->forest_name} WHERE id = {$id_node}) ".
+                      " AND rgt < (SELECT rgt FROM {$this->forest_name} WHERE id = {$id_node}) ";
         }
         
-        $query.=" ORDER BY lft";
+        $query .= " ORDER BY lft";
         
-        $ar_out=array();
+        $ar_out = array();
         
-        if ($result = $this->db->query($query,MYSQLI_STORE_RESULT)) {
+        if ($result = $this->db->query($query, MYSQLI_STORE_RESULT)) {
             while($row = $result->fetch_row()) {
-                array_push($ar_out,intval($row[0]));
+                array_push($ar_out, intval($row[0]));
             }
             $result->close();
             
@@ -1081,7 +1082,7 @@ class Baobab  {
      *    :param $id_node: id of a node or NULL to start from the tree root
      *    :type $id_node:  int or NULL
      *
-     *    :return: associative arrays with id=>number,level=>number, unordered
+     *    :return: associative arrays with id => number, level => number, unordered
      *    :rtype:  array
      *
      *    .. note::
@@ -1090,7 +1091,7 @@ class Baobab  {
      */
     public function &getLevels(){
     
-        $query="
+        $query = "
           SELECT T2.id as id, (COUNT(T1.id) - 1) AS level
           FROM {$this->forest_name} AS T1 JOIN {$this->forest_name} AS T2
                on T1.tree_id={$this->tree_id} AND T1.tree_id = T2.tree_id
@@ -1099,11 +1100,11 @@ class Baobab  {
           ORDER BY T2.lft ASC;
         ";
 
-        $ar_out=array();
+        $ar_out = array();
 
-        if ($result = $this->db->query($query,MYSQLI_STORE_RESULT)) {
+        if ($result = $this->db->query($query, MYSQLI_STORE_RESULT)) {
             while($row = $result->fetch_assoc()) {
-                array_push($ar_out,array("id"=>intval($row["id"]),"level"=>intval($row["level"])));
+                array_push($ar_out, array("id" => intval($row["id"]), "level" => intval($row["level"])));
             }
             $result->close();
 
@@ -1128,7 +1129,7 @@ class Baobab  {
      *    :type $squash:  boolean
      *
      *    :return: sequence of associative arrays mapping for each node
-     *               fieldName=>value, where field names are the one present
+     *               fieldName => value, where field names are the one present
      *               in $fields plus the field "id" (unless $squash was set),
      *               ordered from root to $id_node
      *    :rtype:  array
@@ -1137,53 +1138,53 @@ class Baobab  {
      *    
      *    .. code-block:: none
      *       
-     *       php> $tree->getPath(2,array("name"))
-     *       array([0]=>array([id]=>1,[name]=>'rootName'),array([id]=>2,[name]=>'secondNodeName']))
-     *       php> join("/",$tree->getPath(2,"name",TRUE))
+     *       php> $tree->getPath(2, array("name"))
+     *       array([0] => array([id] => 1, [name] => 'rootName'), array([id] => 2, [name] => 'secondNodeName']))
+     *       php> join("/", $tree->getPath(2, "name", TRUE))
      *       "rootName/secondNodeName"
      * 
      */
     public function &getPath($id_node,$fields=NULL,$squash=FALSE){
-        $id_node=intval($id_node);
+        $id_node = intval($id_node);
         
         if (empty($fields)) {
-            if ($squash) $fields=array("id");
-            else $fields=array(); // ensure it is not NULL
+            if ($squash) $fields = array("id");
+            else $fields = array(); // ensure it is not NULL
         }
-        else if (is_string($fields)) $fields=array($fields);
+        else if (is_string($fields)) $fields = array($fields);
         
         // append the field "id" if missing
-        if (FALSE===array_search("id",$fields)) $fields[]="id";
+        if (FALSE === array_search("id", $fields)) $fields[] = "id";
         
         $this->_sql_check_fields($fields);
         
-        $fields_escaped=array();
+        $fields_escaped = array();
         foreach($fields as $fieldName) {
-            $fields_escaped[]=sprintf("`%s`", str_replace("`","``",$fieldName));
+            $fields_escaped[] = sprintf("`%s`", str_replace("`", "``", $fieldName));
         }
         
-        $query="".
-        " SELECT ".join(",",$fields_escaped).
+        $query = "".
+        " SELECT ".join(",", $fields_escaped).
         " FROM {$this->forest_name}".
         " WHERE tree_id={$this->tree_id} AND ( SELECT lft FROM {$this->forest_name} WHERE id = {$id_node} ) BETWEEN lft AND rgt".
         " ORDER BY lft";
 
-        $result = $this->db->query($query,MYSQLI_STORE_RESULT);
+        $result = $this->db->query($query, MYSQLI_STORE_RESULT);
         if (!$result) throw new sp_MySQL_Error($this->db);
 
-        $ar_out=array();
+        $ar_out = array();
         if ($squash) {
             reset($fields);
-            $fieldName=current($fields);
-            while($rowAssoc = $result->fetch_assoc()) $ar_out[]=$rowAssoc[$fieldName];
+            $fieldName = current($fields);
+            while($rowAssoc = $result->fetch_assoc()) $ar_out[] = $rowAssoc[$fieldName];
             
         } else {
             while($rowAssoc = $result->fetch_assoc()) {
-                $tmp_ar=array();
+                $tmp_ar = array();
                 foreach($fields as $fieldName) {
-                    $tmp_ar[$fieldName]=$rowAssoc[$fieldName];
+                    $tmp_ar[$fieldName] = $rowAssoc[$fieldName];
                 }
-                $ar_out[]=$tmp_ar;
+                $ar_out[] = $tmp_ar;
             }
         }
         
@@ -1209,20 +1210,20 @@ class Baobab  {
      *
      */
     public function &getFirstNChildren($id_parent,$howMany=NULL,$fromLeftToRight=TRUE){
-        $id_parent=intval($id_parent);
-        $howMany=intval($howMany);
+        $id_parent = intval($id_parent);
+        $howMany = intval($howMany);
         
-        $query=" SELECT child FROM {$this->forest_name}_AdjTree ".
-               " WHERE parent = {$id_parent} ".
-               " ORDER BY lft ".($fromLeftToRight ? 'ASC' : 'DESC').
-               ($howMany ? " LIMIT $howMany" : "");
+        $query = " SELECT child FROM {$this->forest_name}_AdjTree ".
+                 " WHERE parent = {$id_parent} ".
+                 " ORDER BY lft ".($fromLeftToRight ? 'ASC' : 'DESC').
+                 ($howMany ? " LIMIT $howMany" : "");
         
-        $result = $this->db->query($query,MYSQLI_STORE_RESULT);
+        $result = $this->db->query($query, MYSQLI_STORE_RESULT);
         if (!$result) throw new sp_MySQL_Error($this->db);
         
-        $ar_out=array();
+        $ar_out = array();
         while($row = $result->fetch_row()) {
-            $ar_out[]=intval($row[0]);
+            $ar_out[] = intval($row[0]);
         }
         $result->close();
         
@@ -1258,7 +1259,7 @@ class Baobab  {
      *
      */
     public function getFirstChild($id_parent) {
-        $res=$this->getFirstNChildren($id_parent,1,TRUE);
+        $res = $this->getFirstNChildren($id_parent, 1, TRUE);
         return empty($res) ? 0 : current($res);
     }
     
@@ -1275,12 +1276,12 @@ class Baobab  {
      *
      */
     public function getLastChild($id_parent) {
-        $res=$this->getFirstNChildren($id_parent,1,FALSE);
+        $res = $this->getFirstNChildren($id_parent, 1, FALSE);
         return empty($res) ? 0 : current($res);
     }
     
     /**!
-     * .. method:: getChildAtIndex($id_parent,$index)
+     * .. method:: getChildAtIndex($id_parent, $index)
      *
      *    Find the nth child of a parent node
      *
@@ -1294,16 +1295,16 @@ class Baobab  {
      *    :rtype:  int
      *
      */
-    public function getChildAtIndex($id_parent,$index){
-        $id_parent=intval($id_parent);
-        $index=intval($index);
+    public function getChildAtIndex($id_parent, $index){
+        $id_parent = intval($id_parent);
+        $index = intval($index);
         
         if (!$this->db->multi_query("
-                CALL Baobab_{$this->forest_name}_getNthChild({$id_parent},{$index},@child_id,@error_code);
-                SELECT @child_id as child_id,@error_code as error_code"))
+                CALL Baobab_{$this->forest_name}_getNthChild({$id_parent}, {$index}, @child_id, @error_code);
+                SELECT @child_id as child_id, @error_code as error_code"))
                 throw new sp_MySQL_Error($this->db);
 
-        $res=$this->_readLastResult('child_id');
+        $res = $this->_readLastResult('child_id');
         return intval($res['child_id']);
     }
     
@@ -1324,12 +1325,12 @@ class Baobab  {
      *    :rtype:  instance of $className
      *
      */
-    public function &getTree($className="BaobabNode",$appendChild="appendChild") {
+    public function &getTree($className="BaobabNode", $appendChild="appendChild") {
         
         // this is a specialized version of the query found in getLevel()
         //   (the difference lying in the fact that here we retrieve all the
         //    fields of the table)
-        $query="
+        $query = "
           SELECT (COUNT(T1.id) - 1) AS level ,T2.*
           FROM {$this->forest_name} AS T1 JOIN {$this->forest_name} AS T2
                 on T1.tree_id={$this->tree_id} AND T1.tree_id = T2.tree_id
@@ -1338,40 +1339,40 @@ class Baobab  {
           ORDER BY T2.lft ASC;
         ";
         
-        $root=NULL;
-        $parents=array();
+        $root = NULL;
+        $parents = array();
         
-        if ($result = $this->db->query($query,MYSQLI_STORE_RESULT)) {
+        if ($result = $this->db->query($query, MYSQLI_STORE_RESULT)) {
             
             while($row = $result->fetch_assoc()) {
                 
-                $numParents=count($parents);
+                $numParents = count($parents);
                 
-                $id=$row["id"];
-                $lft=$row["lft"];
-                $rgt=$row["rgt"];
-                $level=$row["level"];
-                $parentNode=count($parents) ? $parents[$numParents-1] : NULL;
+                $id = $row["id"];
+                $lft = $row["lft"];
+                $rgt = $row["rgt"];
+                $level = $row["level"];
+                $parentNode = count($parents) ? $parents[$numParents-1] : NULL;
                 
                 unset($row["id"]);
                 unset($row["lft"]);
                 unset($row["rgt"]);
                 unset($row["level"]);
                 
-                $node=new $className($id,$lft,$rgt,$parentNode,$row);
+                $node = new $className($id, $lft, $rgt, $parentNode, $row);
                 
-                if (!$root) $root=$node;
+                if (!$root) $root = $node;
                 else $parents[$numParents-1]->$appendChild($node);
                 
-                if ($rgt-$lft!=1) { // not a leaf
-                    $parents[$numParents]=$node;
+                if ($rgt-$lft != 1) { // not a leaf
+                    $parents[$numParents] = $node;
                 }
-                else if (!empty($parents) && $rgt+1==$parents[$numParents-1]->rgt) {
+                else if (!empty($parents) && $rgt+1 == $parents[$numParents-1]->rgt) {
                     
-                    $k=$numParents-1;
-                    $me=$node;
+                    $k = $numParents-1;
+                    $me = $node;
                     while ($k>-1 && $me->rgt+1 == $parents[$k]->rgt) {
-                        $me=$parents[$k];
+                        $me = $parents[$k];
                         unset($parents[$k--]);
                     }
                     
@@ -1379,9 +1380,9 @@ class Baobab  {
                     // alternative way using levels ($parents would have both the parent node and his level)
                     
                     // previous parent is the first one with a level minor than ours
-                    if ($parents[count($parents)-1][1]>=$level) {
+                    if ($parents[count($parents)-1][1] >= $level) {
                         // remove all the previous subtree "parents" until our real parent
-                        for($i=count($parents)-1;$parents[$i--][1]>=$level;)
+                        for($i=count($parents)-1;$parents[$i--][1] >= $level;)
                             array_pop($parents);
                     }
                     */
@@ -1412,10 +1413,10 @@ class Baobab  {
      *       (see :class:`Baobab.closeGaps`)
      */
     public function deleteNode($id_node,$close_gaps=TRUE) {
-        $id_node=intval($id_node);
-        $close_gaps=$close_gaps ? 1 : 0;
+        $id_node = intval($id_node);
+        $close_gaps = $close_gaps ? 1 : 0;
         
-        if (!$this->db->multi_query("CALL Baobab_{$this->forest_name}_DropTree({$id_node},{$close_gaps})"))
+        if (!$this->db->multi_query("CALL Baobab_{$this->forest_name}_DropTree({$id_node}, {$close_gaps})"))
             throw new sp_MySQL_Error($this->db);
         
         $this->sql_utils->flush_results();
@@ -1454,7 +1455,7 @@ class Baobab  {
      */
     public function getTreeHeight(){
         
-        $query="
+        $query = "
         SELECT MAX(level)+1 as height
         FROM (SELECT T2.id as id,(COUNT(T1.id)-1) as level
               FROM {$this->forest_name} as T1 JOIN {$this->forest_name} as T2
@@ -1463,11 +1464,11 @@ class Baobab  {
               GROUP BY T2.id
              ) as ID_LEVELS";
         
-        $result = $this->db->query($query,MYSQLI_STORE_RESULT);
+        $result = $this->db->query($query, MYSQLI_STORE_RESULT);
         if (!$result) throw new sp_MySQL_Error($this->db);
 
         $row = $result->fetch_row();
-        $out=intval($row[0]);
+        $out = intval($row[0]);
         
         $result->close();
         return $out;
@@ -1480,25 +1481,25 @@ class Baobab  {
      *
      *    :param $id_node: id of the node to update
      *    :type $id_node:  int
-     *    :param $fields_values: mapping fields=>values to update
-     *                     (only supported types are string,int,float,boolean)
+     *    :param $fields_values: mapping fields => values to update
+     *                     (only supported types are string, int, float, boolean)
      *    :type $fields_values:  array
      * 
      */
     public function updateNode($id_node,$fields_values){
-        $id_node=intval($id_node);
+        $id_node = intval($id_node);
         
         if (empty($fields_values)) throw new sp_Error("\$fields_values cannot be empty");
         
-        $fields=array_keys($fields_values);
+        $fields = array_keys($fields_values);
         $this->_sql_check_fields($fields);
         
-        $query="".
+        $query = "".
          " UPDATE {$this->forest_name}".
          " SET ".( $this->sql_utils->array_to_sql_assignments($fields_values) ).
          " WHERE id = $id_node";
         
-        $result = $this->db->query($query,MYSQLI_STORE_RESULT);
+        $result = $this->db->query($query, MYSQLI_STORE_RESULT);
         if (!$result) throw new sp_MySQL_Error($this->db);
     }
     
@@ -1517,16 +1518,16 @@ class Baobab  {
      * 
      */
     public function getNodeData($id_node,$fields=NULL){
-        $id_node=intval($id_node);
+        $id_node = intval($id_node);
         
         if (!empty($fields)) $this->_sql_check_fields($fields);
         
-        $query="".
-        " SELECT ".($fields===NULL ? "*" : join(",",$fields)).
+        $query = "".
+        " SELECT ".($fields === NULL ? "*" : join(",", $fields)).
         " FROM {$this->forest_name} ".
         " WHERE id = $id_node";
         
-        $result = $this->db->query($query,MYSQLI_STORE_RESULT);
+        $result = $this->db->query($query, MYSQLI_STORE_RESULT);
         if (!$result) throw new sp_MySQL_Error($this->db);
         
         return $result->fetch_assoc();
@@ -1540,7 +1541,7 @@ class Baobab  {
      *
      *    :param $id_parent: id of the parent node
      *    :type $id_parent: int or NULL
-     *    :param $fields_values: mapping fields=>values to assign to the new node
+     *    :param $fields_values: mapping fields => values to assign to the new node
      *    :type $fields_values: array or NULL
      *    
      *    :return: id of new node
@@ -1549,19 +1550,19 @@ class Baobab  {
      */
     public function appendChild($id_parent=NULL,$fields_values=NULL){
         
-        $id_parent=intval($id_parent);
+        $id_parent = intval($id_parent);
         
         if (!$this->db->multi_query("
-                CALL Baobab_{$this->forest_name}_AppendChild({$this->tree_id},{$id_parent},@new_id,@cur_tree_id);
-                SELECT @new_id as new_id,@cur_tree_id as tree_id"))
+                CALL Baobab_{$this->forest_name}_AppendChild({$this->tree_id}, {$id_parent}, @new_id, @cur_tree_id);
+                SELECT @new_id as new_id, @cur_tree_id as tree_id"))
                 throw new sp_MySQL_Error($this->db);
         
-        $res=$this->_readLastResult(array('new_id','tree_id'));
-        $id=intval($res['new_id']);
-        $this->tree_id=intval($res['tree_id']);
+        $res = $this->_readLastResult(array('new_id', 'tree_id'));
+        $id = intval($res['new_id']);
+        $this->tree_id = intval($res['tree_id']);
         
         //update the node if needed
-        if ($fields_values!==NULL) $this->updateNode($id,$fields_values);
+        if ($fields_values !== NULL) $this->updateNode($id, $fields_values);
         
         return $id;
     }
@@ -1574,7 +1575,7 @@ class Baobab  {
      *
      *    :param $id_sibling: id of a node in the tree (can not be root)
      *    :type $id_sibling:  int
-     *    :param $fields_values: mapping fields=>values to assign to the new node
+     *    :param $fields_values: mapping fields => values to assign to the new node
      *    :type $fields_values: array or NULL
      *
      *    :return: id of the new node
@@ -1582,17 +1583,17 @@ class Baobab  {
      * 
      */
     public function insertAfter($id_sibling,$fields_values=NULL) {
-        $id_sibling=intval($id_sibling);
+        $id_sibling = intval($id_sibling);
 
         if (!$this->db->multi_query("
-                CALL Baobab_{$this->forest_name}_insertAfter({$id_sibling},@new_id,@error_code);
-                SELECT @new_id as new_id,@error_code as error_code"))
+                CALL Baobab_{$this->forest_name}_insertAfter({$id_sibling}, @new_id, @error_code);
+                SELECT @new_id as new_id, @error_code as error_code"))
                 throw new sp_MySQL_Error($this->db);
 
-        $res=$this->_readLastResult('new_id');
+        $res = $this->_readLastResult('new_id');
         
         //update the node if needed
-        if ($fields_values!==NULL) $this->updateNode($res['new_id'],$fields_values);
+        if ($fields_values !== NULL) $this->updateNode($res['new_id'], $fields_values);
         
         return intval($res['new_id']);
     }
@@ -1605,7 +1606,7 @@ class Baobab  {
      *
      *    :param $id_sibling: id of a node in the tree (can not be root)
      *    :type $id_sibling:  int
-     *    :param $fields_values: mapping fields=>values to assign to the new node
+     *    :param $fields_values: mapping fields => values to assign to the new node
      *    :type $fields_values: array or NULL
      *
      *    :return: id of the new node
@@ -1613,17 +1614,17 @@ class Baobab  {
      * 
      */
     public function insertBefore($id_sibling,$fields_values=NULL) {
-        $id_sibling=intval($id_sibling);
+        $id_sibling = intval($id_sibling);
 
         if (!$this->db->multi_query("
-                CALL Baobab_{$this->forest_name}_insertBefore({$id_sibling},@new_id,@error_code);
-                SELECT @new_id as new_id,@error_code as error_code"))
+                CALL Baobab_{$this->forest_name}_insertBefore({$id_sibling}, @new_id, @error_code);
+                SELECT @new_id as new_id, @error_code as error_code"))
                 throw new sp_MySQL_Error($this->db);
 
-        $res=$this->_readLastResult('new_id');
+        $res = $this->_readLastResult('new_id');
         
         //update the node if needed
-        if ($fields_values!==NULL) $this->updateNode($res['new_id'],$fields_values);
+        if ($fields_values !== NULL) $this->updateNode($res['new_id'], $fields_values);
         
         return intval($res['new_id']);
     }
@@ -1641,25 +1642,25 @@ class Baobab  {
      *                   Negative indexes are allowed (-1 is the position before
      *                   the last sibling).
      *    :type $index:  int
-     *    :param $fields_values: mapping fields=>values to assign to the new node
+     *    :param $fields_values: mapping fields => values to assign to the new node
      *    :type $fields_values:  array or NULL
      *    
      *    :return: id of the new node
      *    :rtype:  int
      */
     public function insertChildAtIndex($id_parent,$index,$fields_values=NULL) {
-        $id_parent=intval($id_parent);
-        $index=intval($index);
+        $id_parent = intval($id_parent);
+        $index = intval($index);
 
         if (!$this->db->multi_query("
-                CALL Baobab_{$this->forest_name}_InsertChildAtIndex({$id_parent},{$index},@new_id,@error_code);
-                SELECT @new_id as new_id,@error_code as error_code"))
+                CALL Baobab_{$this->forest_name}_InsertChildAtIndex({$id_parent}, {$index}, @new_id, @error_code);
+                SELECT @new_id as new_id, @error_code as error_code"))
             throw new sp_MySQL_Error($this->db);
         
-        $res=$this->_readLastResult('new_id');
+        $res = $this->_readLastResult('new_id');
         
         //update the node if needed
-        if ($fields_values!==NULL) $this->updateNode($res['new_id'],$fields_values);
+        if ($fields_values !== NULL) $this->updateNode($res['new_id'], $fields_values);
         
         return intval($res['new_id']);
     }
@@ -1681,11 +1682,11 @@ class Baobab  {
      * 
      */
     public function moveAfter($id_to_move,$reference_node) {
-        $id_to_move=intval($id_to_move);
-        $reference_node=intval($reference_node);
+        $id_to_move = intval($id_to_move);
+        $reference_node = intval($reference_node);
 
         if (!$this->db->multi_query("
-                CALL Baobab_{$this->forest_name}_MoveSubtreeAfter({$id_to_move},{$reference_node},@error_code);
+                CALL Baobab_{$this->forest_name}_MoveSubtreeAfter({$id_to_move}, {$reference_node}, @error_code);
                 SELECT @error_code as error_code"))
             throw new sp_MySQL_Error($this->db);
         
@@ -1709,11 +1710,11 @@ class Baobab  {
      * 
      */
     public function moveBefore($id_to_move,$reference_node) {
-        $id_to_move=intval($id_to_move);
-        $reference_node=intval($reference_node);
+        $id_to_move = intval($id_to_move);
+        $reference_node = intval($reference_node);
 
         if (!$this->db->multi_query("
-                CALL Baobab_{$this->forest_name}_MoveSubtreeBefore({$id_to_move},{$reference_node},@error_code);
+                CALL Baobab_{$this->forest_name}_MoveSubtreeBefore({$id_to_move}, {$reference_node}, @error_code);
                 SELECT @error_code as error_code"))
             throw new sp_MySQL_Error($this->db);
         
@@ -1740,12 +1741,12 @@ class Baobab  {
      * 
      */
     public function moveNodeAtIndex($id_to_move,$id_parent,$index) {
-        $id_to_move=intval($id_to_move);
-        $id_parent=intval($id_parent);
-        $index=intval($index);
+        $id_to_move = intval($id_to_move);
+        $id_parent = intval($id_parent);
+        $index = intval($index);
         
         if (!$this->db->multi_query("
-                CALL Baobab_{$this->forest_name}_MoveSubtreeAtIndex({$id_to_move},{$id_parent},{$index},@error_code);
+                CALL Baobab_{$this->forest_name}_MoveSubtreeAtIndex({$id_to_move}, {$id_parent}, {$index}, @error_code);
                 SELECT @error_code as error_code"))
             throw new sp_MySQL_Error($this->db);
         
@@ -1766,14 +1767,14 @@ class Baobab  {
      *    :param $numResults: number of expected mysql results
      *    :type $numResults:  int
      *    
-     *    :return: array, mapping $fields=>values found in the last result
+     *    :return: array, mapping $fields => values found in the last result
      *    :rtype:  int
      */
     private function &_readLastResult($fields=NULL,$error_field="error_code",$numResults=2){
-        if (is_string($fields)) $fields=array($fields);
-        else if ($fields===NULL) $fields=array();
+        if (is_string($fields)) $fields = array($fields);
+        else if ($fields === NULL) $fields = array();
         
-        $k=1;
+        $k = 1;
         while($k++ < $numResults) {
             if ($result = $this->db->use_result()) { $result->close(); }
             if ($this->db->errno) throw new sp_MySQL_Error($this->db);
@@ -1781,19 +1782,19 @@ class Baobab  {
         }
         
         $result = $this->db->use_result();
-        $record=$result->fetch_assoc();
+        $record = $result->fetch_assoc();
         
-        if (isset($record[$error_field]) && $record[$error_field]!=0) {
-            $error_code=intval($record[$error_field]);
+        if (isset($record[$error_field]) && $record[$error_field] != 0) {
+            $error_code = intval($record[$error_field]);
             $result->close();
             throw new sp_Error(sprintf("[%s] %s",
                 $this->_errors["by_code"][$error_code]["name"],
-                $this->_errors["by_code"][$error_code]["msg"]),$error_code);
+                $this->_errors["by_code"][$error_code]["msg"]), $error_code);
         }
         
-        $ar_out=array();
+        $ar_out = array();
         foreach($fields as $fieldName) {
-            $ar_out[$fieldName]=$record[$fieldName];
+            $ar_out[$fieldName] = $record[$fieldName];
         }
         $result->close();
         
@@ -1823,7 +1824,7 @@ class Baobab  {
      *       [
      *        {
      *          "tree_id": 6, //optional, it could also be one of the fields, or none at all
-     *          "fields" : ["id","lft", "rgt"],
+     *          "fields" : ["id", "lft", "rgt"],
      *          "values" : 
      *              [1,1,4,[
      *                  [2,2,3,[]]
@@ -1841,16 +1842,16 @@ class Baobab  {
      *       exist in the table records belonging to that same tree.
      */
     public static function &import($db,$forest_name,$data){
-        if (is_string($data)) $data=json_decode($data,true);
-        if (!$data || empty($data)) {$x=NULL;return $x;} // nothing to import
+        if (is_string($data)) $data = json_decode($data, TRUE);
+        if (!$data || empty($data)) {$x = NULL;return $x;} // nothing to import
         
         // check if the table exists before doing anything else
-        $sql_utils=new sp_SQLUtils($db);
+        $sql_utils = new sp_SQLUtils($db);
         if ( ! $sql_utils->table_exists($forest_name)){
             throw new sp_Error("Table `{$forest_name}` does not exist");
         }
         
-        $ar_out=array();
+        $ar_out = array();
         
         $db->query("START TRANSACTION");
         
@@ -1861,13 +1862,13 @@ class Baobab  {
                 if (empty($tmp_data["values"])) continue;
                 
                 // get the tree id, if any
-                $tree_id=NULL;
-                if (isset($tmp_data["tree_id"])) $tree_id=intval($tmp_data["tree_id"]);
+                $tree_id = NULL;
+                if (isset($tmp_data["tree_id"])) $tree_id = intval($tmp_data["tree_id"]);
                 else {
-                    $idx=array_search("tree_id",$tmp_data["fields"]);
-                    if (FALSE!==$idx) {
+                    $idx = array_search("tree_id", $tmp_data["fields"]);
+                    if (FALSE !== $idx) {
                         // all the tree ids are equals, get the first
-                        $tree_id=intval($tmp_data["values"][0][$idx]);
+                        $tree_id = intval($tmp_data["values"][0][$idx]);
                     }
                 }
                 
@@ -1875,35 +1876,35 @@ class Baobab  {
                     // there isn't a tree_id, we must get one
                     
                     // find a new tree_id
-                    $query="SELECT IFNULL(MAX(tree_id),0)+1 as new_id FROM {$forest_name}";
-                    $result = $db->query($query,MYSQLI_STORE_RESULT);
+                    $query = "SELECT IFNULL(MAX(tree_id),0)+1 as new_id FROM {$forest_name}";
+                    $result = $db->query($query, MYSQLI_STORE_RESULT);
                     if (!$result) throw new sp_MySQL_Error($db);
                     $row = $result->fetch_row();
-                    $tree_id=intval($row[0]);
+                    $tree_id = intval($row[0]);
                     $result->close();
                     
                 } else {
                     // ensure the tree_id isn't in use
-                    $query="SELECT DISTINCT tree_id FROM {$forest_name} WHERE tree_id={$tree_id}";
-                    $result = $db->query($query,MYSQLI_STORE_RESULT);
+                    $query = "SELECT DISTINCT tree_id FROM {$forest_name} WHERE tree_id={$tree_id}";
+                    $result = $db->query($query, MYSQLI_STORE_RESULT);
                     if (!$result) throw new sp_MySQL_Error($db);
-                    $tree_exists=$result->num_rows!=0;
+                    $tree_exists = $result->num_rows != 0;
                     $result->close();
                     
                     if ($tree_exists) throw new sp_Error("ImportError: tree_id {$tree_id} yet in use");
                 }
                 
-                $tree=new Baobab($db,$forest_name,$tree_id);
+                $tree = new Baobab($db, $forest_name, $tree_id);
                 
                 // if there are only standard fields we can also try to build the table
                 //   (otherwise it must yet exist because we can't guess field types)
                 
-                $standard_fields=array("id","lft","rgt","tree_id");
-                if (count($tmp_data["fields"])<=4) {
-                    $is_standard=TRUE;
+                $standard_fields = array("id", "lft", "rgt", "tree_id");
+                if (count($tmp_data["fields"]) <= 4) {
+                    $is_standard = TRUE;
                     foreach($tmp_data["fields"] as $fieldName) {
-                        if (FALSE===array_search($fieldName,$standard_fields)) {
-                            $is_standard=FALSE;
+                        if (FALSE === array_search($fieldName, $standard_fields)) {
+                            $is_standard = FALSE;
                             break;
                         }
                     }
@@ -1911,7 +1912,7 @@ class Baobab  {
                         try{
                             $tree->build(); // if yet exists is harmless
                         } catch (sp_MySQL_Error $e) {
-                            if ($db->errno!=1050) throw $e; // 1050 is "table exists"
+                            if ($db->errno != 1050) throw $e; // 1050 is "table exists"
                         }
                     }
                 }
@@ -1919,42 +1920,42 @@ class Baobab  {
                 // check that the table has the involved fields
                 $tree->_sql_check_fields($tmp_data["fields"]);
                 
-                $values=array();
+                $values = array();
                 
-                $nodes=array($tmp_data["values"]);
+                $nodes = array($tmp_data["values"]);
                 
                 while (!empty($nodes)) {
                     // get data of current node
-                    $last_node=array_pop($nodes);
+                    $last_node = array_pop($nodes);
                      //save his children's array
-                    $children=array_pop($last_node);
+                    $children = array_pop($last_node);
                     // append the children to the nodes to iterate over
-                    if (count($children)) $nodes=array_merge($nodes,$children);
+                    if (count($children)) $nodes = array_merge($nodes, $children);
                     
                     // keep the data
-                    $values[]=$last_node;
+                    $values[] = $last_node;
                 }
                 
                 // get the tree_id to use
                 
-                if (FALSE===array_search("tree_id",$tmp_data["fields"])) {
+                if (FALSE === array_search("tree_id", $tmp_data["fields"])) {
                     // add tree_id to fields
-                    $tmp_data["fields"][]="tree_id";
+                    $tmp_data["fields"][] = "tree_id";
                     
                     // add tree_id to the each row
                     foreach($values as &$row){
-                        $row[]=$tree_id;
+                        $row[] = $tree_id;
                     }
                 }
                 
                 // add the values
-                $result=$db->query(
-                        "INSERT INTO {$forest_name}(".join(",",$tmp_data["fields"]).") VALUES ".
-                        join(", ",sp_Lib::map_method($values,$sql_utils,"vector_to_sql_tuple"))
-                    ,MYSQLI_STORE_RESULT);
+                $result = $db->query(
+                        "INSERT INTO {$forest_name}(".join(",", $tmp_data["fields"]).") VALUES ".
+                        join(", ", sp_Lib::map_method($values, $sql_utils, "vector_to_sql_tuple"))
+                    , MYSQLI_STORE_RESULT);
                 if (!$result)  throw new sp_MySQL_Error($db);
                 
-                $ar_out[]=$tree;
+                $ar_out[] = $tree;
                 
             } // end foreach $data
         
@@ -1964,7 +1965,7 @@ class Baobab  {
             throw $e;
         }
         
-        $result=$db->query("COMMIT");
+        $result = $db->query("COMMIT");
         if (!$result) throw new sp_MySQL_Error($db);
         
         
@@ -1984,31 +1985,31 @@ class Baobab  {
      */
     private static function _traverse_tree_to_export_data($node,&$data,&$fieldsFlags,&$fieldsOrder){
         
-        $len_data=count($data);
+        $len_data = count($data);
         
-        $tmp_ar=array();
+        $tmp_ar = array();
         
-        $i=0;
+        $i = 0;
         
         // get fields and values in the correct order
         foreach($fieldsOrder as $fieldName) {
-            if ($fieldName=='id') $value=$node->id;
-            else if ($fieldName=='lft') $value=$node->lft;
-            else if ($fieldName=='rgt') $value=$node->rgt;
-            else $value=$node->fields_values[$fieldName];
+            if ($fieldName == 'id') $value = $node->id;
+            else if ($fieldName == 'lft') $value = $node->lft;
+            else if ($fieldName == 'rgt') $value = $node->rgt;
+            else $value = $node->fields_values[$fieldName];
             
-            if ($fieldsFlags[$i++]&MYSQLI_NUM_FLAG) $value=floatval($value);
+            if ($fieldsFlags[$i++] & MYSQLI_NUM_FLAG) $value = floatval($value);
             
-            $tmp_ar[]=$value;
+            $tmp_ar[] = $value;
         }
         
-        $tmp_ar[]=array(); // the last element holds the children
+        $tmp_ar[] = array(); // the last element holds the children
         
         // append the child data to parent data
-        $data[$len_data-1][]=&$tmp_ar;
+        $data[$len_data-1][] = &$tmp_ar;
         
         foreach($node->children as $childNode) {
-            self::_traverse_tree_to_export_data($childNode,$tmp_ar,$fieldsFlags,$fieldsOrder);
+            self::_traverse_tree_to_export_data($childNode, $tmp_ar, $fieldsFlags, $fieldsOrder);
         }
         
     }
@@ -2043,7 +2044,7 @@ class Baobab  {
      *       [
      *        {
      *          "tree_id": 6, 
-     *          "fields" : ["id","lft", "rgt"], // tree_id is stripped if requested via fields because redundant
+     *          "fields" : ["id", "lft", "rgt"], // tree_id is stripped if requested via fields because redundant
      *          "values" : 
      *              [1,1,4,[
      *                  [2,2,3,[]]
@@ -2056,65 +2057,65 @@ class Baobab  {
     public static function export($db,$forest_name,$fields=NULL,$tree_id=NULL){
         
         // check if the table exists before doing anything else
-        $sql_utils=new sp_SQLUtils($db);
+        $sql_utils = new sp_SQLUtils($db);
         if ( ! $sql_utils->table_exists($forest_name)){
             throw new sp_Error("Table `Baobab_{$forest_name}` does not exist");
         }
         
         // get all the fields to export or check if the passed fields are valid
-        $tree=new Baobab($db,$forest_name,NULL); // use a unexistent tree in the right table
-        if ($fields!==NULL) $tree->_sql_check_fields($fields);
-        else $fields=array_keys($tree->_get_fields());
+        $tree = new Baobab($db, $forest_name, NULL); // use a unexistent tree in the right table
+        if ($fields !== NULL) $tree->_sql_check_fields($fields);
+        else $fields = array_keys($tree->_get_fields());
         
         // remove tree_id from $fields to avoid writing it n times
         //   ( we give him a single property in the json format )
-        $idx_treeId_field=array_search("tree_id",$fields);
-        if (FALSE!==$idx_treeId_field) {
+        $idx_treeId_field = array_search("tree_id", $fields);
+        if (FALSE !== $idx_treeId_field) {
             unset($fields[$idx_treeId_field]);
-            $fields=array_values($fields); // I want to mantain a correct index sequence
+            $fields = array_values($fields); // I want to mantain a correct index sequence
         }
         
         // get the ids of the trees to export
-        $ar_tree_id=array();
+        $ar_tree_id = array();
         if ($tree_id) {
-            if (!is_array($tree_id)) $tree_id=array($tree_id);
+            if (!is_array($tree_id)) $tree_id = array($tree_id);
             // ensure $tree_id contains numbers
-            foreach($tree_id as $tmp_id) $ar_tree_id[]=intval($tmp_id);
+            foreach($tree_id as $tmp_id) $ar_tree_id[] = intval($tmp_id);
         }
         else {
-            $query="SELECT DISTINCT tree_id FROM {$forest_name}";
-            $result = $db->query($query,MYSQLI_STORE_RESULT);
+            $query = "SELECT DISTINCT tree_id FROM {$forest_name}";
+            $result = $db->query($query, MYSQLI_STORE_RESULT);
             if (!$result) throw new sp_MySQL_Error($db);
-            while ($row=$result->fetch_row()) $ar_tree_id[]=intval($row[0]);
+            while ($row = $result->fetch_row()) $ar_tree_id[] = intval($row[0]);
             $result->close();
         }
         
         // get the type of the columns mainly to write numbers as ... numbers
-        $fieldsFlags=array(); // each index will have the field flag, to know his type
-        $result=$db->query(
-            "SELECT ".join(",",$fields)." FROM {$forest_name} LIMIT 1",MYSQLI_STORE_RESULT);
+        $fieldsFlags = array(); // each index will have the field flag, to know his type
+        $result = $db->query(
+            "SELECT ".join(",", $fields)." FROM {$forest_name} LIMIT 1", MYSQLI_STORE_RESULT);
         if (!$result)  throw new sp_MySQL_Error($db);
         // retrieve the column names and their types
         while ($finfo = $result->fetch_field()) {
-            $fieldsFlags[]=$finfo->flags;
+            $fieldsFlags[] = $finfo->flags;
         }
         $result->close();
         
         // parse each tree and build an array to jsonize later
-        $ar_out=array();
+        $ar_out = array();
         foreach ($ar_tree_id as $tree_id) {
-            $tmp_ar=array("tree_id"=>$tree_id,"fields"=> $fields,"values"=>null);
+            $tmp_ar = array("tree_id" => $tree_id, "fields" => $fields, "values" => NULL);
             
             // retrieve the data
-            $tree=new Baobab($db,$forest_name,$tree_id);
-            $root=$tree->getTree();
+            $tree = new Baobab($db, $forest_name, $tree_id);
+            $root = $tree->getTree();
             
-            if ($root!==NULL) {
-                $data=array(array()); // the inner array emulate a node to gain root as child
-                self::_traverse_tree_to_export_data($root,$data,$fieldsFlags,$tmp_ar["fields"]);
-                if (!empty($data[0][0])) $tmp_ar["values"]=&$data[0][0];
+            if ($root !== NULL) {
+                $data = array(array()); // the inner array emulate a node to gain root as child
+                self::_traverse_tree_to_export_data($root, $data, $fieldsFlags, $tmp_ar["fields"]);
+                if (!empty($data[0][0])) $tmp_ar["values"] = &$data[0][0];
                 
-                $ar_out[]=$tmp_ar;
+                $ar_out[] = $tmp_ar;
             }
         }
         
