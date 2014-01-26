@@ -1,3 +1,8 @@
+v1.2.1 (2014-01-26)
+
+* code linting
+* added composer.json
+
 v1.2.0 (2014-01-19)
 
 * insertNodeAtIndex can insert nodes at index 0
