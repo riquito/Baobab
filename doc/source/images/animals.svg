@@ -13,7 +13,7 @@
    height="1052.3622047"
    id="svg2"
    version="1.1"
-   inkscape:version="0.48.0 r9654"
+   inkscape:version="0.48.3.1 r9886"
    sodipodi:docname="animals.svg">
   <defs
      id="defs4">
@@ -40,16 +40,16 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="1.0564677"
-     inkscape:cx="401.68429"
+     inkscape:cx="403.89871"
      inkscape:cy="798.52989"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
-     inkscape:window-width="1138"
-     inkscape:window-height="890"
-     inkscape:window-x="17"
-     inkscape:window-y="91"
-     inkscape:window-maximized="0" />
+     inkscape:window-width="1280"
+     inkscape:window-height="760"
+     inkscape:window-x="0"
+     inkscape:window-y="24"
+     inkscape:window-maximized="1" />
   <metadata
      id="metadata7">
     <rdf:RDF>
@@ -58,7 +58,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -83,8 +83,8 @@
        id="rect2987-8"
        width="163.8056"
        height="38.642574"
-       x="117.86033"
-       y="118.68644"
+       x="490.80124"
+       y="119.63299"
        rx="22.856459"
        ry="19.321287"
        inkscape:export-filename="/home/riquito/Devel/Baobab/doc/source/images/animals.png"
@@ -95,8 +95,8 @@
        id="rect2987-80"
        width="194.11017"
        height="38.642574"
-       x="482.73404"
-       y="118.68644"
+       x="91.539978"
+       y="116.79333"
        rx="27.08498"
        ry="19.321287"
        inkscape:export-filename="/home/riquito/Devel/Baobab/doc/source/images/animals.png"
@@ -191,8 +191,8 @@
     <text
        xml:space="preserve"
        style="font-size:22px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:DejaVu Sans Mono;-inkscape-font-specification:DejaVu Sans Mono"
-       x="127.36352"
-       y="146.20938"
+       x="500.30441"
+       y="147.15593"
        id="text3096"
        sodipodi:linespacing="125%"
        inkscape:export-filename="/home/riquito/Devel/Baobab/doc/source/images/animals.png"
@@ -200,13 +200,13 @@
        inkscape:export-ydpi="49.009998"><tspan
          sodipodi:role="line"
          id="tspan3098"
-         x="127.36352"
-         y="146.20938">vertebrates</tspan></text>
+         x="500.30441"
+         y="147.15593">vertebrates</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:22px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:DejaVu Sans Mono;-inkscape-font-specification:DejaVu Sans Mono"
-       x="494.24942"
-       y="146.20938"
+       x="102.70052"
+       y="144.31627"
        id="text3100"
        sodipodi:linespacing="125%"
        inkscape:export-filename="/home/riquito/Devel/Baobab/doc/source/images/animals.png"
@@ -214,8 +214,8 @@
        inkscape:export-ydpi="49.009998"><tspan
          sodipodi:role="line"
          id="tspan3102"
-         x="494.24942"
-         y="146.20938">invertebrates</tspan></text>
+         x="102.70052"
+         y="144.31627">invertebrates</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:22px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:DejaVu Sans Mono;-inkscape-font-specification:DejaVu Sans Mono"
@@ -247,7 +247,7 @@
     <text
        xml:space="preserve"
        style="font-size:22px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:DejaVu Sans Mono;-inkscape-font-specification:DejaVu Sans Mono"
-       x="531.42426"
+       x="531.12097"
        y="270.552"
        id="text3112"
        sodipodi:linespacing="125%"
@@ -256,7 +256,7 @@
        inkscape:export-ydpi="49.009998"><tspan
          sodipodi:role="line"
          id="tspan3114"
-         x="531.42426"
+         x="531.12097"
          y="270.552">mammals</tspan></text>
     <text
        xml:space="preserve"
@@ -351,7 +351,7 @@
        inkscape:export-ydpi="49.009998" />
     <path
        style="fill:none;stroke:#000000;stroke-width:4;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
-       d="m 186.87822,196.70206 0,-31.31473"
+       d="m 188.59506,196.70206 0,-31.31473"
        id="path3165"
        inkscape:connector-curvature="0"
        inkscape:export-filename="/home/riquito/Devel/Baobab/doc/source/images/animals.png"
@@ -382,8 +382,8 @@
     <text
        xml:space="preserve"
        style="font-size:22px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
-       x="92.934036"
-       y="146.17178"
+       x="66.412781"
+       y="144.27867"
        id="text3173"
        sodipodi:linespacing="125%"
        inkscape:export-filename="/home/riquito/Devel/Baobab/doc/source/images/animals.png"
@@ -391,8 +391,8 @@
        inkscape:export-ydpi="49.009998"><tspan
          sodipodi:role="line"
          id="tspan3175"
-         x="92.934036"
-         y="146.17178">2</tspan></text>
+         x="66.412781"
+         y="144.27867">2</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:22px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
@@ -480,8 +480,8 @@
     <text
        xml:space="preserve"
        style="font-size:22px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
-       x="297.995"
-       y="146.01602"
+       x="294.31659"
+       y="144.12291"
        id="text3201"
        sodipodi:linespacing="125%"
        inkscape:export-filename="/home/riquito/Devel/Baobab/doc/source/images/animals.png"
@@ -489,13 +489,13 @@
        inkscape:export-ydpi="49.009998"><tspan
          sodipodi:role="line"
          id="tspan3203"
-         x="297.995"
-         y="146.01602">9</tspan></text>
+         x="294.31659"
+         y="144.12291">9</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:22px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
-       x="444.18286"
-       y="146.01602"
+       x="448.91562"
+       y="146.96257"
        id="text3205"
        sodipodi:linespacing="125%"
        inkscape:export-filename="/home/riquito/Devel/Baobab/doc/source/images/animals.png"
@@ -503,8 +503,8 @@
        inkscape:export-ydpi="49.009998"><tspan
          sodipodi:role="line"
          id="tspan3207"
-         x="444.18286"
-         y="146.01602">10</tspan></text>
+         x="448.91562"
+         y="146.96257">10</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:22px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
@@ -592,8 +592,8 @@
     <text
        xml:space="preserve"
        style="font-size:22px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
-       x="683.99512"
-       y="146.02676"
+       x="666.95715"
+       y="146.97331"
        id="text3233"
        sodipodi:linespacing="125%"
        inkscape:export-filename="/home/riquito/Devel/Baobab/doc/source/images/animals.png"
@@ -601,8 +601,8 @@
        inkscape:export-ydpi="49.009998"><tspan
          sodipodi:role="line"
          id="tspan3235"
-         x="683.99512"
-         y="146.02676">17</tspan></text>
+         x="666.95715"
+         y="146.97331">17</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:22px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans;-inkscape-font-specification:Bitstream Vera Sans"
