@@ -3,6 +3,18 @@
  "fields":["id","lft","rgt"],
  "cases":[
     {
+     "comment":"move a node who's first child to index 0",
+     "from":[1,1,8,[[2,2,3,[]],[3,4,5,[]],[4,6,7,[]]]],
+     "params":[2,1,0],
+     "to":[1,1,8,[[2,2,3,[]],[3,4,5,[]],[4,6,7,[]]]]
+    },
+    {
+     "comment":"move a node to his same position",
+     "from":[1,1,8,[[2,2,3,[]],[3,4,5,[]],[4,6,7,[]]]],
+     "params":[3,1,1],
+     "to":[1,1,8,[[2,2,3,[]],[3,4,5,[]],[4,6,7,[]]]]
+    },
+    {
      "comment":"move a node at index 0 of a parent without children",
      "from":[1,1,10,[[5,2,7,[[7,3,4,[]],[8,5,6,[]]]],[6,8,9,[]]]],
      "params":[8,6,0],

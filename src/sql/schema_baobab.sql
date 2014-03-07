@@ -628,6 +628,10 @@ DETERMINISTIC
                 SET ext_bound_2 = s_lft-1;
                 
                 END;
+            ELSEIF s_lft = ref_lft THEN BEGIN
+                /* we have been asked to move a node to his same position */
+                LEAVE main;
+                END;
             ELSE BEGIN
                 SET diff_when_inside_sourcetree = ref_lft-s_rgt-1;
                 SET diff_when_next_sourcetree = -(s_rgt-s_lft+1);
