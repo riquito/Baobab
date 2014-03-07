@@ -1,5 +1,7 @@
 v1.3.0
 
+* moveNodeAtIndex() didn't preserve the requested index when
+  moving a node after a greater (at his right) sibling
 * moving a first child node to index 0 with moveNodeAtIndex
   incorrectly produced an error
 

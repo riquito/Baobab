@@ -530,12 +530,38 @@ DETERMINISTIC
 
     DECLARE nth_child INTEGER UNSIGNED;
     DECLARE num_children INTEGER;
+    DECLARE parent_of_node_to_move INTEGER UNSIGNED;
+    DECLARE s_lft INTEGER UNSIGNED;
+    DECLARE current_idx INTEGER;
     
     SET error_code=0;
 
     SELECT COUNT(*)
     INTO num_children
     FROM GENERIC_AdjTree WHERE parent = parent_id;
+
+    IF idx < 0 THEN
+        SET idx = num_children + idx;
+    ELSEIF idx > 0 THEN BEGIN
+
+        SELECT parent, lft
+        INTO parent_of_node_to_move, s_lft
+        FROM GENERIC_AdjTree WHERE child = node_id_to_move;
+
+        IF parent_of_node_to_move = parent_id THEN BEGIN
+            SELECT count(*)
+            INTO current_idx
+            FROM GENERIC_AdjTree
+            WHERE parent = parent_id AND lft < s_lft;
+
+            IF idx > current_idx THEN
+                SET idx = idx + 1;
+            END IF;
+          END;
+        END IF;
+
+      END;
+    END IF;
     
     SET idx = IF(idx<0,num_children+idx,idx);
     

@@ -15,6 +15,30 @@
      "to":[1,1,8,[[2,2,3,[]],[3,4,5,[]],[4,6,7,[]]]]
     },
     {
+     "comment":"move a node after a sibling using positive indexes (move after hisself)",
+     "from":[1,1,8,[[2,2,3,[]],[3,4,5,[]],[4,6,7,[]]]],
+     "params":[2,1,1],
+     "to":[1,1,8,[[3,2,3,[]],[2,4,5,[]],[4,6,7,[]]]]
+    },
+    {
+     "comment":"move a node after a sibling using positive indexes (move far)",
+     "from":[1,1,8,[[2,2,3,[]],[3,4,5,[]],[4,6,7,[]]]],
+     "params":[2,1,2],
+     "to":[1,1,8,[[3,2,3,[]],[4,4,5,[]],[2,6,7,[]]]]
+    },
+    {
+     "comment":"move a node before a sibling using positive indexes (move before hisself)",
+     "from":[1,1,8,[[2,2,3,[]],[3,4,5,[]],[4,6,7,[]]]],
+     "params":[4,1,1],
+     "to":[1,1,8,[[2,2,3,[]],[4,4,5,[]],[3,6,7,[]]]]
+    },
+    {
+     "comment":"move a node before a sibling using positive indexes (move far)",
+     "from":[1,1,10,[[2,2,3,[]],[3,4,5,[]],[4,6,7,[]],[5,8,9,[]]]],
+     "params":[5,1,1],
+     "to":[1,1,10,[[2,2,3,[]],[5,4,5,[]],[3,6,7,[]],[4,8,9,[]]]]
+    },
+    {
      "comment":"move a node at index 0 of a parent without children",
      "from":[1,1,10,[[5,2,7,[[7,3,4,[]],[8,5,6,[]]]],[6,8,9,[]]]],
      "params":[8,6,0],
