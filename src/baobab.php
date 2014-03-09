@@ -441,7 +441,7 @@ class BaobabNode {
 class Baobab  {
     private $_refresh_fields;
     private $_errors;
-    private static $_version = "1.2.1";
+    private static $_version = "1.3.0";
     
     protected $db;
     protected $forest_name;
