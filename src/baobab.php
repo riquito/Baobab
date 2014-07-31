@@ -1427,11 +1427,13 @@ class Baobab  {
     public function deleteNode($id_node,$close_gaps=TRUE) {
         $id_node = intval($id_node);
         $close_gaps = $close_gaps ? 1 : 0;
-        
-        if (!$this->db->multi_query("CALL Baobab_{$this->forest_name}_DropTree({$id_node}, {$close_gaps})"))
-            throw new sp_MySQL_Error($this->db);
-        
-        $this->sql_utils->flush_results();
+
+        $stmt = $this->pdo->prepare("CALL Baobab_{$this->forest_name}_DropTree(:id_node, :close_gaps)");
+        $stmt->execute(array(
+            ':id_node' => $id_node,
+            ':close_gaps' => $close_gaps
+            ));
+        $stmt->closeCursor();
         
     }
     

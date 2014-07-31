@@ -149,8 +149,6 @@ function main($mysqli, $pdo){ // $conn is a mysqli connection object
 
     $tree = new AnimalsBaobab($mysqli, $pdo, $forestName, $projectID);
 
-    $tree->getChildAtIndex(60, 0);
-
     $rootID = $tree->getRoot();
 
     $folderID = isset($_GET['folderID']) ? $_GET['folderID'] : $rootID;
@@ -167,6 +165,11 @@ function main($mysqli, $pdo){ // $conn is a mysqli connection object
     $parentID = $tree->getParent($folderID);
 
     $folderData = $tree->getNodeData($folderID, array('name'));
+
+    if (isset($_GET['folderToDelete']) && $rootID != $_GET['folderToDelete']) {
+        $folderToRemoveData = $tree->getNodeData($_GET['folderToDelete'], array('name'));
+        $tree->deleteNode($_GET['folderToDelete'], true);
+    }
 
     $folderChildrens = $tree->getChildren($folderID);
 
@@ -188,6 +191,11 @@ function main($mysqli, $pdo){ // $conn is a mysqli connection object
 
     }
 
+    if (isset($_GET['folderToDelete']) && $rootID != $_GET['folderToDelete']) {
+        echo "<br>";
+        echo "You deleted folder: ".$folderToRemoveData['name'];
+    }
+
     if (isset($_GET['newFolder'])) {
         $newFolder = $tree->appendChild($folderID, array('name' => $_GET['newFolder']));
         $folderChildrens[] = $newFolder;
@@ -199,6 +207,9 @@ function main($mysqli, $pdo){ // $conn is a mysqli connection object
         echo "<br>Folders inside:<br>";
     } else {
         echo '<br>Nothing inside<br>';
+        if($rootID != $folderID){
+            echo "<a href='index.php?projectID=$projectID&folderID=$parentID&folderToDelete=$folderID'>You can delete this folder</a>";
+        }
     }
 
     foreach ($folderChildrens as $childrenFolderID) {
