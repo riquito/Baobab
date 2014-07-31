@@ -149,17 +149,17 @@ class sp_SQLUtils {
      *       php> echo $sql_utils->array_to_sql_assignments($myArray, "AND");
      *        `city address` = 'main street' AND `married` = FALSE 
      */
-    public function array_to_sql_assignments($ar,$sep=",") {
-        $tmp = array();
-        foreach($ar as $key => $value) {
-            if ($value === NULL) $value = "NULL";
-            else if (is_bool($value)) $value = ($value ? "TRUE" : "FALSE");
-            else $value =  "'".($value)."'";
-            // TODO - escape $value and $key - SQL Injection
-            $tmp[] = sprintf(" `%s` = %s ", str_replace("`", "``", $key), $value);
-        }
-        return join($sep, $tmp);
-    }
+    // public function array_to_sql_assignments($ar,$sep=",") {
+    //     $tmp = array();
+    //     foreach($ar as $key => $value) {
+    //         if ($value === NULL) $value = "NULL";
+    //         else if (is_bool($value)) $value = ($value ? "TRUE" : "FALSE");
+    //         else $value =  "'".($value)."'";
+    //         // TODO - escape $value and $key - SQL Injection
+    //         $tmp[] = sprintf(" `%s` = %s ", str_replace("`", "``", $key), $value);
+    //     }
+    //     return join($sep, $tmp);
+    // }
     
     /**@
      * .. method:: flush_results()
@@ -229,15 +229,18 @@ class sp_SQLUtils {
             if (empty($rows)) throw new sp_MySQL_Error($this->conn);
         }
         
-        $query = "
-            SELECT COUNT(*)
-            FROM information_schema.tables 
-            WHERE table_schema = '{$db_name}' 
-            AND ".($this->array_to_sql_assignments(array(
-                 "table_name" => $table_name)));
+        $query = 'SELECT COUNT(*)
+                  FROM information_schema.tables 
+                  WHERE table_schema = :db_name 
+                  AND table_name = :table_name';
 
-        $result = $this->pdo->query($query);
-        $rows = $result->fetchAll();
+        $stmt = $this->pdo->prepare($query);
+        $stmt->execute(array(
+            ":db_name" => $db_name,
+            ":table_name" => $table_name
+        ));
+
+        $rows = $stmt->fetchAll();
         
         if (empty($rows)) throw new sp_MySQL_Error($this->conn);
         
@@ -898,11 +901,14 @@ class Baobab  {
         $query = "
           SELECT id AS root
           FROM {$this->forest_name}
-          WHERE tree_id={$this->tree_id} AND lft = 1;
+          WHERE tree_id=:tree_id AND lft = 1;
         ";
 
-        $result = $this->pdo->query($query);
-        $row = $result->fetch();
+        $stmt = $this->pdo->prepare($query);
+        $stmt->execute(array(
+            ':tree_id' => $this->tree_id
+            ));
+        $row = $stmt->fetch();
         
         return $row[0];
     }
@@ -922,14 +928,18 @@ class Baobab  {
         $query = "
           SELECT parent
           FROM {$this->forest_name}_AdjTree
-          WHERE tree_id={$this->tree_id} AND child = {$id_node};
+          WHERE tree_id= :tree_id AND child = :id_node;
         ";
 
         $out = NULL;
 
-        $result = $this->pdo->query($query);
+        $stmt = $this->pdo->prepare($query);
+        $stmt->execute(array(
+            ':tree_id' => $this->tree_id,
+            ':id_node' => $id_node
+            ));
 
-        $row = $result->fetch();
+        $row = $stmt->fetch();
 
         if (empty($row)) throw new sp_MySQL_Error($pdo);
 
@@ -1201,12 +1211,19 @@ class Baobab  {
         $howMany = intval($howMany);
         
         $query = " SELECT child FROM {$this->forest_name}_AdjTree ".
-                 " WHERE parent = {$id_parent} ".
+                 " WHERE parent = :id_parent ".
                  " ORDER BY lft ".($fromLeftToRight ? 'ASC' : 'DESC').
-                 ($howMany ? " LIMIT $howMany" : "");
+                 ($howMany ? " LIMIT :howMany" : "");
 
-        $result = $this->pdo->query($query);
-        $rows = $result->fetchAll();
+        $stmt = $this->pdo->prepare($query);
+
+        $prepareArray[':id_parent'] = $id_parent;
+        if($howMany){
+            $prepareArray[':id_parent'] = $howMany;
+        }
+
+        $stmt->execute($prepareArray);
+        $rows = $stmt->fetchAll();
 
         $ar_out = array();
         foreach ($rows as $row) {
@@ -1285,9 +1302,7 @@ class Baobab  {
         $id_parent = intval($id_parent);
         $index = intval($index);
 
-        $query = "
-                CALL Baobab_{$this->forest_name}_getNthChild({$id_parent}, {$index}, @child_id, @error_code);
-                SELECT @child_id as child_id, @error_code as error_code";
+        $query = "CALL Baobab_{$this->forest_name}_getNthChild({$id_parent}, {$index}, @child_id, @error_code);";
 
         $stmt = $this->pdo->prepare($query);
         $exec = $stmt->execute();
@@ -1487,13 +1502,23 @@ class Baobab  {
         
         $fields = array_keys($fields_values);
         $this->_sql_check_fields($fields);
+
+        $prepareFields = '';
+        foreach ($fields as $field) {
+            $prepareFields .= "$field = :$field";
+            $prepareFieldsValues[':'.$field] = $fields_values[$field];
+        }
         
         $query = "".
          " UPDATE {$this->forest_name}".
-         " SET ".( $this->sql_utils->array_to_sql_assignments($fields_values) ).
-         " WHERE id = $id_node";
+         " SET $prepareFields".
+         " WHERE id = :id_node";
+        $stmt = $this->pdo->prepare($query);
+
+        $prepareFieldsValues[':id_node'] = $id_node;
+
+        $result = $stmt->execute($prepareFieldsValues);
         
-        $result = $this->db->query($query, MYSQLI_STORE_RESULT);
         if (!$result) throw new sp_MySQL_Error($this->db);
     }
     
@@ -1519,10 +1544,14 @@ class Baobab  {
         $query = "".
         " SELECT ".($fields === NULL ? "*" : join(",", $fields)).
         " FROM {$this->forest_name} ".
-        " WHERE id = $id_node";
+        " WHERE id = :id_node";
 
-        $result = $this->pdo->query($query);
-        $row = $result->fetch(PDO::FETCH_ASSOC);
+        $stmt = $this->pdo->prepare($query);
+        $stmt->execute(array(
+            ':id_node' => $id_node
+            ));
+
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (empty($row)) throw new sp_MySQL_Error($pdo);
         
         return $row;
