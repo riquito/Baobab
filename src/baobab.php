@@ -1302,10 +1302,13 @@ class Baobab  {
         $id_parent = intval($id_parent);
         $index = intval($index);
 
-        $query = "CALL Baobab_{$this->forest_name}_getNthChild({$id_parent}, {$index}, @child_id, @error_code);";
+        $query = "CALL Baobab_{$this->forest_name}_getNthChild(:id_parent, :index, @child_id, @error_code);";
 
         $stmt = $this->pdo->prepare($query);
-        $exec = $stmt->execute();
+        $exec = $stmt->execute(array(
+            ':id_parent' => $id_parent,
+            ':index' => $index
+            ));
         $stmt->closeCursor();
 
         $output = $this->pdo->query("select @child_id as child_id");
