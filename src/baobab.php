@@ -197,15 +197,14 @@ class sp_SQLUtils {
      */
     public function &get_table_fields($table_name){
         $table_name = str_replace('`', '``', $table_name);
-        
-        $result = $this->conn->query("SHOW COLUMNS FROM `{$table_name}`;", MYSQLI_STORE_RESULT);
-        if (!$result) throw new sp_MySQL_Error($this->conn);
-        
-        $fields = array();
-        while($row = $result->fetch_array(MYSQLI_ASSOC)) {
+
+        $result = $this->pdo->query("SHOW COLUMNS FROM `{$table_name}`;");
+        $rows = $result->fetchAll(PDO::FETCH_ASSOC);
+        if (empty($rows)) throw new sp_MySQL_Error($db);
+
+        foreach ($rows as $row) {
             $fields[] = $row["Field"];
         }
-        $result->close();
         return $fields;
     }
     
