@@ -96,6 +96,9 @@ DETERMINISTIC
 /* ########################## */
 
 DROP PROCEDURE IF EXISTS Baobab_GENERIC_DropTree;
+
+DELIMITER //
+
 CREATE PROCEDURE Baobab_GENERIC_DropTree (
                     IN node INTEGER UNSIGNED,
                     IN update_numbers INTEGER)
@@ -149,7 +152,9 @@ MODIFIES SQL DATA
 
     COMMIT;
 
-  END;
+  END//
+
+DELIMITER ;
 
 /* ########################## */
 /* ###### APPEND CHILD ###### */
@@ -162,6 +167,8 @@ MODIFIES SQL DATA
    If choosen_tree is not present as tree_id in the table, it is used.
 */
 DROP PROCEDURE IF EXISTS Baobab_GENERIC_AppendChild;
+
+DELIMITER //
 CREATE PROCEDURE Baobab_GENERIC_AppendChild(
             IN choosen_tree INTEGER UNSIGNED,
             IN parent_id INTEGER UNSIGNED,
@@ -217,13 +224,17 @@ DETERMINISTIC
 
     COMMIT;
 
-  END;
+  END//
+
+DELIMITER ;
 
 /* ############################### */
 /* ###### INSERT NODE AFTER ###### */
 /* ############################### */
 
 DROP PROCEDURE IF EXISTS Baobab_GENERIC_insertAfter;
+
+DELIMITER //
 CREATE PROCEDURE Baobab_GENERIC_insertAfter(
             IN sibling_id INTEGER UNSIGNED,
             OUT new_id INTEGER UNSIGNED,
@@ -277,14 +288,17 @@ DETERMINISTIC
         END;
     END IF;
 
-  END;
+  END//
 
+DELIMITER ;
 
 /* ################################ */
 /* ###### INSERT NODE BEFORE ###### */
 /* ################################ */
 
 DROP PROCEDURE IF EXISTS Baobab_GENERIC_insertBefore;
+
+DELIMITER //
 CREATE PROCEDURE Baobab_GENERIC_insertBefore(
             IN sibling_id INTEGER UNSIGNED,
             OUT new_id INTEGER UNSIGNED,
@@ -338,8 +352,9 @@ DETERMINISTIC
       END;
     END IF;
 
-END;
+END//
 
+DELIMITER ;
 
 /* ################################### */
 /* ###### INSERT CHILD AT INDEX ###### */
@@ -351,6 +366,8 @@ END;
  */
 
 DROP PROCEDURE IF EXISTS Baobab_GENERIC_InsertChildAtIndex;
+
+DELIMITER //
 CREATE PROCEDURE Baobab_GENERIC_InsertChildAtIndex(
             IN parent_id INTEGER UNSIGNED,
             IN idx INTEGER,
@@ -382,13 +399,17 @@ DETERMINISTIC
       END IF;
     END IF;
     
-  END;
+  END//
+
+DELIMITER ;
 
 /* ########################### */
 /* ###### GET NTH CHILD ###### */
 /* ########################### */
 
 DROP PROCEDURE IF EXISTS Baobab_GENERIC_getNthChild;
+
+DELIMITER //
 CREATE PROCEDURE Baobab_GENERIC_getNthChild(
             IN parent_id INTEGER UNSIGNED,
             IN idx INTEGER,
@@ -431,8 +452,9 @@ DETERMINISTIC
     
     END IF;
 
-  END;
+  END//
 
+DELIMITER ;
 
 
 /* ###################################### */
@@ -440,6 +462,8 @@ DETERMINISTIC
 /* ###################################### */
 
 DROP PROCEDURE IF EXISTS Baobab_GENERIC_MoveSubtreeBefore;
+
+DELIMITER //
 CREATE PROCEDURE Baobab_GENERIC_MoveSubtreeBefore(
         IN node_id_to_move INTEGER UNSIGNED,
         IN reference_node INTEGER UNSIGNED,
@@ -485,8 +509,9 @@ DETERMINISTIC
         node_id_to_move, node_revised , move_as_first_sibling, error_code
     );
 
-  END;
+  END//
 
+DELIMITER ;
 
 
 /* ##################################### */
@@ -494,6 +519,8 @@ DETERMINISTIC
 /* ##################################### */
 
 DROP PROCEDURE IF EXISTS Baobab_GENERIC_MoveSubtreeAfter;
+
+DELIMITER //
 CREATE PROCEDURE Baobab_GENERIC_MoveSubtreeAfter(
         IN node_id_to_move INTEGER UNSIGNED,
         IN reference_node INTEGER UNSIGNED,
@@ -509,8 +536,9 @@ DETERMINISTIC
         node_id_to_move,reference_node,FALSE,error_code
     );
 
-  END;
+  END//
 
+DELIMITER ;
 
 
 /* ##################################### */
@@ -518,6 +546,8 @@ DETERMINISTIC
 /* ##################################### */
 
 DROP PROCEDURE IF EXISTS Baobab_GENERIC_MoveSubtreeAtIndex;
+
+DELIMITER //
 CREATE PROCEDURE Baobab_GENERIC_MoveSubtreeAtIndex(
         IN node_id_to_move INTEGER UNSIGNED,
         IN parent_id INTEGER UNSIGNED,
@@ -578,7 +608,10 @@ DETERMINISTIC
       END;
     END IF;
 
-  END; 
+  END//
+  
+DELIMITER ;
+  
 
 /* ####################################### */
 /* ####### MOVE SUBTREE REAL LOGIC #######*/
@@ -590,6 +623,8 @@ DETERMINISTIC
 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_UNSIGNED_SUBTRACTION';
 
 DROP PROCEDURE IF EXISTS Baobab_GENERIC_MoveSubtree_real;
+
+DELIMITER //
 CREATE PROCEDURE Baobab_GENERIC_MoveSubtree_real(
         IN node_id_to_move INTEGER UNSIGNED,
         IN reference_node INTEGER UNSIGNED,
@@ -733,11 +768,15 @@ DETERMINISTIC
 
     COMMIT;
     
-  END;
+  END//
+
+DELIMITER ;
 
 SET sql_mode=@OLD_SQL_MODE;
 
 DROP PROCEDURE IF EXISTS Baobab_GENERIC_MoveSubtree_Different_Trees;
+
+DELIMITER //
 CREATE PROCEDURE Baobab_GENERIC_MoveSubtree_Different_Trees(
         IN node_id_to_move INTEGER UNSIGNED,
         IN reference_node INTEGER UNSIGNED,
@@ -827,13 +866,18 @@ DETERMINISTIC
     
     COMMIT;
   
-  END;
+  END//
+
+DELIMITER ;
+
 
 /* ########################## */
 /* ####### CLOSE GAPS ####### */
 /* ########################## */
 
 DROP PROCEDURE IF EXISTS Baobab_GENERIC_Close_Gaps;
+
+DELIMITER //
 CREATE PROCEDURE Baobab_GENERIC_Close_Gaps(
     IN choosen_tree INTEGER UNSIGNED)
 LANGUAGE SQL
@@ -859,4 +903,6 @@ DETERMINISTIC
                WHERE tree_id=choosen_tree AND seq_nbr <= rgt
               )
     WHERE tree_id=choosen_tree;
-  END
+  END//
+
+DELIMITER ;
