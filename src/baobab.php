@@ -376,8 +376,6 @@ class BaobabNode {
  */
 class Baobab  {
     private $_refresh_fields;
-    //private $_errors;
-    private static $_version = "1.3.0";
     
     protected $db;
     protected $pdo;
@@ -493,39 +491,10 @@ class Baobab  {
      *
      *    .. note::
      *       This is automatically called while instantiating the class.
-     *       If the version of the library didn't change in the meantime, nothing
-     *       happens, otherwise it will throw an exception to inform you to
-     *       use :class:`Baobab:upgrade()`
      */
     public function build() {
-        
-        // get the current sql version from the loaded db (if any)
-        $sql_version = NULL;
-        //if (isset($this->_errors["by_name"]["VERSION"]))
-        //    $sql_version = $this->_errors["by_name"]["VERSION"]["msg"];
 
         $forestExists = $this->sql_utils->table_exists($this->forest_name);
-
-        // //check if the tree was yet built
-        // if ($result = $this->db->query("SELECT name FROM Baobab_ForestsNames WHERE name='{$this->forest_name}'")) {
-        //     $forestExists = $result->num_rows > 0;
-        //     $result->close();
-        // } else {
-        //      if ($this->db->errno !== 1146) { // do not count "missing table" as an error
-        //         throw new sp_MySQL_Error($this->db);
-        //     }
-        // }
-        
-        // if there are tables at an older version, ask to upgrade
-        if ($sql_version && $sql_version != self::$_version) {
-            // old schema found at a lower version, ensure user upgrade the database willingly
-            $codename = "VERSION_NOT_MATCH";
-            $errno = $this->_errors["by_name"][$codename]["code"];
-            throw new sp_Error(sprintf(
-                "[%s] %s", $codename, $this->_errors["by_code"][$errno]["msg"]).
-                " (database tables v. ".$sql_version.", library v. ".self::$_version."). Please use Baobab::upgrade().",
-                $errno);
-        }
         
         // build the forest only if the database schema not yet exists
         if (!$forestExists) {
@@ -539,134 +508,6 @@ class Baobab  {
         }
         
         return ! $forestExists;
-    }
-    
-    /**!
-     * .. staticmethod:: upgrade($db[,$untilVersion=NULL])
-     * 
-     *    Upgrade the database schema of all the trees to reflect the current
-     *    library's version.
-     *    
-     *    :param $db: mysqli database connection object
-     *    :type $db:  mysqli
-     *    :param $untilVersion: version at which stop (or NULL to update to last version)
-     *    :type $untilVersion:  string or NULL
-     *
-     *    .. warning::
-     *       To avoid any possible data loss you should backup your database's
-     *       tables first.
-     *
-     *    .. warning::
-     *       For each release read release notes and check what's going to happen
-     *       when you upgrade your database (see sql/upgrade/* files).
-     *       Eventually stop with $untilVersion at a certain point to apply
-     *       needed tweaks.
-     */
-    public static function upgrade($db, $pdo, $untilVersion=NULL){
-        
-        $db->query("START TRANSACTION");
-        try {
-            
-            $currentDbVersion = NULL;
-            
-            // get the current database version
-            if ($result = $db->query("SELECT msg FROM Baobab_Errors WHERE name='VERSION'")) {
-                $row = $result->fetch_assoc();
-                $currentDbVersion = $row["msg"];
-                $result->close();
-            } else throw new sp_Error("You cannot upgrade if you didn't ever built before");
-            
-            // upgrade only if current db version is not yet the most recent
-            //  or we wasn't asked to stop at the current version
-            if ($currentDbVersion == self::$_version ||
-                $untilVersion == $currentDbVersion) return;
-            
-            $upgradeList = array(); // name of the files with sql data to run
-            $versions = array(); // mapping fileName -> version to which it will update
-            
-            $startingFileToUpgrade = NULL; // of the files in $upgradeList, start to update from this one
-            
-            // get all the upgrade files
-            $upgradeDir = BAOBAB_SQL_DIR.DIRECTORY_SEPARATOR."upgrade";
-            $pattern = "/^\d{8}_from_(?P<from>.+?)_to_(?P<to>.+?)\.sql$/";
-            
-            if ($handle = opendir($upgradeDir)) {
-                while (FALSE !== ($fName = readdir($handle))) {
-                    if ($fName == "." || $fName == "..") continue;
-                    
-                    $matches = array();
-                    if (preg_match($pattern, $fName, $matches)) {
-                        $upgradeList[] = $fName;
-                        $versions[$fName] = $matches["to"];
-                        
-                        if ($matches["from"] == $currentDbVersion)
-                            $startingFileToUpgrade = $fName;
-                    }
-                }
-                closedir($handle);
-                
-            } else {
-                throw new sp_Error(sprintf('Can not read the directory "%s"', $upgradeDir));
-            }
-            
-            if (empty($upgradeList)) return;
-            
-            sort($upgradeList);
-            
-            // get the starting version (it wasn't added while scanning the directory)
-            $matches = array();
-            preg_match($pattern, $upgradeList[0], $matches);
-            $baseVersion = $matches["from"];
-            
-            if ($untilVersion == $baseVersion) return;
-            
-            $pathToUntilVersion = array_search($untilVersion, $versions);
-            
-            if ($untilVersion !== NULL && FALSE === $pathToUntilVersion)
-                throw new sp_Error("You requested to stop at an unknown version ({$untilVersion})");
-            
-            else if ($startingFileToUpgrade == NULL)
-                throw new sp_Error("Couldn't find a file to upgrade from the current version ({$currentDbVersion})");
-            
-            // filter the availabe upgrades to remove the older than the current version
-            $upgradeList = array_slice($upgradeList, array_search($startingFileToUpgrade, $upgradeList));
-            
-            // get the names of the existing forests
-            // $forestNames = array();
-            // if ($result = $db->query("SELECT name FROM Baobab_ForestsNames", MYSQLI_STORE_RESULT)) {
-            //     if ($result->num_rows) {
-            //         $row = $result->fetch_row();
-            //         $forestNames[] = $row[0];
-            //     }
-            //     $result->close();
-            
-            // } else throw new sp_MySQL_Error($db);
-            
-            $sql_utils = new sp_SQLUtils($db, $pdo);
-            
-            // upgrade each tree until the choosen (or last) version
-            foreach($upgradeList as $fName){
-                $sql = file_get_contents($upgradeDir.DIRECTORY_SEPARATOR.$fName);
-                
-                // foreach($forestNames as $name) {
-                //     if (!$db->multi_query(str_replace("GENERIC", $name, $sql))) {
-                //         throw new sp_MySQL_Error($db);
-                //     }
-                //     $sql_utils->flush_results();
-                // }
-                
-                if ($pathToUntilVersion == $fName) break;
-            }
-            
-        
-        } catch (Exception $e) {
-            // whatever happens we must rollback
-            $db->query("ROLLBACK");
-            throw $e;
-        }
-        
-        $result = $db->query("COMMIT");
-        if (!$result) throw new sp_MySQL_Error($db);
     }
     
     /**!
@@ -717,32 +558,6 @@ class Baobab  {
                 }
                 else throw $e;
             }
-            
-            // if ($forestsExist) {
-                
-            //     if ($result = $this->db->query("SELECT COUNT(*) FROM Baobab_ForestsNames", MYSQLI_STORE_RESULT)) {
-            //         $dropIt = FALSE;
-            //         if ($result->num_rows) {
-            //             $row = $result->fetch_row();
-            //             $dropIt = ($row[0] == 0);
-            //         }
-                    
-            //         $result->close();
-                    
-            //         if ($dropIt) {
-            //             // there aren't anymore trees, lets remove the common tables too
-            //             if (!$this->db->multi_query("
-            //                 DROP TABLE Baobab_Errors;
-            //                 DROP FUNCTION Baobab_getErrCode;
-            //                 ")) {
-            //                 throw new sp_MySQL_Error($this->db);
-            //             } else {
-            //                 $this->sql_utils->flush_results();
-            //             }
-            //         }
-                
-            //     } else throw new sp_MySQL_Error($this->db);
-            // }
             
         } catch (Exception $e) {
             // whatever happens we must rollback
