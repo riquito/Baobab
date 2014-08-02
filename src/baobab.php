@@ -66,6 +66,14 @@ class sp_MySQL_Error extends sp_Error {
     }
 }
 
+class BaobabException extends Exception{}
+
+class NodeNotFound extends BaobabException{}
+
+class IndexOutOfRange extends BaobabException{}
+
+class ChildOfYourself extends BaobabException{}
+
 
 /**@
  * Utils
@@ -90,78 +98,6 @@ class sp_SQLUtils {
     }
     
     /**@
-     * .. method:: vector_to_sql_tuple($ar)
-     *    
-     *    Transform an array in a valid SQL tuple. The array can contain only
-     *    values of type int, float, boolean, string.
-     *
-     *    :param $ar: an array to convert (only array values are used)
-     *    :type $ar:  array
-     *
-     *    :return: the generated SQL snippet
-     *    :rtype:  string
-     * 
-     *    Example:
-     *    
-     *    .. code-block:: none
-     *       
-     *       php> $conn = new mysqli(  connection data )
-     *       php> $sql_utils = new sp_SQLUtils($conn)
-     *       php> echo $sql_utils->vector_to_sql_tuple(array("i'm a string", 28, NULL, FALSE));
-     *       ( 'i\'m a string', '28', NULL, FALSE )
-     * 
-     */
-    // public function vector_to_sql_tuple($ar) {
-    //     $tmp = array();
-    //     foreach($ar as $value) {
-    //         if ($value === NULL) $tmp[] = "NULL";
-    //         else if (is_bool($value)) $tmp[] = ($value ? "TRUE" : "FALSE");
-    //         else $tmp[] = "'".($this->conn->real_escape_string($value))."'";
-    //     }
-    //     return sprintf("( %s )", join(",", $tmp));
-    // }
-    
-    /**@
-     * .. method:: array_to_sql_assignments($ar[,$sep=","])
-     *    
-     *    Convert an associative array in a series of "columnName = value" expressions
-     *    as valid SQL.
-     *    The expressions are separated using the parameter $sep (defaults to ",").
-     *    The array can contain only values of type int, float, boolean, string.
-     *
-     *    :param $ar: an associative array to convert
-     *    :type $ar:  array
-     *    :param $sep: expression separator
-     *    :type $sep:  string
-     *
-     *    :return: the generated SQL snippet
-     *    :rtype:  string
-     *
-     *    Example:
-     *    
-     *    .. code-block:: none
-     *       
-     *       php> $conn = new mysqli( connection data )
-     *       php> $sql_utils = new sp_SQLUtils($conn)
-     *       php> $myArray = array("city address" => "main street", "married" => FALSE);
-     *       php> echo $sql_utils->array_to_sql_assignments($myArray);
-     *        `city address` = 'main street' , `married` = FALSE
-     *       php> echo $sql_utils->array_to_sql_assignments($myArray, "AND");
-     *        `city address` = 'main street' AND `married` = FALSE 
-     */
-    // public function array_to_sql_assignments($ar,$sep=",") {
-    //     $tmp = array();
-    //     foreach($ar as $key => $value) {
-    //         if ($value === NULL) $value = "NULL";
-    //         else if (is_bool($value)) $value = ($value ? "TRUE" : "FALSE");
-    //         else $value =  "'".($value)."'";
-    //         // TODO - escape $value and $key - SQL Injection
-    //         $tmp[] = sprintf(" `%s` = %s ", str_replace("`", "``", $key), $value);
-    //     }
-    //     return join($sep, $tmp);
-    // }
-    
-    /**@
      * .. method:: flush_results()
      *    
      *    Empty connection results of the last single or multi query.
@@ -169,15 +105,15 @@ class sp_SQLUtils {
      *    is raised.
      *    Mostly useful after calling sql functions or procedures.
      */
-    // public function flush_results(){
-    //     $conn = $this->conn;
-    //     while($conn->more_results()) {
-    //         if ($result = $conn->use_result()) $result->close();
-    //         $conn->next_result();
-    //     }
+    public function flush_results(){
+        $conn = $this->conn;
+        while($conn->more_results()) {
+            if ($result = $conn->use_result()) $result->close();
+            $conn->next_result();
+        }
         
-    //     if ($conn->errno) throw new sp_MySQL_Error($conn);
-    // }
+        if ($conn->errno) throw new sp_MySQL_Error($conn);
+    }
     
     /**@
      * .. method:: get_table_fields($table_name)
@@ -224,8 +160,8 @@ class sp_SQLUtils {
     public function table_exists($table_name,$db_name=NULL){
         if (!$db_name) {
             $result = $this->pdo->query("SELECT DATABASE()");
-            $rows = $result->fetchAll();
-            if (empty($rows)) throw new sp_MySQL_Error($this->conn);
+            $rows = $result->fetch();
+            $db_name = $rows[0];
         }
         
         $query = 'SELECT COUNT(*)
@@ -239,11 +175,9 @@ class sp_SQLUtils {
             ":table_name" => $table_name
         ));
 
-        $rows = $stmt->fetchAll();
+        $rows = $stmt->fetch();
         
-        if (empty($rows)) throw new sp_MySQL_Error($this->conn);
-        
-        return $rows[0] != 0;
+        return $rows[0] == 1;
     }
 }
 
@@ -454,16 +388,12 @@ class Baobab  {
     public $tree_id;
     
     public function __construct($db, PDO $pdo, $forest_name,$tree_id=NULL) {
-        $this->db = $pdo;
+        $this->db = $db;
         $this->pdo = $pdo;
         $this->sql_utils = new sp_SQLUtils($db, $pdo);
         $this->forest_name = $forest_name;
         $this->fields = array();
         $this->_refresh_fields = TRUE;
-        
-        // load error's information from db (if tables were created)
-        // try { $this->_load_errors();
-        // } catch (sp_Error $e) {}
         
         // if $tree_id is -1 we suppose there is one and only one tree yet in
         //   the table, and we automatically retrieve his id
@@ -498,25 +428,6 @@ class Baobab  {
         
         $this->build();
     }
-    
-    /**
-     * .. method:: _load_errors()
-     *
-     *    Fill the member $_errors with informations about error codes and 
-     *      messages
-     */
-    // private function _load_errors(){
-    //     $this->_errors = array("by_code" => array(), "by_name" => array());
-    //     if ($result = $this->db->query("SELECT code,name,msg FROM Baobab_Errors")) {
-            
-    //         while($row = $result->fetch_assoc()) {
-    //             $this->_errors["by_code"][$row["code"]] = $row;
-    //             $this->_errors["by_name"][$row["name"]] = &$this->_errors["by_code"][$row["code"]];
-    //         }
-    //         $result->close();
-            
-    //     } else throw new sp_Error("Cannot read info about errors (d'oh!)");
-    // }
     
     /**
      * .. method:: _sql_check_fields($fields)
@@ -593,11 +504,11 @@ class Baobab  {
         //if (isset($this->_errors["by_name"]["VERSION"]))
         //    $sql_version = $this->_errors["by_name"]["VERSION"]["msg"];
 
-        $treeExists = $this->sql_utils->table_exists($this->forest_name);
+        $forestExists = $this->sql_utils->table_exists($this->forest_name);
 
-        // check if the tree was yet built
+        // //check if the tree was yet built
         // if ($result = $this->db->query("SELECT name FROM Baobab_ForestsNames WHERE name='{$this->forest_name}'")) {
-        //     $treeExists = $result->num_rows > 0;
+        //     $forestExists = $result->num_rows > 0;
         //     $result->close();
         // } else {
         //      if ($this->db->errno !== 1146) { // do not count "missing table" as an error
@@ -605,19 +516,19 @@ class Baobab  {
         //     }
         // }
         
-        // // if there are tables at an older version, ask to upgrade
-        // if ($sql_version && $sql_version != self::$_version) {
-        //     // old schema found at a lower version, ensure user upgrade the database willingly
-        //     $codename = "VERSION_NOT_MATCH";
-        //     $errno = $this->_errors["by_name"][$codename]["code"];
-        //     throw new sp_Error(sprintf(
-        //         "[%s] %s", $codename, $this->_errors["by_code"][$errno]["msg"]).
-        //         " (database tables v. ".$sql_version.", library v. ".self::$_version."). Please use Baobab::upgrade().",
-        //         $errno);
-        // }
+        // if there are tables at an older version, ask to upgrade
+        if ($sql_version && $sql_version != self::$_version) {
+            // old schema found at a lower version, ensure user upgrade the database willingly
+            $codename = "VERSION_NOT_MATCH";
+            $errno = $this->_errors["by_name"][$codename]["code"];
+            throw new sp_Error(sprintf(
+                "[%s] %s", $codename, $this->_errors["by_code"][$errno]["msg"]).
+                " (database tables v. ".$sql_version.", library v. ".self::$_version."). Please use Baobab::upgrade().",
+                $errno);
+        }
         
-        // build the tree only if the database schema not yet exists
-        if (!$treeExists) {
+        // build the forest only if the database schema not yet exists
+        if (!$forestExists) {
             $sql = file_get_contents(BAOBAB_SQL_DIR.DIRECTORY_SEPARATOR."schema_baobab.sql");
             if (!$this->db->multi_query(str_replace("GENERIC", $this->forest_name, $sql))) {
                 throw new sp_MySQL_Error($this->db);
@@ -625,11 +536,9 @@ class Baobab  {
             
             $this->sql_utils->flush_results();
             
-            // load or reload the errors table
-            //$this->_load_errors();
         }
         
-        return ! $treeExists;
+        return ! $forestExists;
     }
     
     /**!
@@ -653,7 +562,7 @@ class Baobab  {
      *       Eventually stop with $untilVersion at a certain point to apply
      *       needed tweaks.
      */
-    public static function upgrade($db,$untilVersion=NULL){
+    public static function upgrade($db, $pdo, $untilVersion=NULL){
         
         $db->query("START TRANSACTION");
         try {
@@ -723,28 +632,28 @@ class Baobab  {
             $upgradeList = array_slice($upgradeList, array_search($startingFileToUpgrade, $upgradeList));
             
             // get the names of the existing forests
-            $forestNames = array();
-            if ($result = $db->query("SELECT name FROM Baobab_ForestsNames", MYSQLI_STORE_RESULT)) {
-                if ($result->num_rows) {
-                    $row = $result->fetch_row();
-                    $forestNames[] = $row[0];
-                }
-                $result->close();
+            // $forestNames = array();
+            // if ($result = $db->query("SELECT name FROM Baobab_ForestsNames", MYSQLI_STORE_RESULT)) {
+            //     if ($result->num_rows) {
+            //         $row = $result->fetch_row();
+            //         $forestNames[] = $row[0];
+            //     }
+            //     $result->close();
             
-            } else throw new sp_MySQL_Error($db);
+            // } else throw new sp_MySQL_Error($db);
             
-            $sql_utils = new sp_SQLUtils($db);
+            $sql_utils = new sp_SQLUtils($db, $pdo);
             
             // upgrade each tree until the choosen (or last) version
             foreach($upgradeList as $fName){
                 $sql = file_get_contents($upgradeDir.DIRECTORY_SEPARATOR.$fName);
                 
-                foreach($forestNames as $name) {
-                    if (!$db->multi_query(str_replace("GENERIC", $name, $sql))) {
-                        throw new sp_MySQL_Error($db);
-                    }
-                    $sql_utils->flush_results();
-                }
+                // foreach($forestNames as $name) {
+                //     if (!$db->multi_query(str_replace("GENERIC", $name, $sql))) {
+                //         throw new sp_MySQL_Error($db);
+                //     }
+                //     $sql_utils->flush_results();
+                // }
                 
                 if ($pathToUntilVersion == $fName) break;
             }
@@ -793,8 +702,7 @@ class Baobab  {
                     DROP PROCEDURE IF EXISTS Baobab_GENERIC_Close_Gaps;
                     DROP VIEW IF EXISTS GENERIC_AdjTree;
                     ".
-                    ($removeDataTable ? "DROP TABLE IF EXISTS GENERIC;" : "").
-                    "DELETE FROM Baobab_ForestsNames WHERE name='GENERIC';"
+                    ($removeDataTable ? "DROP TABLE IF EXISTS GENERIC;" : "")
                     ))) {
                 
                 throw new sp_MySQL_Error($this->db);
@@ -810,32 +718,31 @@ class Baobab  {
                 else throw $e;
             }
             
-            if ($forestsExist) {
+            // if ($forestsExist) {
                 
-                if ($result = $this->db->query("SELECT COUNT(*) FROM Baobab_ForestsNames", MYSQLI_STORE_RESULT)) {
-                    $dropIt = FALSE;
-                    if ($result->num_rows) {
-                        $row = $result->fetch_row();
-                        $dropIt = ($row[0] == 0);
-                    }
+            //     if ($result = $this->db->query("SELECT COUNT(*) FROM Baobab_ForestsNames", MYSQLI_STORE_RESULT)) {
+            //         $dropIt = FALSE;
+            //         if ($result->num_rows) {
+            //             $row = $result->fetch_row();
+            //             $dropIt = ($row[0] == 0);
+            //         }
                     
-                    $result->close();
+            //         $result->close();
                     
-                    if ($dropIt) {
-                        // there aren't anymore trees, lets remove the common tables too
-                        if (!$this->db->multi_query("
-                            DROP TABLE Baobab_ForestsNames;
-                            DROP TABLE Baobab_Errors;
-                            DROP FUNCTION Baobab_getErrCode;
-                            ")) {
-                            throw new sp_MySQL_Error($this->db);
-                        } else {
-                            $this->sql_utils->flush_results();
-                        }
-                    }
+            //         if ($dropIt) {
+            //             // there aren't anymore trees, lets remove the common tables too
+            //             if (!$this->db->multi_query("
+            //                 DROP TABLE Baobab_Errors;
+            //                 DROP FUNCTION Baobab_getErrCode;
+            //                 ")) {
+            //                 throw new sp_MySQL_Error($this->db);
+            //             } else {
+            //                 $this->sql_utils->flush_results();
+            //             }
+            //         }
                 
-                } else throw new sp_MySQL_Error($this->db);
-            }
+            //     } else throw new sp_MySQL_Error($this->db);
+            // }
             
         } catch (Exception $e) {
             // whatever happens we must rollback
@@ -846,9 +753,6 @@ class Baobab  {
         $result = $this->db->query("COMMIT");
         if (!$result) throw new sp_MySQL_Error($this->db);
         
-        // reset errors data
-        // try { $this->_load_errors();
-        // } catch (sp_Error $e) {}
     }
     
     /**!
@@ -879,7 +783,7 @@ class Baobab  {
      *                       holding the data
      *    :type $forest_name:  string
      */
-    public static function cleanAll($db, $forest_name){
+    public static function cleanAll($db, $pdo, $forest_name){
         // delete all records, ignoring "missing table" error if happening
         if (!$db->query("DELETE FROM {$forest_name}") && $db->errno !== 1146) {
             throw new sp_MySQL_Error($db);
@@ -908,8 +812,12 @@ class Baobab  {
             ':tree_id' => $this->tree_id
             ));
         $row = $stmt->fetch();
+
+        if ($row === false) {
+            return null;
+        }
         
-        return $row[0];
+        return intval($row[0]);
     }
     
     /**!
@@ -940,7 +848,7 @@ class Baobab  {
 
         $row = $stmt->fetch();
 
-        if (empty($row)) throw new sp_MySQL_Error($pdo);
+        if ($row === false) throw new NodeNotFound;
 
         if ($row[0] === NULL) $out = NULL;
         else $out = intval($row[0]);
@@ -1165,17 +1073,16 @@ class Baobab  {
         " WHERE tree_id={$this->tree_id} AND ( SELECT lft FROM {$this->forest_name} WHERE id = {$id_node} ) BETWEEN lft AND rgt".
         " ORDER BY lft";
 
-        $result = $this->db->query($query, MYSQLI_STORE_RESULT);
-        if (!$result) throw new sp_MySQL_Error($this->db);
+        $result = $this->pdo->query($query);
 
         $ar_out = array();
         if ($squash) {
             reset($fields);
             $fieldName = current($fields);
-            while($rowAssoc = $result->fetch_assoc()) $ar_out[] = $rowAssoc[$fieldName];
+            while($rowAssoc = $result->fetch(PDO::FETCH_ASSOC)) $ar_out[] = $rowAssoc[$fieldName];
             
         } else {
-            while($rowAssoc = $result->fetch_assoc()) {
+            while($rowAssoc = $result->fetch(PDO::FETCH_ASSOC)) {
                 $tmp_ar = array();
                 foreach($fields as $fieldName) {
                     $tmp_ar[$fieldName] = $rowAssoc[$fieldName];
@@ -1183,8 +1090,6 @@ class Baobab  {
                 $ar_out[] = $tmp_ar;
             }
         }
-        
-        $result->close();
 
         return $ar_out;
     }
@@ -1212,16 +1117,15 @@ class Baobab  {
         $query = " SELECT child FROM {$this->forest_name}_AdjTree ".
                  " WHERE parent = :id_parent ".
                  " ORDER BY lft ".($fromLeftToRight ? 'ASC' : 'DESC').
-                 ($howMany ? " LIMIT :howMany" : "");
+                 ($howMany ? " LIMIT $howMany" : "");
 
         $stmt = $this->pdo->prepare($query);
 
         $prepareArray[':id_parent'] = $id_parent;
-        if($howMany){
-            $prepareArray[':id_parent'] = $howMany;
-        }
 
-        $stmt->execute($prepareArray);
+        $stmt->execute(array(
+            ':id_parent' => $id_parent
+            ));
         $rows = $stmt->fetchAll();
 
         $ar_out = array();
@@ -1304,7 +1208,7 @@ class Baobab  {
         $query = "CALL Baobab_{$this->forest_name}_getNthChild(:id_parent, :index, @child_id, @error_code);";
 
         $stmt = $this->pdo->prepare($query);
-        $exec = $stmt->execute(array(
+        $stmt->execute(array(
             ':id_parent' => $id_parent,
             ':index' => $index
             ));
@@ -1313,8 +1217,7 @@ class Baobab  {
         $output = $this->pdo->query("select @child_id as child_id");
         $output = $output->fetch(PDO::FETCH_ASSOC);
 
-        if (!$exec)
-                throw new sp_MySQL_Error($this->db);
+        if ($output['child_id'] === null) throw new NodeNotFound;
 
         return intval($output['child_id']);
     }
@@ -1509,14 +1412,17 @@ class Baobab  {
 
         $prepareFields = '';
         foreach ($fields as $field) {
-            $prepareFields .= "$field = :$field";
+            $prepareFields[] = "$field = :$field";
             $prepareFieldsValues[':'.$field] = $fields_values[$field];
         }
+
+        $prepareFields = join($prepareFields, ', ');
         
         $query = "".
          " UPDATE {$this->forest_name}".
          " SET $prepareFields".
          " WHERE id = :id_node";
+
         $stmt = $this->pdo->prepare($query);
 
         $prepareFieldsValues[':id_node'] = $id_node;
@@ -1555,8 +1461,7 @@ class Baobab  {
             ':id_node' => $id_node
             ));
 
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        if (empty($row)) throw new sp_MySQL_Error($pdo);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);;
         
         return $row;
     }
@@ -1577,7 +1482,6 @@ class Baobab  {
      *
      */
     public function appendChild($id_parent=NULL,$fields_values=NULL){
-        
         $id_parent = intval($id_parent);
 
         $query = "CALL Baobab_{$this->forest_name}_AppendChild({$this->tree_id}, {$id_parent}, @new_id, @cur_tree_id);";
@@ -1588,7 +1492,6 @@ class Baobab  {
 
         $output = $this->pdo->query("SELECT @new_id as new_id, @cur_tree_id as tree_id");
         $output = $output->fetch(PDO::FETCH_ASSOC);
-
         $id = intval($output['new_id']);
         $this->tree_id = intval($output['tree_id']);
         
@@ -1818,10 +1721,8 @@ class Baobab  {
         if (isset($record[$error_field]) && $record[$error_field] != 0) {
             $error_code = intval($record[$error_field]);
             $result->close();
-            // throw new sp_Error(sprintf("[%s] %s",
-            //     $this->_errors["by_code"][$error_code]["name"],
-            //     $this->_errors["by_code"][$error_code]["msg"]), $error_code);
-            //throw new sp_Error('TODO: New MSG', $error_code);
+            throw new sp_Error(sprintf("[%s] %s", '', ''), $error_code);
+            throw new sp_Error('TODO: New MSG', $error_code);
         }
         
         $ar_out = array();
@@ -1874,12 +1775,12 @@ class Baobab  {
      *       If "tree_id" is used (as attribute or field) and not NULL, mustn't
      *       exist in the table records belonging to that same tree.
      */
-    public static function &import($db,$forest_name,$data){
+    public static function &import($db, $pdo, $forest_name,$data){
         if (is_string($data)) $data = json_decode($data, TRUE);
         if (!$data || empty($data)) {$x = NULL;return $x;} // nothing to import
         
         // check if the table exists before doing anything else
-        $sql_utils = new sp_SQLUtils($db);
+        $sql_utils = new sp_SQLUtils($db, $pdo);
         if ( ! $sql_utils->table_exists($forest_name)){
             throw new sp_Error("Table `{$forest_name}` does not exist");
         }
@@ -1927,7 +1828,7 @@ class Baobab  {
                     if ($tree_exists) throw new sp_Error("ImportError: tree_id {$tree_id} yet in use");
                 }
                 
-                $tree = new Baobab($db, $forest_name, $tree_id);
+                $tree = new Baobab($db, $pdo, $forest_name, $tree_id);
                 
                 // if there are only standard fields we can also try to build the table
                 //   (otherwise it must yet exist because we can't guess field types)
@@ -1980,14 +1881,25 @@ class Baobab  {
                         $row[] = $tree_id;
                     }
                 }
+
+                // make unique prepare field ID for each value in rows
+                // group prepare field ID in row, and then combine them like that:
+                // ((:fieldRow1, :fieldRow1), (:fieldRow2, :fieldRow2))
+                $prepareFields = '(';
+                foreach ($values as $rowKey => $valuesRow) {
+                    $prepareFieldsRow = array();
+                    foreach ($tmp_data["fields"] as $fieldKey => $field) {
+                        $prepareFieldsRow[] = ":$field$rowKey";
+                        $prepareFieldsValues[':'.$field.$rowKey] = $valuesRow[$fieldKey];
+                    }
+                    $prepareFieldsRows[] = join($prepareFieldsRow, ', ');
+                }
+                $prepareFields .= join($prepareFieldsRows, '), (');
+                $prepareFields .= ')';
                 
-                // add the values
-                // TODO
-                // $result = $db->query(
-                //         "INSERT INTO {$forest_name}(".join(",", $tmp_data["fields"]).") VALUES ".
-                //         join(", ", sp_Lib::map_method($values, $sql_utils, "vector_to_sql_tuple"))
-                //     , MYSQLI_STORE_RESULT);
-                if (!$result)  throw new sp_MySQL_Error($db);
+                $query = "INSERT INTO {$forest_name}(".join(",", $tmp_data["fields"]).") VALUES $prepareFields";
+                $stmt = $pdo->prepare($query);
+                $stmt->execute($prepareFieldsValues);
                 
                 $ar_out[] = $tree;
                 
@@ -2001,7 +1913,6 @@ class Baobab  {
         
         $result = $db->query("COMMIT");
         if (!$result) throw new sp_MySQL_Error($db);
-        
         
         return $ar_out;
     }
@@ -2088,16 +1999,16 @@ class Baobab  {
      *       ]
      * 
      */
-    public static function export($db,$forest_name,$fields=NULL,$tree_id=NULL){
+    public static function export($db, $pdo, $forest_name,$fields=NULL,$tree_id=NULL){
         
         // check if the table exists before doing anything else
-        $sql_utils = new sp_SQLUtils($db);
+        $sql_utils = new sp_SQLUtils($db, $pdo);
         if ( ! $sql_utils->table_exists($forest_name)){
             throw new sp_Error("Table `Baobab_{$forest_name}` does not exist");
         }
         
         // get all the fields to export or check if the passed fields are valid
-        $tree = new Baobab($db, $forest_name, NULL); // use a unexistent tree in the right table
+        $tree = new Baobab($db, $pdo, $forest_name, NULL); // use a unexistent tree in the right table
         if ($fields !== NULL) $tree->_sql_check_fields($fields);
         else $fields = array_keys($tree->_get_fields());
         
@@ -2141,7 +2052,7 @@ class Baobab  {
             $tmp_ar = array("tree_id" => $tree_id, "fields" => $fields, "values" => NULL);
             
             // retrieve the data
-            $tree = new Baobab($db, $forest_name, $tree_id);
+            $tree = new Baobab($db, $pdo, $forest_name, $tree_id);
             $root = $tree->getTree();
             
             if ($root !== NULL) {

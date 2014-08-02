@@ -118,7 +118,7 @@ $mysqli = new mysqli("localhost", "root", "", "manage_tabs");
 
 
 
-class AnimalsBaobab extends Baobab {
+class FoldersTree extends Baobab {
     // override build function to create the table the way we want it
     public function build() {
         if (parent::build()) { // the table wasn't existing and has been built
@@ -134,7 +134,7 @@ class AnimalsBaobab extends Baobab {
 }
 
 function start_over($conn,$forestName){
-    $tree=new AnimalsBaobab($mysqli, $pdo, $forestName);
+    $tree=new FoldersTree($mysqli, $pdo, $forestName);
     $tree->destroy(TRUE);
     $tree->build();
 }
@@ -147,7 +147,7 @@ function main($mysqli, $pdo){ // $conn is a mysqli connection object
 
     $projectID = isset($_GET['projectID']) ? $_GET['projectID'] : 1;
 
-    $tree = new AnimalsBaobab($mysqli, $pdo, $forestName, $projectID);
+    $tree = new FoldersTree($pdo, $pdo, $forestName, $projectID);
 
     $rootID = $tree->getRoot();
 

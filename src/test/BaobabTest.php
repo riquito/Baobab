@@ -25,6 +25,7 @@ require_once(dirname(__FILE__).DS.'..'.DS.'baobab.php');
 
 class BaobabTest extends PHPUnit_Framework_TestCase {
     protected static $db;
+    protected static $pdo;
     protected static $forest_name;
     protected $baobab;
     private $base_tree;
@@ -47,6 +48,22 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         
         //http://dev.mysql.com/doc/refman/5.1/en/charset-charsets.html
         mysqli_set_charset(self::$db,$DB_CONFIG["charset"]);
+
+        $dsn = 'mysql:host='.$DB_CONFIG["host"].';dbname='.$DB_CONFIG["dbname"];
+        $options = array(
+            PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES '.$DB_CONFIG["charset"],
+        ); 
+
+        $pdo = new PDO(
+            $dsn,
+            $DB_CONFIG["username"], 
+            $DB_CONFIG["password"], 
+            $options
+            );
+
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        self::$pdo = $pdo;
         
         self::$forest_name="test";
     }
@@ -58,7 +75,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     
     public function setUp(){
         $this->base_tree=1;
-        $this->baobab = new Baobab(self::$db,self::$forest_name,$this->base_tree);
+        $this->baobab = new Baobab(self::$db, self::$pdo, self::$forest_name,$this->base_tree);
         $this->baobab->destroy(TRUE);
         $this->baobab->build();
     }
@@ -69,18 +86,17 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     
     public function testImportExport(){
         /* ### test empty tree ### */
-        
         $this->assertEquals(
             array(),
-            json_decode(Baobab::export(self::$db,self::$forest_name),TRUE));
+            json_decode(Baobab::export(self::$db, self::$pdo,self::$forest_name),TRUE));
         
         
-        Baobab::import(self::$db,self::$forest_name,'[]');
+        Baobab::import(self::$db, self::$pdo,self::$forest_name,'[]');
         $this->assertEquals(NULL,$this->baobab->getTree());
         
         $empty_json_tree='[{"fields":["id","lft","rgt"],"values":null}]';
         
-        Baobab::import(self::$db,self::$forest_name,$empty_json_tree);
+        Baobab::import(self::$db, self::$pdo,self::$forest_name,$empty_json_tree);
         $this->assertEquals(NULL,$this->baobab->getTree());
         
         
@@ -97,7 +113,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
                 ]]
             }]';
         
-        Baobab::import(self::$db,self::$forest_name,$nested_json_tree);
+        Baobab::import(self::$db, self::$pdo, self::$forest_name,$nested_json_tree);
         
         $nested_json_tree='[{
             "tree_id":1,
@@ -114,7 +130,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         
         $this->assertEquals(
             json_decode($nested_json_tree,TRUE),
-            json_decode(Baobab::export(self::$db,self::$forest_name),TRUE)
+            json_decode(Baobab::export(self::$db, self::$pdo,self::$forest_name),TRUE)
         );
         
         
@@ -130,7 +146,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
             }]';
             
         // import a different tree while mantaining the previous
-        Baobab::import(self::$db,self::$forest_name,$inner_treeId_json_tree);
+        Baobab::import(self::$db, self::$pdo,self::$forest_name,$inner_treeId_json_tree);
         
         // check single tree export
         $this->assertEquals(
@@ -147,7 +163,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
                 ]]
             }
             ]',TRUE),
-            json_decode(Baobab::export(self::$db,self::$forest_name,NULL,3),TRUE)
+            json_decode(Baobab::export(self::$db, self::$pdo,self::$forest_name,NULL,3),TRUE)
         );
         
         // check all trees export
@@ -176,7 +192,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
                 ]]
             }
             ]',TRUE),
-            json_decode(Baobab::export(self::$db,self::$forest_name),TRUE)
+            json_decode(Baobab::export(self::$db, self::$pdo,self::$forest_name),TRUE)
         );
         
         // check fields export
@@ -194,7 +210,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
                 ]]
             }
             ]',TRUE),
-            json_decode(Baobab::export(self::$db,self::$forest_name,array("rgt","id"),3),TRUE)
+            json_decode(Baobab::export(self::$db, self::$pdo,self::$forest_name,array("rgt","id"),3),TRUE)
         );
     }
     
@@ -205,7 +221,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         
         // add a tree with a certain tree_id
         $b_id=5;
-        $b=new Baobab(self::$db,self::$forest_name,$b_id);
+        $b=new Baobab(self::$db, self::$pdo, self::$forest_name,$b_id);
         
         $b->appendChild();
         
@@ -214,10 +230,10 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         // check that we get correctly the first tree
         $this->assertEquals(
             json_decode('[{"tree_id":'.$b_id.',"fields":["id","lft","rgt"],"values":[1,1,2,[]]}]',TRUE),
-            json_decode(Baobab::export(self::$db,self::$forest_name,NULL,$b_id),TRUE)
+            json_decode(Baobab::export(self::$db, self::$pdo,self::$forest_name,NULL,$b_id),TRUE)
         );
         
-        Baobab::cleanAll(self::$db,self::$forest_name);
+        Baobab::cleanAll(self::$db, self::$pdo,self::$forest_name);
         
         // once again but with a bigger tree
         $this->_fillComplexTree($b_id);
@@ -229,7 +245,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
                         [9,16,23,[[1,17,20,[[17,18,19,[]]]],[4,21,22,[]]]],[18,24,37,
                         [[11,25,30,[[3,26,29,[[6,27,28,[]]]]]],[13,31,36,[[5,32,35,
                         [[19,33,34,[]]]]]]]]]],"tree_id":'.$b_id.'}]',TRUE),
-            json_decode(Baobab::export(self::$db,self::$forest_name,NULL,$b_id),TRUE)
+            json_decode(Baobab::export(self::$db, self::$pdo,self::$forest_name,NULL,$b_id),TRUE)
         );
     }
     
@@ -239,19 +255,19 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         
         // check with two trees in the table
         $b_id=5;
-        $b=new Baobab(self::$db,self::$forest_name,$b_id);
+        $b=new Baobab(self::$db, self::$pdo, self::$forest_name,$b_id);
         $b_root_id=$b->appendChild();
         $this->assertTrue(2===$b_root_id);
     }
     
     public function testTreeId(){
         
-        $tree = new Baobab(self::$db,self::$forest_name);
+        $tree = new Baobab(self::$db, self::$pdo, self::$forest_name);
         $this->assertEquals(0,$tree->tree_id);
         $tree->appendChild();
         $this->assertEquals(1,$tree->tree_id);
         
-        $reloadedTree = new Baobab(self::$db,self::$forest_name,1);
+        $reloadedTree = new Baobab(self::$db, self::$pdo, self::$forest_name,1);
         $reloadedTree->appendChild();
         $this->assertEquals(1,$reloadedTree->tree_id);
     }
@@ -272,7 +288,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
                     [4,400,6,7,[]]
                 ]]
             }]';
-        Baobab::import(self::$db,self::$forest_name,$nested_json_tree);
+        Baobab::import(self::$db, self::$pdo,self::$forest_name,$nested_json_tree);
         
         $root_id=$this->baobab->getRoot();
         $this->assertNull($root_id);
@@ -285,16 +301,17 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         
         // test with only one tree
         $this->baobab->appendChild();
+
         $this->assertTrue(1===$this->baobab->getRoot());
         
         // add a couple more trees
-        Baobab::cleanAll(self::$db,self::$forest_name);
+        Baobab::cleanAll(self::$db, self::$pdo,self::$forest_name);
         
         $tree_a='[{
             "fields":["tree_id","id","lft","rgt"],
             "values":[1,1,1,2,[]]
             }]';
-        Baobab::import(self::$db,self::$forest_name,$tree_a);
+        Baobab::import(self::$db, self::$pdo,self::$forest_name,$tree_a);
         
         $this->baobab->appendChild();
         
@@ -388,8 +405,8 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
             // test unexistent node id
             $this->baobab->getParent(-1);
             $this->fail("was expecting an sp_Error Exception to be raised");
-        } catch (sp_Error $e) {
-            $this->assertTrue($e->getCode()===1400);
+        } catch (NodeNotFound $e) {
+            // do nothing
         }
     }
     
@@ -578,24 +595,24 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
             // index too high
             $this->baobab->getChildAtIndex(15,2);
             $this->fail("was expecting an sp_Error Exception to be raised");
-        } catch (sp_Error $e) {
-            $this->assertTrue($e->getCode()===1300);
+        } catch (NodeNotFound $e) {
+            // do nothing
         }
         
         try {
             // index too high
             $this->baobab->getChildAtIndex(15,-3);
             $this->fail("was expecting an sp_Error Exception to be raised");
-        } catch (sp_Error $e) {
-            $this->assertTrue($e->getCode()===1300);
+        } catch (NodeNotFound $e) {
+            // do nothing
         }
         
         try {
             // index too high
             $this->baobab->getChildAtIndex(17,0);
             $this->fail("was expecting an sp_Error Exception to be raised");
-        } catch (sp_Error $e) {
-            $this->assertTrue($e->getCode()===1300);
+        } catch (NodeNotFound $e) {
+            // do nothing
         }
     }
     
@@ -655,7 +672,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
                 
                 $preTrees[$treeToBuild["tree_id"]]=$treeToBuild["tree"];
                 
-                Baobab::import(self::$db,self::$forest_name,'[{
+                Baobab::import(self::$db, self::$pdo,self::$forest_name,'[{
                     "tree_id":'.$treeToBuild["tree_id"].',
                     "fields":["id","lft","rgt"],
                     "values":'.json_encode($treeToBuild["tree"]).'
@@ -666,7 +683,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         
         if (isset($whatToTest["from"])) {
             // load the data
-            Baobab::import(self::$db,self::$forest_name,array(array(
+            Baobab::import(self::$db, self::$pdo,self::$forest_name,array(array(
                     "tree_id"=>$this->base_tree,
                     "fields"=>$whatToTest["fields"],
                     "values"=>$whatToTest["from"])));
@@ -678,7 +695,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
             if (isset($whatToTest["error"])) $this->fail("Expecting exception ".$whatToTest["error"]);
             
             // get the current tree state (pop because this function work always on a single array)
-            $treesOnDb=json_decode(Baobab::export(self::$db,self::$forest_name,NULL,
+            $treesOnDb=json_decode(Baobab::export(self::$db, self::$pdo,self::$forest_name,NULL,
                         $whatToTest["random_tree"] ? $this->base_tree : NULL),TRUE);
             
             // $whatToTest has either a 'to' or 'toTrees' keyword
@@ -798,9 +815,9 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     // clean the tree and insert a simple tree
     // require import to be yet tested
     function _fillGenericTree($tree_id){
-        $t=new Baobab(self::$db,self::$forest_name,$tree_id);
+        $t=new Baobab(self::$db, self::$pdo, self::$forest_name,$tree_id);
         $t->clean();
-        Baobab::import(self::$db,self::$forest_name,'[{'.
+        Baobab::import(self::$db, self::$pdo,self::$forest_name,'[{'.
             ($tree_id ? '"tree_id":'.$tree_id .',' : '').
           ' "fields":["id","lft","rgt"],
             "values":
@@ -821,9 +838,9 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     // clean the tree and insert a not trivial tree
     // require import to be yet tested
     function _fillComplexTree($tree_id){
-        $t=new Baobab(self::$db,self::$forest_name,$tree_id);
+        $t=new Baobab(self::$db, self::$pdo, self::$forest_name,$tree_id);
         $t->clean();
-        Baobab::import(self::$db,self::$forest_name,'[{'.
+        Baobab::import(self::$db, self::$pdo,self::$forest_name,'[{'.
             ($tree_id ? '"tree_id":'.$tree_id .',' : '').
           ' "fields":["id","lft","rgt"],
             "values":
@@ -865,9 +882,9 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     
     // just add a tree with ids greater than 100000
     function _fillAnyIdTree($tree_id){
-        $t=new Baobab(self::$db,self::$forest_name,$tree_id);
+        $t=new Baobab(self::$db, self::$pdo, self::$forest_name,$tree_id);
         $t->clean();
-        Baobab::import(self::$db,self::$forest_name,'[{'.
+        Baobab::import(self::$db, self::$pdo,self::$forest_name,'[{'.
             ($tree_id ? '"tree_id":'.$tree_id .',' : '').
           ' "fields":["id","lft","rgt"],
             "values":
