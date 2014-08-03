@@ -55,7 +55,7 @@
         }
      ]
      ,
-     "error":1100
+     "error":"InsertOutsideRoot"
     },
     {
      "comment":"move a node before a single leaf in a different tree",

@@ -233,7 +233,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
             json_decode(Baobab::export(self::$db, self::$pdo,self::$forest_name,NULL,$b_id),TRUE)
         );
         
-        Baobab::cleanAll(self::$db, self::$pdo,self::$forest_name);
+        Baobab::cleanAll(self::$pdo, self::$forest_name);
         
         // once again but with a bigger tree
         $this->_fillComplexTree($b_id);
@@ -305,7 +305,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         $this->assertTrue(1===$this->baobab->getRoot());
         
         // add a couple more trees
-        Baobab::cleanAll(self::$db, self::$pdo,self::$forest_name);
+        Baobab::cleanAll(self::$pdo, self::$forest_name);
         
         $tree_a='[{
             "fields":["tree_id","id","lft","rgt"],
@@ -325,9 +325,9 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         
         try {
             $this->baobab->insertAfter($root_id);
-            $this->fail("was expecting an sp_Error Exception to be raised");
-        } catch (sp_Error $e) {
-            $this->assertTrue($e->getCode()===1100);
+            $this->fail("was expecting an InsertOutsideRoot Exception to be raised");
+        } catch (InsertOutsideRoot $e) {
+            // do nothing
         }
     }
     
@@ -336,9 +336,9 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         
         try {
             $this->baobab->insertAfter(100);
-            $this->fail("was expecting an sp_Error Exception to be raised");
-        } catch (sp_Error $e) {
-            $this->assertTrue($e->getCode()===1400);
+            $this->fail("was expecting an NodeNotFound Exception to be raised");
+        } catch (NodeNotFound $e) {
+            // do nothing
         }
     }
     
@@ -347,9 +347,9 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         
         try {
             $this->baobab->insertBefore($root_id);
-            $this->fail("was expecting an sp_Error Exception to be raised");
-        } catch (sp_Error $e) {
-            $this->assertTrue($e->getCode()===1100);
+            $this->fail("was expecting an InsertOutsideRoot Exception to be raised");
+        } catch (InsertOutsideRoot $e) {
+            // do nothing
         }
     }
     
@@ -361,9 +361,9 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         
         try {
             $this->baobab->insertBefore(100);
-            $this->fail("was expecting an sp_Error Exception to be raised");
-        } catch (sp_Error $e) {
-            $this->assertTrue($e->getCode()===1400);
+            $this->fail("was expecting an NodeNotFound Exception to be raised");
+        } catch (NodeNotFound $e) {
+            // do nothing
         }
     }
     
@@ -378,17 +378,17 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         try {
             // index too high
             $this->baobab->insertChildAtIndex(1,2);
-            $this->fail("was expecting an sp_Error Exception to be raised");
-        } catch (sp_Error $e) {
-            $this->assertTrue($e->getCode()===1300);
+            $this->fail("was expecting an IndexOutOfRange Exception to be raised");
+        } catch (IndexOutOfRange $e) {
+            // do nothing
         }
         
         try {
             // index too low
             $this->baobab->insertChildAtIndex(1,-3);
-            $this->fail("was expecting an sp_Error Exception to be raised");
-        } catch (sp_Error $e) {
-            $this->assertTrue($e->getCode()===1300);
+            $this->fail("was expecting an IndexOutOfRange Exception to be raised");
+        } catch (IndexOutOfRange $e) {
+            // do nothing
         }
     }
     
@@ -404,7 +404,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         try {
             // test unexistent node id
             $this->baobab->getParent(-1);
-            $this->fail("was expecting an sp_Error Exception to be raised");
+            $this->fail("was expecting an NodeNotFound Exception to be raised");
         } catch (NodeNotFound $e) {
             // do nothing
         }
@@ -594,7 +594,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         try {
             // index too high
             $this->baobab->getChildAtIndex(15,2);
-            $this->fail("was expecting an sp_Error Exception to be raised");
+            $this->fail("was expecting an NodeNotFound Exception to be raised");
         } catch (NodeNotFound $e) {
             // do nothing
         }
@@ -602,7 +602,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         try {
             // index too high
             $this->baobab->getChildAtIndex(15,-3);
-            $this->fail("was expecting an sp_Error Exception to be raised");
+            $this->fail("was expecting an NodeNotFound Exception to be raised");
         } catch (NodeNotFound $e) {
             // do nothing
         }
@@ -610,7 +610,7 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
         try {
             // index too high
             $this->baobab->getChildAtIndex(17,0);
-            $this->fail("was expecting an sp_Error Exception to be raised");
+            $this->fail("was expecting an NodeNotFound Exception to be raised");
         } catch (NodeNotFound $e) {
             // do nothing
         }
@@ -726,8 +726,14 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
             }
             
         } catch (Exception $e) {
-            if (isset($whatToTest["error"]))
-                $this->assertTrue($whatToTest["error"]===$e->getCode());
+            if (isset($whatToTest["error"])){
+                if (!$e instanceof $whatToTest["error"]) {
+                    var_dump($whatToTest["error"]);
+                    //var_dump($e);
+                    throw $e;
+                }
+                $this->assertTrue($e instanceof $whatToTest["error"]);
+            }
             else throw $e;
         }
         

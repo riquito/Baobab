@@ -74,6 +74,10 @@ class IndexOutOfRange extends BaobabException{}
 
 class ChildOfYourself extends BaobabException{}
 
+class InsertOutsideRoot extends BaobabException{}
+
+class ToManyTreesFound extends BaobabException{}
+
 
 /**@
  * Utils
@@ -180,39 +184,6 @@ class sp_SQLUtils {
         return $rows[0] == 1;
     }
 }
-
-/**@
- * .. class:: sp_Lib
- *    
- *    Generic utilities
- */
-class sp_Lib {
-    
-    /**@
-     * .. staticmethod:: map_method($array,$obj,$methodName)
-     *    
-     *    Call an object method on each item in an array and return an array
-     *    with the results.
-     *    
-     *    :param $array: values to pass to the method
-     *    :type $array:  array
-     *    :param $obj: an object instance
-     *    :type $obj:  object
-     *    :param $methodName: a callable method of $obj
-     *    :type $methodName:  string
-     *    
-     *    :return: the computed results
-     *    :rtype:  array
-     */
-    public static function &map_method(&$array, $obj, $methodName) {
-        $tmp = array();
-        foreach ($array as $item){
-            $tmp[] = $obj->$methodName($item);
-        }
-        return $tmp;
-    }
-}
-
 
 /**!
  * .. class:: BaobabNode($id,$lft,$rgt,$parentId[,$fields=NULL])
@@ -412,7 +383,7 @@ class Baobab  {
                 $result->close();
                 
                 if ($num_trees>1) {
-                    throw new sp_Error("Too many trees found");
+                    throw new ToManyTreesFound;
                 }
                 
             } else {
@@ -444,7 +415,7 @@ class Baobab  {
         $real_fields = $this->_get_fields();
         // check that the requested fields exist
         foreach($fields as $fieldName) {
-            if (!isset($real_fields[$fieldName])) throw new sp_Error("`{$fieldName}` wrong field name for table `{$this->forest_name}`");
+            if (!isset($real_fields[$fieldName])) throw new BaobabException("`{$fieldName}` wrong field name for table `{$this->forest_name}`");
         }
     }
     
@@ -592,16 +563,20 @@ class Baobab  {
      *    
      *    Delete all the records in $forest_name
      *    
-     *    :param $db: mysqli database connection in object oriented style
-     *    :type $db:  an instance of mysqli_connect
+     *    :param $pdo: pdo connection
+     *    :type $pdo:  an instance of pdo
      *    :param $forest_name: name of the forest, equals to the name of the table
      *                       holding the data
      *    :type $forest_name:  string
      */
-    public static function cleanAll($db, $pdo, $forest_name){
+    public static function cleanAll(PDO $pdo, $forest_name){ // TODO: Unit Test
         // delete all records, ignoring "missing table" error if happening
-        if (!$db->query("DELETE FROM {$forest_name}") && $db->errno !== 1146) {
-            throw new sp_MySQL_Error($db);
+        try {
+            $pdo->query("DELETE FROM {$forest_name}");
+        } catch (PDOException $e) {
+            if ($e->getCode() !== '42S02') {
+                throw $e;
+            }
         }
     }
 
@@ -680,7 +655,7 @@ class Baobab  {
      *    :param $id_node: id of the node to count from (or NULL to count from root)
      *    :type $id_node:  int or NULL
      *    
-     *    :return: the number of nodes in the selected subtree
+     *    :return: the number of nodes in the selected subtree (counting in root of subtree)
      *    :rtype:  int
      */
     public function getSize($id_node=NULL) {
@@ -688,20 +663,23 @@ class Baobab  {
         $query = "
           SELECT (rgt-lft+1) DIV 2
           FROM {$this->forest_name}
-          WHERE ". ($id_node !== NULL ? "id = ".intval($id_node) : "lft = 1").
-                " AND tree_id={$this->tree_id}";
+          WHERE ". ($id_node !== NULL ? "id = :id_node" : "lft = 1").
+                " AND tree_id= :tree_id";
         
-        $out = 0;
+        $stmt = $this->pdo->prepare($query);
 
-        if ($result = $this->db->query($query, MYSQLI_STORE_RESULT)) {
-            $row = $result->fetch_row();
-            $out = intval($row[0]);
-            $result->close();
+        $prepareArray = array(
+            ':tree_id' => $this->tree_id,
+            );
 
-        } else throw new sp_MySQL_Error($this->db);
+        if ($id_node !== NULL) {
+            $prepareArray[':id_node'] = intval($id_node);
+        }
 
-        return $out;
-
+        $stmt->execute($prepareArray);
+        
+        $row = $stmt->fetch();
+        return intval($row[0]);
     }
     
     /**!
@@ -863,7 +841,7 @@ class Baobab  {
      *       "rootName/secondNodeName"
      * 
      */
-    public function &getPath($id_node,$fields=NULL,$squash=FALSE){
+    public function &getPath($id_node,$fields=NULL,$squash=FALSE){ 
         $id_node = intval($id_node);
         
         if (empty($fields)) {
@@ -1164,11 +1142,13 @@ class Baobab  {
      *       This is a really slow function, use it only if needed (e.g.
      *       to delete multiple subtrees and close gaps just once)
      */
-    public function closeGaps() {
-        if (!$this->db->multi_query("CALL Baobab_{$this->forest_name}_Close_Gaps({$this->tree_id})"))
-            throw new sp_MySQL_Error($this->db);
-        
-        $this->sql_utils->flush_results();
+    public function closeGaps() { //TODO: UnitTest
+
+        $stmt = $this->pdo->prepare("CALL Baobab_{$this->forest_name}_Close_Gaps(:tree_id)");
+        $stmt->execute(array(
+            ':tree_id' => $this->tree_id
+            ));
+        $stmt->closeCursor();
 
     }
 
@@ -1220,7 +1200,7 @@ class Baobab  {
     public function updateNode($id_node,$fields_values){
         $id_node = intval($id_node);
         
-        if (empty($fields_values)) throw new sp_Error("\$fields_values cannot be empty");
+        if (empty($fields_values)) throw new BaobabException("\$fields_values cannot be empty");
         
         $fields = array_keys($fields_values);
         $this->_sql_check_fields($fields);
@@ -1337,7 +1317,7 @@ class Baobab  {
         if (!$this->db->multi_query("
                 CALL Baobab_{$this->forest_name}_insertAfter({$id_sibling}, @new_id, @error_code);
                 SELECT @new_id as new_id, @error_code as error_code"))
-                throw new sp_MySQL_Error($this->db);
+                throw new sp_MySQL_Error($this->db); // InsertOutsideRoot NodeNotFound
 
         $res = $this->_readLastResult('new_id');
         
@@ -1368,7 +1348,7 @@ class Baobab  {
         if (!$this->db->multi_query("
                 CALL Baobab_{$this->forest_name}_insertBefore({$id_sibling}, @new_id, @error_code);
                 SELECT @new_id as new_id, @error_code as error_code"))
-                throw new sp_MySQL_Error($this->db);
+                throw new sp_MySQL_Error($this->db); // InsertOutsideRoot NodeNotFound
 
         $res = $this->_readLastResult('new_id');
         
@@ -1404,7 +1384,7 @@ class Baobab  {
         if (!$this->db->multi_query("
                 CALL Baobab_{$this->forest_name}_InsertChildAtIndex({$id_parent}, {$index}, @new_id, @error_code);
                 SELECT @new_id as new_id, @error_code as error_code"))
-            throw new sp_MySQL_Error($this->db);
+            throw new sp_MySQL_Error($this->db); //IndexOutOfRange NodeNotFound
         
         $res = $this->_readLastResult('new_id');
         
@@ -1427,7 +1407,7 @@ class Baobab  {
      *    
      *    .. warning:
      *       Moving a subtree after/before root or as a child of hisself will
-     *         throw a sp_Error exception
+     *         throw a BaobabException exception
      * 
      */
     public function moveAfter($id_to_move,$reference_node) {
@@ -1533,11 +1513,20 @@ class Baobab  {
         $result = $this->db->use_result();
         $record = $result->fetch_assoc();
         
-        if (isset($record[$error_field]) && $record[$error_field] != 0) {
-            $error_code = intval($record[$error_field]);
+        if (isset($record[$error_field]) && $record[$error_field] != '') {
+            $error_code = $record[$error_field];
             $result->close();
-            throw new sp_Error(sprintf("[%s] %s", '', ''), $error_code);
-            throw new sp_Error('TODO: New MSG', $error_code);
+            if($error_code === 'ROOT_ERROR'){
+                throw new InsertOutsideRoot('Cannot add or move a node next to root');
+            } elseif ($error_code === 'INDEX_OUT_OF_RANGE') {
+                throw new IndexOutOfRange('The index is out of range');
+            } elseif ($error_code === 'NODE_DOES_NOT_EXIST') {
+                throw new NodeNotFound('Node doesn\'t exist');
+            } elseif($error_code === 'CHILD_OF_YOURSELF_ERROR'){
+                throw new ChildOfYourself('Cannot move a node inside his own subtree');
+            } else {
+                throw new BaobabException('Error code: '.$error_code);    
+            }
         }
         
         $ar_out = array();
