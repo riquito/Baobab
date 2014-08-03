@@ -51,44 +51,7 @@ CREATE VIEW GENERIC_AdjTree (tree_id,parent,child,lft)
           AND B.tree_id=E.tree_id
     ORDER BY lft ASC;
 
-/* ##### LIST OF TREE NAMES IN USE ##### */
-
-CREATE TABLE IF NOT EXISTS Baobab_ForestsNames (
-    name VARCHAR(200) PRIMARY KEY
-) ENGINE INNODB DEFAULT CHARSET=utf8;
-
-INSERT INTO Baobab_ForestsNames(name) VALUES ('GENERIC')
-ON DUPLICATE KEY UPDATE name=name;
-
 /* ##################################### */
-
-
-/* ########################### */
-/* ###### ERRORS CONTROL ##### */
-/* ########################### */
-
-CREATE TABLE IF NOT EXISTS Baobab_Errors (
-    code   INTEGER UNSIGNED NOT NULL PRIMARY KEY,
-    name   VARCHAR(50)      NOT NULL,
-    msg    TINYTEXT         NOT NULL,
-    CONSTRAINT unique_codename UNIQUE (name)
-) ENGINE INNODB;
-
-INSERT INTO Baobab_Errors(code,name,msg)
-VALUES
-  (1000,'VERSION','1.3.0'),
-  (1100,'ROOT_ERROR','Cannot add or move a node next to root'),
-  (1200,'CHILD_OF_YOURSELF_ERROR','Cannot move a node inside his own subtree'),
-  (1300,'INDEX_OUT_OF_RANGE','The index is out of range'),
-  (1400,'NODE_DOES_NOT_EXIST',"Node doesn't exist"),
-  (1500,'VERSION_NOT_MATCH',"The library and the sql schema have different versions")
-ON DUPLICATE KEY UPDATE code=code,name=name,msg=msg;
-
-DROP FUNCTION IF EXISTS Baobab_getErrCode;
-CREATE FUNCTION Baobab_getErrCode(x TINYTEXT) RETURNS INT
-DETERMINISTIC
-    RETURN (SELECT code from Baobab_Errors WHERE name=x);
-
 
 
 /* ########################## */
@@ -96,9 +59,6 @@ DETERMINISTIC
 /* ########################## */
 
 DROP PROCEDURE IF EXISTS Baobab_GENERIC_DropTree;
-
-DELIMITER //
-
 CREATE PROCEDURE Baobab_GENERIC_DropTree (
                     IN node INTEGER UNSIGNED,
                     IN update_numbers INTEGER)
@@ -152,9 +112,7 @@ MODIFIES SQL DATA
 
     COMMIT;
 
-  END//
-
-DELIMITER ;
+  END;
 
 /* ########################## */
 /* ###### APPEND CHILD ###### */
@@ -167,8 +125,6 @@ DELIMITER ;
    If choosen_tree is not present as tree_id in the table, it is used.
 */
 DROP PROCEDURE IF EXISTS Baobab_GENERIC_AppendChild;
-
-DELIMITER //
 CREATE PROCEDURE Baobab_GENERIC_AppendChild(
             IN choosen_tree INTEGER UNSIGNED,
             IN parent_id INTEGER UNSIGNED,
@@ -224,21 +180,17 @@ DETERMINISTIC
 
     COMMIT;
 
-  END//
-
-DELIMITER ;
+  END;
 
 /* ############################### */
 /* ###### INSERT NODE AFTER ###### */
 /* ############################### */
 
 DROP PROCEDURE IF EXISTS Baobab_GENERIC_insertAfter;
-
-DELIMITER //
 CREATE PROCEDURE Baobab_GENERIC_insertAfter(
             IN sibling_id INTEGER UNSIGNED,
             OUT new_id INTEGER UNSIGNED,
-            OUT error_code INTEGER UNSIGNED)
+            OUT error_code VARCHAR(50))
 LANGUAGE SQL
 DETERMINISTIC
 
@@ -246,7 +198,7 @@ DETERMINISTIC
     
     IF 1 = (SELECT lft FROM GENERIC WHERE id = sibling_id) THEN
         BEGIN
-            SELECT Baobab_getErrCode('ROOT_ERROR') INTO error_code;
+            SET error_code = 'ROOT_ERROR';
             LEAVE main;
         END;
     ELSE
@@ -264,7 +216,7 @@ DETERMINISTIC
           
           IF ISNULL(lft_sibling) THEN
               BEGIN
-                SELECT Baobab_getErrCode('NODE_DOES_NOT_EXIST') INTO error_code;
+                SET error_code = 'NODE_DOES_NOT_EXIST';
                 LEAVE main;
               END;
           END IF;
@@ -288,28 +240,25 @@ DETERMINISTIC
         END;
     END IF;
 
-  END//
+  END;
 
-DELIMITER ;
 
 /* ################################ */
 /* ###### INSERT NODE BEFORE ###### */
 /* ################################ */
 
 DROP PROCEDURE IF EXISTS Baobab_GENERIC_insertBefore;
-
-DELIMITER //
 CREATE PROCEDURE Baobab_GENERIC_insertBefore(
             IN sibling_id INTEGER UNSIGNED,
             OUT new_id INTEGER UNSIGNED,
-            OUT error_code INTEGER UNSIGNED)
+            OUT error_code VARCHAR(50))
 LANGUAGE SQL
 DETERMINISTIC
   main:BEGIN
 
     IF 1 = (SELECT lft FROM GENERIC WHERE id = sibling_id) THEN
         BEGIN
-            SELECT Baobab_getErrCode('ROOT_ERROR') INTO error_code;
+            SET error_code = 'ROOT_ERROR';
             LEAVE main;
         END;
     ELSE
@@ -327,7 +276,7 @@ DETERMINISTIC
         
         IF ISNULL(rgt_sibling) THEN
             BEGIN
-                SELECT Baobab_getErrCode('NODE_DOES_NOT_EXIST') INTO error_code;
+                SET error_code = 'NODE_DOES_NOT_EXIST';
                 LEAVE main;
             END;
         END IF;
@@ -352,9 +301,8 @@ DETERMINISTIC
       END;
     END IF;
 
-END//
+END;
 
-DELIMITER ;
 
 /* ################################### */
 /* ###### INSERT CHILD AT INDEX ###### */
@@ -366,13 +314,11 @@ DELIMITER ;
  */
 
 DROP PROCEDURE IF EXISTS Baobab_GENERIC_InsertChildAtIndex;
-
-DELIMITER //
 CREATE PROCEDURE Baobab_GENERIC_InsertChildAtIndex(
             IN parent_id INTEGER UNSIGNED,
             IN idx INTEGER,
             OUT new_id INTEGER UNSIGNED,
-            OUT error_code INTEGER UNSIGNED)
+            OUT error_code VARCHAR(50))
 LANGUAGE SQL
 DETERMINISTIC
 
@@ -381,16 +327,16 @@ DETERMINISTIC
     DECLARE nth_child INTEGER UNSIGNED;
     DECLARE cur_tree_id INTEGER UNSIGNED;
     
-    SET error_code=0;
+    SET error_code=NULL;
     SET new_id=0;
 
     CALL Baobab_GENERIC_getNthChild(parent_id,idx,nth_child,error_code);
     
-    IF NOT error_code THEN
+    IF ISNULL(error_code) THEN
         CALL Baobab_GENERIC_insertBefore(nth_child,new_id,error_code);
-    ELSE IF idx = 0 AND error_code = (SELECT Baobab_getErrCode('INDEX_OUT_OF_RANGE')) THEN
+    ELSE IF idx = 0 AND error_code = 'INDEX_OUT_OF_RANGE' THEN
         BEGIN
-          SET error_code = 0;
+          SET error_code = NULL;
           CALL Baobab_GENERIC_AppendChild((SELECT tree_id FROM GENERIC WHERE id = parent_id),
                                            parent_id,
                                            new_id,
@@ -399,22 +345,18 @@ DETERMINISTIC
       END IF;
     END IF;
     
-  END//
-
-DELIMITER ;
+  END;
 
 /* ########################### */
 /* ###### GET NTH CHILD ###### */
 /* ########################### */
 
 DROP PROCEDURE IF EXISTS Baobab_GENERIC_getNthChild;
-
-DELIMITER //
 CREATE PROCEDURE Baobab_GENERIC_getNthChild(
             IN parent_id INTEGER UNSIGNED,
             IN idx INTEGER,
             OUT nth_child INTEGER UNSIGNED,
-            OUT error_code INTEGER UNSIGNED)
+            OUT error_code VARCHAR(50))
 LANGUAGE SQL
 DETERMINISTIC
 
@@ -422,7 +364,7 @@ DETERMINISTIC
 
     DECLARE num_children INTEGER;
     
-    SET error_code=0;
+    SET error_code=NULL;
 
     SELECT COUNT(*)
     INTO num_children
@@ -431,7 +373,7 @@ DETERMINISTIC
     IF num_children = 0 OR IF(idx<0,(-idx)-1,idx) >= num_children THEN
         /* idx is out of range */
         BEGIN
-            SELECT Baobab_getErrCode('INDEX_OUT_OF_RANGE') INTO error_code;
+            SET error_code = 'INDEX_OUT_OF_RANGE';
             LEAVE main;
         END;
     ELSE
@@ -452,9 +394,8 @@ DETERMINISTIC
     
     END IF;
 
-  END//
+  END;
 
-DELIMITER ;
 
 
 /* ###################################### */
@@ -462,12 +403,10 @@ DELIMITER ;
 /* ###################################### */
 
 DROP PROCEDURE IF EXISTS Baobab_GENERIC_MoveSubtreeBefore;
-
-DELIMITER //
 CREATE PROCEDURE Baobab_GENERIC_MoveSubtreeBefore(
         IN node_id_to_move INTEGER UNSIGNED,
         IN reference_node INTEGER UNSIGNED,
-        OUT error_code INTEGER UNSIGNED)
+        OUT error_code VARCHAR(50))
 LANGUAGE SQL
 DETERMINISTIC
 
@@ -478,7 +417,7 @@ DETERMINISTIC
     DECLARE ref_left INTEGER UNSIGNED;
     DECLARE ref_node_tree INTEGER UNSIGNED;
     
-    SET error_code=0; /* 0 means no error */
+    SET error_code=NULL; /* 0 means no error */
     SET move_as_first_sibling = TRUE;
     
     SELECT tree_id,lft
@@ -488,7 +427,7 @@ DETERMINISTIC
     IF ref_left = 1 THEN
         BEGIN
             /* cannot move a parent node before or after root */
-            SELECT Baobab_getErrCode('ROOT_ERROR') INTO error_code;
+            SET error_code = 'ROOT_ERROR';
             LEAVE main;
         END;
     END IF;
@@ -509,9 +448,8 @@ DETERMINISTIC
         node_id_to_move, node_revised , move_as_first_sibling, error_code
     );
 
-  END//
+  END;
 
-DELIMITER ;
 
 
 /* ##################################### */
@@ -519,26 +457,23 @@ DELIMITER ;
 /* ##################################### */
 
 DROP PROCEDURE IF EXISTS Baobab_GENERIC_MoveSubtreeAfter;
-
-DELIMITER //
 CREATE PROCEDURE Baobab_GENERIC_MoveSubtreeAfter(
         IN node_id_to_move INTEGER UNSIGNED,
         IN reference_node INTEGER UNSIGNED,
-        OUT error_code INTEGER UNSIGNED)
+        OUT error_code VARCHAR(50))
 LANGUAGE SQL
 DETERMINISTIC
 
   BEGIN
     
-    SELECT 0 INTO error_code; /* 0 means no error */
+    SET error_code = NULL; /* 0 means no error */
     
     CALL Baobab_GENERIC_MoveSubtree_real(
         node_id_to_move,reference_node,FALSE,error_code
     );
 
-  END//
+  END;
 
-DELIMITER ;
 
 
 /* ##################################### */
@@ -546,13 +481,11 @@ DELIMITER ;
 /* ##################################### */
 
 DROP PROCEDURE IF EXISTS Baobab_GENERIC_MoveSubtreeAtIndex;
-
-DELIMITER //
 CREATE PROCEDURE Baobab_GENERIC_MoveSubtreeAtIndex(
         IN node_id_to_move INTEGER UNSIGNED,
         IN parent_id INTEGER UNSIGNED,
         IN idx INTEGER,
-        OUT error_code INTEGER)
+        OUT error_code VARCHAR(50))
 LANGUAGE SQL
 DETERMINISTIC
 
@@ -564,7 +497,7 @@ DETERMINISTIC
     DECLARE s_lft INTEGER UNSIGNED;
     DECLARE current_idx INTEGER;
     
-    SET error_code=0;
+    SET error_code=NULL;
 
     SELECT COUNT(*)
     INTO num_children
@@ -602,16 +535,13 @@ DETERMINISTIC
         /* search the node before idx, and we wil move our node after that */
         CALL Baobab_GENERIC_getNthChild(parent_id,idx-1,nth_child,error_code);
 
-        IF NOT error_code THEN
+        IF ISNULL(error_code) THEN
             CALL Baobab_GENERIC_MoveSubtree_real(node_id_to_move,nth_child,FALSE,error_code);
         END IF;
       END;
     END IF;
 
-  END//
-  
-DELIMITER ;
-  
+  END; 
 
 /* ####################################### */
 /* ####### MOVE SUBTREE REAL LOGIC #######*/
@@ -623,13 +553,11 @@ DELIMITER ;
 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_UNSIGNED_SUBTRACTION';
 
 DROP PROCEDURE IF EXISTS Baobab_GENERIC_MoveSubtree_real;
-
-DELIMITER //
 CREATE PROCEDURE Baobab_GENERIC_MoveSubtree_real(
         IN node_id_to_move INTEGER UNSIGNED,
         IN reference_node INTEGER UNSIGNED,
         IN move_as_first_sibling BOOLEAN,
-        OUT error_code INTEGER
+        OUT error_code VARCHAR(50)
         )
 LANGUAGE SQL
 DETERMINISTIC
@@ -649,7 +577,7 @@ DETERMINISTIC
     DECLARE ext_bound_1 INTEGER UNSIGNED;
     DECLARE ext_bound_2 INTEGER UNSIGNED;
     
-    SET error_code=0;
+    SET error_code=NULL;
     
     START TRANSACTION;
 
@@ -677,7 +605,7 @@ DETERMINISTIC
         IF s_lft <= ref_lft AND s_rgt >= ref_rgt AND source_node_tree=ref_node_tree THEN
             /* cannot move a parent node inside his own subtree */
             BEGIN
-                SELECT Baobab_getErrCode('CHILD_OF_YOURSELF_ERROR') INTO error_code;
+                SET error_code = 'CHILD_OF_YOURSELF_ERROR';
                 LEAVE main;
             END;
         ELSE
@@ -707,13 +635,13 @@ DETERMINISTIC
         
         IF ref_lft = 1 THEN /* cannot move a node before or after root */
             BEGIN
-                SELECT Baobab_getErrCode('ROOT_ERROR') INTO error_code;
+                SET error_code = 'ROOT_ERROR';
                 LEAVE main;
             END;
         ELSEIF s_lft < ref_lft AND s_rgt > ref_rgt AND source_node_tree=ref_node_tree THEN
             /* cannot move a parent node inside his own subtree */
             BEGIN
-                SELECT Baobab_getErrCode('CHILD_OF_YOURSELF_ERROR') INTO error_code;
+                SET error_code = 'CHILD_OF_YOURSELF_ERROR';
                 LEAVE main;
             END;
         ELSE
@@ -768,15 +696,11 @@ DETERMINISTIC
 
     COMMIT;
     
-  END//
-
-DELIMITER ;
+  END;
 
 SET sql_mode=@OLD_SQL_MODE;
 
 DROP PROCEDURE IF EXISTS Baobab_GENERIC_MoveSubtree_Different_Trees;
-
-DELIMITER //
 CREATE PROCEDURE Baobab_GENERIC_MoveSubtree_Different_Trees(
         IN node_id_to_move INTEGER UNSIGNED,
         IN reference_node INTEGER UNSIGNED,
@@ -866,18 +790,13 @@ DETERMINISTIC
     
     COMMIT;
   
-  END//
-
-DELIMITER ;
-
+  END;
 
 /* ########################## */
 /* ####### CLOSE GAPS ####### */
 /* ########################## */
 
 DROP PROCEDURE IF EXISTS Baobab_GENERIC_Close_Gaps;
-
-DELIMITER //
 CREATE PROCEDURE Baobab_GENERIC_Close_Gaps(
     IN choosen_tree INTEGER UNSIGNED)
 LANGUAGE SQL
@@ -903,6 +822,4 @@ DETERMINISTIC
                WHERE tree_id=choosen_tree AND seq_nbr <= rgt
               )
     WHERE tree_id=choosen_tree;
-  END//
-
-DELIMITER ;
+  END
