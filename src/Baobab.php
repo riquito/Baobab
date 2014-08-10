@@ -1,23 +1,25 @@
 <?php
+namespace Baobab;
+use Baobab\Exception;
 
 /**!
  * .. _api:
- * 
+ *
  * ==========
  * Baobab API
  * ==========
  *
  * Copyright and License
  * ---------------------
- * 
+ *
  * Copyright 2010-2011 Riccardo Attilio Galli <riccardo@sideralis.org> http://www.sideralis.org
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *    http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -30,262 +32,13 @@
 if (!defined("BAOBAB_SQL_DIR")) define("BAOBAB_SQL_DIR", dirname(__FILE__).DIRECTORY_SEPARATOR."sql");
 
 /**!
- * Exceptions
- * ----------
- */
-
-class BaobabException extends Exception{}
-
-class NodeNotFound extends BaobabException{}
-
-class IndexOutOfRange extends BaobabException{}
-
-class ChildOfYourself extends BaobabException{}
-
-class InsertOutsideRoot extends BaobabException{}
-
-class ToManyTreesFound extends BaobabException{}
-
-
-/**@
- * Utils
- * -----
- */
-
-/**@
- * .. class:: sp_SQLUtils
- *    
- *    Class with helpers to work with SQL
- *
- *    :param $conn: database connection object
- *    :type $conn:  mysqli
- */
-class sp_SQLUtils {
-    private $pdo;
-    
-    public function __construct(PDO $pdo){
-        $this->pdo = $pdo;
-    }
-    
-    /**@
-     * .. method:: get_table_fields($table_name)
-     *    
-     *    Retrieve the names of the fields in a table.
-     *    
-     *    :param $table_name: name of the table
-     *    :type $table_name:  string
-     *
-     *    :return: fields' names
-     *    :rtype:  array
-     *    
-     *    .. warning::
-     *       The table name is not sanitized at all, use this method only
-     *       if you're directly providing the correct name, otherwise
-     *       sql injection is a given.
-     */
-    public function &get_table_fields($table_name){
-        $table_name = str_replace('`', '``', $table_name);
-
-        $result = $this->pdo->query("SHOW COLUMNS FROM `{$table_name}`;");
-        $rows = $result->fetchAll(PDO::FETCH_ASSOC);
-        if (empty($rows)) throw new BaobabException;
-
-        foreach ($rows as $row) {
-            $fields[] = $row["Field"];
-        }
-        return $fields;
-    }
-    
-    /**@
-     * .. method:: table_exists($table_name[,$db_name=NULL])
-     *    
-     *    Check if a table exists.
-     *    
-     *    :param $table_name: name of the table
-     *    :type $table_name:  string
-     *    :param $db_name: name of the database (if different from the current in use)
-     *    :type $db_name:  string
-     *    
-     *    :return: TRUE if exists, FALSE otherwise
-     *    :rtype:  boolean
-     */
-    public function table_exists($table_name,$db_name=NULL){
-        // if (!$db_name) {
-        //     $result = $this->pdo->query("SELECT DATABASE()");
-        //     $rows = $result->fetch();
-        //     $db_name = $rows[0];
-        // }
-        
-        // $query = 'SELECT COUNT(*)
-        //           FROM information_schema.tables 
-        //           WHERE table_schema = :db_name 
-        //           AND table_name = :table_name';
-
-        // $stmt = $this->pdo->prepare($query);
-        // $stmt->execute(array(
-        //     ":db_name" => $db_name,
-        //     ":table_name" => $table_name
-        // ));
-
-        // $rows = $stmt->fetch();
-
-        // return $rows[0] == 1;
-        try {
-            $this->pdo->query("SELECT 1 FROM $table_name LIMIT 1");
-            return true; 
-        } catch (PDOException $e) {
-            if ($e->getCode() !== '42S02') { // do not count "missing table" as an error
-                throw $e;
-            }
-            return false;
-        }
-    }
-}
-
-/**!
- * .. class:: BaobabNode($id,$lft,$rgt,$parentId[,$fields=NULL])
- *    
- *    Node of a Baobab tree
- *
- *    :param $id: the node id
- *    :type $id: int
- *    :param $lft: the node left bound
- *    :type $lft: int
- *    :param $rgt: the node right bound
- *    :type $rgt: int
- *    :param $parentId: the parent's node id, if any
- *    :type $parentId: int or NULL
- *    :param $fields_values: additional fields of the node (mapping fieldName => value)
- *    :type $fields_values: array or NULL
- *
- *    **Attributes**:
- *       **id** int, node id
- *       
- *       **lft**  int, left value
- *       
- *       **rgt**  int, right value
- *       
- *       **parentNode**  int, the parent node id
- *       
- *       **fields_values**  array, additional fields of the node
- *       
- *       **children** array, instances of BaobabNode children of the current node 
- *
- *    .. note::
- *       this class doesn't have database interaction, its purpose is
- *       just to have a runtime representation of a Baobab tree. The data
- *       inserted is supposed to be valid in his tree (e.g. $this->lft cant'
- *       be -1 or major of any node right value)
- * 
- */
-class BaobabNode {
-    public $id;
-    public $lft;
-    public $rgt;
-    public $parentNode;
-    public $fields_values;
-    public $children;
-
-    public function __construct($id,$lft,$rgt,$parentNode,&$fields_values=NULL) {
-        $this->id = $id;
-        $this->lft = $lft;
-        $this->rgt = $rgt;
-        $this->parentNode = $parentNode;
-        $this->fields_values = $fields_values;
-        
-        $this->children = array();
-    }
-    
-    /**!
-     * .. method:: appendChild($child)
-     *
-     *    Add a node as last sibling of the node's children.
-     *
-     *    :param $child: append a node to the list of this node children
-     *    :type $child: :class:`BaobabNode`
-     *
-     */
-    public function appendChild($child) {
-        $this->children[] = $child;
-    }
-    
-    /**!
-     * .. method:: stringify([$fields=NULL[,$diveInto=TRUE[,$indentChar=" "[,$indentLevel=0]]]])
-     *
-     *    Return a representation of the tree as a string.
-     *
-     *    :param $fields: what node fields include in the output. id, lft and rgt
-     *                      are always included.
-     *    :type $fields:  array
-     *    :param $diveInto: wheter to continue with node's children or not
-     *    :type $diveInto:  boolean
-     *    :param $indentChar: character to use to indent
-     *    :type $indentChar:  string
-     *    :param $indentLevel: how deep we are indenting
-     *    :type $indentLevel:  int
-     *    
-     *    :return: tree or node representation
-     *    :rtype:  string
-     *    
-     *    .. note::
-     *       $indentLevel is meant for internal use only.
-     *
-     *    .. todo::
-     *       $fields is currently unused
-     */
-    public function stringify($fields=NULL,$diveInto=TRUE,$indentChar=" ",$indentLevel=0) {
-        // XXX TODO $fields is not used at present (and remove the notice from documentation)
-        $out = str_repeat($indentChar, $indentLevel*4)."({$this->id}) [{$this->lft}, {$this->rgt}]";
-        if (!$diveInto) return $out;
-        foreach ($this->children as $child) {
-            $out .= "\n".$child->stringify($fields, TRUE, $indentChar, $indentLevel+1);
-        }
-        return $out;
-    }
-    
-    /**!
-     * .. method:: isRightmost()
-     *    
-     *    Check if the node is rightmost between his siblings.
-     *
-     *    :return: whether if the node is the rightmost or not
-     *    :rtype:  boolean
-     *
-     *    .. note:
-     *       root node is considered to be rightmost
-     */
-    public function isRightmost(){
-        if (!$this->parentNode) return TRUE;
-        
-        return $this->parentNode->children[count($this->parentNode->children)-1]->id === $this->id;
-    }
-    
-    /**!
-     * .. method:: isLeftmost()
-     *    
-     *    Check if the node is leftmost between his siblings.
-     *
-     *    :return: whether if the node is the leftmost or not
-     *    :rtype:  boolean
-     *    
-     *    .. note:
-     *       root node is considered to be leftmost
-     */
-    public function isLeftmost(){
-        if (!$this->parentNode) return TRUE;
-        
-        return $this->parentNode->children[0]->id === $this->id;
-    }
-}
-
-/**!
  * Baobab
  * ------
  */
 
 /**!
  * .. class:: Baobab($forest_name[,$tree_id=NULL])
- *    
+ *
  *    This class lets you create, populate search and destroy a tree stored
  *    using the Nested Set Model described by Joe Celko.
  *
@@ -302,101 +55,28 @@ class BaobabNode {
  *    **Attributes**:
  *       **tree_id** int, id of the tree (0 means it's new with no nodes added yet)
  */
-class Baobab  {
+class Baobab
+{
     private $_refresh_fields;
-    
+
     protected $pdo;
     protected $forest_name;
     protected $sql_utils;
     protected $fields;
     protected $tree_marks = NULL;
-    
+
     public $tree_id;
-    
-    public function __construct(PDO $pdo, $forest_name, $tree_marks=NULL) {
+
+    public function __construct(\PDO $pdo, $forest_name, $tree_id)
+    {
         $this->pdo = $pdo;
-        $this->sql_utils = new sp_SQLUtils( $pdo );
+        $this->sql_utils = new SqlUtils( $pdo );
         $this->forest_name = $forest_name;
         $this->fields = array();
         $this->_refresh_fields = TRUE;
-
-        $tree_id = $tree_marks;
-        // if $tree_marks is -1 we suppose there is one and only one tree yet in
-        //   the table, and we automatically retrieve his id
-        if (!is_array($tree_marks) && $tree_marks == -1 ) {
-            // $query = "SELECT DISTINCT tree_id FROM {$this->forest_name} LIMIT 2";
-            // if ($result = $this->db->query($query, MYSQLI_STORE_RESULT)) {
-            //     $num_trees = $result->num_rows;
-                
-            //     if ($num_trees == 1) {
-            //         // one and only, let's use it
-            //         $row = $result->fetch_row();
-            //         $tree_id = intval($row[0]);
-            //     }
-            //     else if ($num_trees == 0) {
-            //         // no trees ? it will be the first
-            //         $tree_id = 0;
-            //     }
-            //     $result->close();
-                
-            //     if ($num_trees>1) {
-            //         throw new ToManyTreesFound;
-            //     }
-                
-            // } else {
-            //     if ($this->db->errno == 1146) {
-            //         // table does not exist (skip), so it will be the first tree
-            //     } else throw new BaobabException($this->db);
-            // }
-        // get tree by select ids array
-        } elseif (is_array($tree_marks) && !empty($tree_marks)) { // tree distinction
-
-            $prepareFields = '';
-            $rows = array();
-            foreach ($tree_marks as $column => $value) {
-                $prepareFields[] = "$column = :$column";
-                $prepareFieldsValues[':'.$column] = $value;
-            }
-
-            $prepareFields = join($prepareFields, ' AND ');
-
-            try {
-                $query = "SELECT DISTINCT tree_id FROM {$this->forest_name} WHERE $prepareFields LIMIT 2";
-
-                $stmt = $this->pdo->prepare($query);
-
-                $stmt->execute($prepareFieldsValues);
-
-                $rows = $stmt->fetchAll();
-            } catch (PDOException $e) {
-                if ($e->getCode() !== '42S02') { // do not count "missing table" as an error
-                    throw $e;
-                }
-            }
-
-            $num_trees = count($rows);
-
-            if ($num_trees == 1) {
-                // one and only, let's use it
-                $row = $rows[0];
-                $tree_id = intval($row[0]);
-            }
-            else if ($num_trees == 0) {
-                // no trees ? it will be the first
-                $tree_id = 0;
-            } else if ($num_trees>1) {
-                throw new ToManyTreesFound;
-            }
-
-            $this->tree_marks = $tree_marks;
-
-        }
-        
         $this->tree_id = intval($tree_id);
-        
-        $this->build();
     }
-    
+
     /**
      * .. method:: _sql_check_fields($fields)
      *
@@ -409,15 +89,15 @@ class Baobab  {
      *    :note: it is public but for internal use only (see static methods import/export )
      *
      */
-    public function _sql_check_fields(&$fields) {
-        
+    public function _sql_check_fields(&$fields)
+    {
         $real_fields = $this->_get_fields();
         // check that the requested fields exist
-        foreach($fields as $fieldName) {
+        foreach ($fields as $fieldName) {
             if (!isset($real_fields[$fieldName])) throw new BaobabException("`{$fieldName}` wrong field name for table `{$this->forest_name}`");
         }
     }
-    
+
     /**
      * .. method:: _get_fields()
      *
@@ -431,151 +111,58 @@ class Baobab  {
      *    .. note::
      *       An associative array is being returned because it's quicker to
      *       check for fields existence inside it.
-     *     
+     *
      *    .. note::
      *       it is public but for internal use only (see static methods import/export )
      */
-    public function &_get_fields(){
-        
+    public function _get_fields() 
+    {
+
         if ($this->_refresh_fields) {
             $fields = $this->sql_utils->get_table_fields($this->forest_name);
             $this->fields = array();
-            for($i=0,$il=count($fields);$i<$il;$i++) {
+            for ($i=0,$il=count($fields);$i<$il;$i++) {
                 $this->fields[$fields[$i]] = TRUE;
             }
             $this->_refresh_fields = FALSE;
         }
-        
+
         return $this->fields;
     }
-    
-    /**!
-     * .. method:: build()
-     *
-     *    Apply the database schema
-     *    
-     *    :return: TRUE if any table was added, FALSE if the build was skipped
-     *             (e.g. if the tree yet exists calling build will do nothing
-     *             and return FALSE).
-     *    :rtype:  boolean
-     *
-     *    .. note::
-     *       This is automatically called while instantiating the class.
-     */
-    public function build() {
 
-        $forestExists = $this->sql_utils->table_exists($this->forest_name);
-        
-        // build the forest only if the database schema not yet exists
-        if (!$forestExists) {
-            $sql = file_get_contents(BAOBAB_SQL_DIR.DIRECTORY_SEPARATOR."schema_baobab.sql");
-            $this->pdo->exec(str_replace("GENERIC", $this->forest_name, $sql));   
-        }
-        
-        return ! $forestExists;
-    }
-    
-    /**!
-     * .. method:: destroy()
-     *
-     *    Remove every table, procedure or view that were created via
-     *      :class:`Baobab.build` for the current tree name
-     *
-     *    :param $removeDataTable: unless this value is TRUE, avoid to delete 
-     *                             the table that holds the tree data
-     *    :type $removeDataTable:  boolean
-     *    
-     */
-    public function destroy($removeDataTable=FALSE) {
-
-            try {
-                $this->pdo->beginTransaction();
-                //$this->pdo->query("UNLOCK TABLES;");
-                if ($removeDataTable) {
-                    $removeDataTable = $this->sql_utils->table_exists($this->forest_name);
-                }
-                $query = str_replace("GENERIC", $this->forest_name,"
-                        DROP PROCEDURE IF EXISTS Baobab_GENERIC_getNthChild;
-                        DROP PROCEDURE IF EXISTS Baobab_GENERIC_MoveSubtree_real;
-                        DROP PROCEDURE IF EXISTS Baobab_GENERIC_MoveSubtreeAtIndex;
-                        DROP PROCEDURE IF EXISTS Baobab_GENERIC_MoveSubtreeBefore;
-                        DROP PROCEDURE IF EXISTS Baobab_GENERIC_MoveSubtreeAfter;
-                        DROP PROCEDURE IF EXISTS Baobab_GENERIC_MoveSubtree_Different_Trees;
-                        DROP PROCEDURE IF EXISTS Baobab_GENERIC_InsertChildAtIndex;
-                        DROP PROCEDURE IF EXISTS Baobab_GENERIC_insertBefore;
-                        DROP PROCEDURE IF EXISTS Baobab_GENERIC_insertAfter;
-                        DROP PROCEDURE IF EXISTS Baobab_GENERIC_AppendChild;
-                        DROP PROCEDURE IF EXISTS Baobab_GENERIC_DropTree;
-                        DROP PROCEDURE IF EXISTS Baobab_GENERIC_Close_Gaps;
-                        DROP VIEW IF EXISTS GENERIC_AdjTree;
-                        ");
-
-                $this->pdo->query($query);
-                if($removeDataTable){
-                    $query = str_replace("GENERIC", $this->forest_name, "DROP TABLE GENERIC;");
-                    $this->pdo->query($query);
-                }
-                $this->pdo->commit();
-
-            } catch (PDOException $e) {
-                $this->pdo->rollback();
-            }
-        
-    }
-    
     /**!
      * .. method:: clean()
-     *    
+     *
      *    Delete all the records about this tree.
      *    Other trees in the same table will be unaffected.
      *
      */
-    public function clean() {
+    public function clean()
+    {
         try {
             $stmt = $this->pdo->prepare("
                         DELETE FROM {$this->forest_name}
                         WHERE tree_id=:tree_id");
             $stmt->execute(array(':tree_id' => $this->tree_id));
-        } catch (PDOException $e) {
+        } catch (\PDOException $e) {
             if ($e->getCode() !== '42S02') { // do not count "missing table" as an error
                 throw $e;
             }
         }
     }
-    
-    /**!
-     * .. staticmethod:: cleanAll($forest_name)
-     *    
-     *    Delete all the records in $forest_name
-     *    
-     *    :param $pdo: pdo connection
-     *    :type $pdo:  an instance of pdo
-     *    :param $forest_name: name of the forest, equals to the name of the table
-     *                       holding the data
-     *    :type $forest_name:  string
-     */
-    public static function cleanAll(PDO $pdo, $forest_name){ // TODO: Unit Test
-        // delete all records, ignoring "missing table" error if happening
-        try {
-            $pdo->query("DELETE FROM {$forest_name}");
-        } catch (PDOException $e) {
-            if ($e->getCode() !== '42S02') {
-                throw $e;
-            }
-        }
-    }
+
 
     /**!
      * .. method:: getRoot()
-     *    
+     *
      *    Return the id of the first node of the tree.
      *
      *    :return: id of the root, or NULL if empty
      *    :rtype:  int or NULL
      *
      */
-    public function getRoot(){
-
+    public function getRoot()
+    {
         $query = "
           SELECT id AS root
           FROM {$this->forest_name}
@@ -591,22 +178,23 @@ class Baobab  {
         if ($row === false) {
             return null;
         }
-        
+
         return intval($row[0]);
     }
-    
+
     /**!
      * .. method:: getParent($id_node)
-     *    
+     *
      *    Return the id of the node's parent.
      *
      *    :return: id of the parent, or NULL if node is root
      *    :rtype:  int or NULL
      *
      */
-    public function getParent($id_node){
+    public function getParent($id_node)
+    {
         $id_node = intval($id_node);
-        
+
         $query = "
           SELECT parent
           FROM {$this->forest_name}_AdjTree
@@ -623,34 +211,33 @@ class Baobab  {
 
         $row = $stmt->fetch();
 
-        if ($row === false) throw new NodeNotFound;
+        if ($row === false) throw new Exception\NodeNotFound;
 
         if ($row[0] === NULL) $out = NULL;
         else $out = intval($row[0]);
-        
         return $out;
     }
 
     /**!
      * .. method:: getSize([$id_node=NULL])
-     *    
+     *
      *    Retrieve the number of nodes of the subtree starting at $id_node (or
      *    at tree root if $id_node is NULL).
-     *    
+     *
      *    :param $id_node: id of the node to count from (or NULL to count from root)
      *    :type $id_node:  int or NULL
-     *    
+     *
      *    :return: the number of nodes in the selected subtree (counting in root of subtree)
      *    :rtype:  int
      */
-    public function getSize($id_node=NULL) {
-
+    public function getSize($id_node=NULL)
+    {
         $query = "
           SELECT (rgt-lft+1) DIV 2
           FROM {$this->forest_name}
           WHERE ". ($id_node !== NULL ? "id = :id_node" : "lft = 1").
                 " AND tree_id= :tree_id";
-        
+
         $stmt = $this->pdo->prepare($query);
 
         $prepareArray = array(
@@ -662,20 +249,21 @@ class Baobab  {
         }
 
         $stmt->execute($prepareArray);
-        
+
         $row = $stmt->fetch();
+
         return intval($row[0]);
     }
-    
+
     /**!
      * .. method:: getDescendants([$id_node=NULL])
-     *    
+     *
      *    Retrieve all the descendants of a node
-     *    
+     *
      *    :param $id_node: id of the node whose descendants we're searching for,
      *                     or NULL to start from the tree root.
      *    :type $id_node:  int or NULL
-     *    
+     *
      *    :return: the ids of node's descendants, in ascending order
      *    :rtype:  array
      *
@@ -693,7 +281,7 @@ class Baobab  {
         } else {
             // we search for a node descendants
             $id_node = intval($id_node);
-            $prepareArray[":id_node"] = $id_node; 
+            $prepareArray[":id_node"] = $id_node;
             $query = "
               SELECT id
               FROM {$this->forest_name}
@@ -703,31 +291,31 @@ class Baobab  {
               ORDER BY id
             ";
         }
-        
+
         $ar_out = array();
 
         $stmt = $this->pdo->prepare($query);
         $stmt->execute($prepareArray);
-        while($id = $stmt->fetch()) {
+        while ($id = $stmt->fetch()) {
             $ar_out[] = intval($id[0]);
         }
 
         return $ar_out;
 
     }
-    
+
     /**!
      * .. method:: getLeaves([$id_node=NULL])
      *
      *    Find the leaves of a subtree.
-     *    
+     *
      *    :param $id_node: id of a node or NULL to start from the tree root
      *    :type $id_node:  int or NULL
      *
      *    :return: the ids of the leaves, ordered from left to right
      *    :rtype:  array
      */
-    public function &getLeaves($id_node=NULL){
+    public function &getLeaves($id_node=NULL) {
 
         $prepareArray = array(
                     ":tree_id" => $this->tree_id,
@@ -737,10 +325,10 @@ class Baobab  {
           SELECT id AS leaf
           FROM {$this->forest_name}
           WHERE tree_id=:tree_id AND lft = (rgt - 1)";
-        
+
         if ($id_node !== NULL) {
             // check only leaves of a subtree adding a "where" condition
-            
+
             $id_node = intval($id_node);
 
             $prepareArray[":id_node"] = $id_node;
@@ -748,25 +336,25 @@ class Baobab  {
             $query .= " AND lft > (SELECT lft FROM {$this->forest_name} WHERE id = :id_node) ".
                       " AND rgt < (SELECT rgt FROM {$this->forest_name} WHERE id = :id_node) ";
         }
-        
+
         $query .= " ORDER BY lft";
-        
+
         $ar_out = array();
-        
+
         $stmt = $this->pdo->prepare($query);
         $stmt->execute($prepareArray);
-        while($id = $stmt->fetch()) {
+        while ($id = $stmt->fetch()) {
             $ar_out[] = intval($id[0]);
         }
 
         return $ar_out;
     }
-    
+
     /**!
      * .. method:: getLevels()
      *
      *    Find at what level of the tree each node is.
-     *    
+     *
      *    :param $id_node: id of a node or NULL to start from the tree root
      *    :type $id_node:  int or NULL
      *
@@ -777,8 +365,8 @@ class Baobab  {
      *       tree root is at level 0
      *
      */
-    public function &getLevels(){
-    
+    public function &getLevels() {
+
         $query = "
           SELECT T2.id as id, (COUNT(T1.id) - 1) AS level
           FROM {$this->forest_name} AS T1 JOIN {$this->forest_name} AS T2
@@ -795,7 +383,7 @@ class Baobab  {
                     ":tree_id" => $this->tree_id,
                     ));
 
-        while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
             $ar_out[] = array("id" => intval($row["id"]), "level" => intval($row["level"]));
         }
 
@@ -804,15 +392,15 @@ class Baobab  {
 
     /**!
      * .. method:: getPath($id_node[,$fields=NULL[,$squash=FALSE]])
-     *    
+     *
      *    Find all the nodes between tree root and a node.
-     *    
+     *
      *    :param $id_node: id of the node used to calculate the path to
      *    :type $id_node:  int
-     *    :param $fields: if not NULL, a string with a Baobab tree field name or 
+     *    :param $fields: if not NULL, a string with a Baobab tree field name or
      *                      an array of field names
      *    :type $fields:  mixed
-     *    :param $squash: if TRUE the method will return an array with just the 
+     *    :param $squash: if TRUE the method will return an array with just the
      *                      values of the first field in $fields (if $fields is
      *                      empty it will default to "id" )
      *    :type $squash:  boolean
@@ -822,36 +410,35 @@ class Baobab  {
      *               in $fields plus the field "id" (unless $squash was set),
      *               ordered from root to $id_node
      *    :rtype:  array
-     *    
+     *
      *    Example (considering a tree with two nodes with a field 'name'):
-     *    
+     *
      *    .. code-block:: none
-     *       
+     *
      *       php> $tree->getPath(2, array("name"))
      *       array([0] => array([id] => 1, [name] => 'rootName'), array([id] => 2, [name] => 'secondNodeName']))
      *       php> join("/", $tree->getPath(2, "name", TRUE))
      *       "rootName/secondNodeName"
-     * 
+     *
      */
-    public function &getPath($id_node,$fields=NULL,$squash=FALSE){ 
+    public function &getPath($id_node, $fields=NULL, $squash=FALSE) {
         $id_node = intval($id_node);
-        
+
         if (empty($fields)) {
             if ($squash) $fields = array("id");
             else $fields = array(); // ensure it is not NULL
-        }
-        else if (is_string($fields)) $fields = array($fields);
-        
+        } elseif (is_string($fields)) $fields = array($fields);
+
         // append the field "id" if missing
         if (FALSE === array_search("id", $fields)) $fields[] = "id";
-        
+
         $this->_sql_check_fields($fields);
-        
+
         $fields_escaped = array();
-        foreach($fields as $fieldName) {
+        foreach ($fields as $fieldName) {
             $fields_escaped[] = sprintf("`%s`", str_replace("`", "``", $fieldName));
         }
-        
+
         $query = "".
         " SELECT ".join(",", $fields_escaped).
         " FROM {$this->forest_name}".
@@ -870,12 +457,12 @@ class Baobab  {
         if ($squash) {
             reset($fields);
             $fieldName = current($fields);
-            while($rowAssoc = $stmt->fetch(PDO::FETCH_ASSOC)) $ar_out[] = $rowAssoc[$fieldName];
-            
+            while($rowAssoc = $stmt->fetch(\PDO::FETCH_ASSOC)) $ar_out[] = $rowAssoc[$fieldName];
+
         } else {
-            while($rowAssoc = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            while ($rowAssoc = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                 $tmp_ar = array();
-                foreach($fields as $fieldName) {
+                foreach ($fields as $fieldName) {
                     $tmp_ar[$fieldName] = $rowAssoc[$fieldName];
                 }
                 $ar_out[] = $tmp_ar;
@@ -884,7 +471,7 @@ class Baobab  {
 
         return $ar_out;
     }
-    
+
     /**!
      * .. method:: getFirstNChildren($id_parent[,$howMany=NULL[,$fromLeftToRight=TRUE]])
      *
@@ -896,15 +483,15 @@ class Baobab  {
      *    :type $howMany:  int or NULL
      *    :param $fromLeftToRight: what order the children must follow
      *    :type $fromLeftToRight:  boolean
-     *    
+     *
      *    :return: ids of the children nodes, ordered from left to right
      *    :rtype:  array
      *
      */
-    public function &getFirstNChildren($id_parent,$howMany=NULL,$fromLeftToRight=TRUE){
+    public function &getFirstNChildren($id_parent, $howMany=NULL, $fromLeftToRight=TRUE) {
         $id_parent = intval($id_parent);
         $howMany = intval($howMany);
-        
+
         $query = " SELECT child FROM {$this->forest_name}_AdjTree ".
                  " WHERE parent = :id_parent ".
                  " ORDER BY lft ".($fromLeftToRight ? 'ASC' : 'DESC').
@@ -921,10 +508,10 @@ class Baobab  {
         foreach ($rows as $row) {
             $ar_out[] = intval($row[0]);
         }
-        
+
         return $ar_out;
     }
-    
+
     /**!
      * .. method:: getChildren($id_parent)
      *
@@ -932,7 +519,7 @@ class Baobab  {
      *
      *    :param $id_parent: id of the parent node
      *    :type $id_parent:  int
-     *    
+     *
      *    :return: ids of the children nodes, ordered from left to right
      *    :rtype:  array
      *
@@ -940,7 +527,7 @@ class Baobab  {
     public function &getChildren($id_parent) {
         return $this->getFirstNChildren($id_parent);
     }
-    
+
     /**!
      * .. method:: getFirstChild($id_parent)
      *
@@ -948,16 +535,18 @@ class Baobab  {
      *
      *    :param $id_parent: id of the parent node
      *    :type $id_parent:  int
-     *    
+     *
      *    :return: id of the leftmost child node, or 0 if not found
      *    :rtype:  int
      *
      */
-    public function getFirstChild($id_parent) {
+    public function getFirstChild($id_parent)
+    {
         $res = $this->getFirstNChildren($id_parent, 1, TRUE);
+
         return empty($res) ? 0 : current($res);
     }
-    
+
     /**!
      * .. method:: getLastChild($id_parent)
      *
@@ -965,16 +554,18 @@ class Baobab  {
      *
      *    :param $id_parent: id of the parent node
      *    :type $id_parent:  int
-     *    
+     *
      *    :return: id of the rightmost child node, or 0 if not found
      *    :rtype:  int
      *
      */
-    public function getLastChild($id_parent) {
+    public function getLastChild($id_parent)
+    {
         $res = $this->getFirstNChildren($id_parent, 1, FALSE);
+
         return empty($res) ? 0 : current($res);
     }
-    
+
     /**!
      * .. method:: getChildAtIndex($id_parent, $index)
      *
@@ -985,12 +576,13 @@ class Baobab  {
      *    :param $index: position between his siblings (0 is first).
      *                   Negative indexes are allowed (-1 is the last sibling).
      *    :type $index:  int
-     *    
+     *
      *    :return: id of the nth child node
      *    :rtype:  int
      *
      */
-    public function getChildAtIndex($id_parent, $index){
+    public function getChildAtIndex($id_parent, $index)
+    {
         $id_parent = intval($id_parent);
         $index = intval($index);
 
@@ -1004,14 +596,13 @@ class Baobab  {
         $stmt->closeCursor();
 
         $output = $this->pdo->query("select @child_id as child_id");
-        $output = $output->fetch(PDO::FETCH_ASSOC);
+        $output = $output->fetch(\PDO::FETCH_ASSOC);
 
-        if ($output['child_id'] === null) throw new NodeNotFound;
-
+        if ($output['child_id'] === null) throw new Exception\NodeNotFound;
         return intval($output['child_id']);
     }
-    
-    
+
+
     /**!
      * .. method:: getTree([$className="BaobabNode"[,$appendChild="appendChild"]])
      *
@@ -1028,8 +619,8 @@ class Baobab  {
      *    :rtype:  instance of $className
      *
      */
-    public function &getTree($className="BaobabNode", $appendChild="appendChild") {
-        
+    public function &getTree($className="Baobab\BaobabNode", $appendChild="appendChild") {
+
         // this is a specialized version of the query found in getLevel()
         //   (the difference lying in the fact that here we retrieve all the
         //    fields of the table)
@@ -1041,7 +632,7 @@ class Baobab  {
           GROUP BY T2.lft
           ORDER BY T2.lft ASC;
         ";
-        
+
         $root = NULL;
         $parents = array();
 
@@ -1050,41 +641,40 @@ class Baobab  {
                     ":tree_id" => $this->tree_id,
                     ));
 
-        while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            
+        while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+
             $numParents = count($parents);
-            
+
             $id = $row["id"];
             $lft = $row["lft"];
             $rgt = $row["rgt"];
             $level = $row["level"];
             $parentNode = count($parents) ? $parents[$numParents-1] : NULL;
-            
+
             unset($row["id"]);
             unset($row["lft"]);
             unset($row["rgt"]);
             unset($row["level"]);
-            
+
             $node = new $className($id, $lft, $rgt, $parentNode, $row);
-            
+
             if (!$root) $root = $node;
             else $parents[$numParents-1]->$appendChild($node);
-            
+
             if ($rgt-$lft != 1) { // not a leaf
                 $parents[$numParents] = $node;
-            }
-            else if (!empty($parents) && $rgt+1 == $parents[$numParents-1]->rgt) {
-                
+            } elseif (!empty($parents) && $rgt+1 == $parents[$numParents-1]->rgt) {
+
                 $k = $numParents-1;
                 $me = $node;
                 while ($k>-1 && $me->rgt+1 == $parents[$k]->rgt) {
                     $me = $parents[$k];
                     unset($parents[$k--]);
                 }
-                
+
                 /*
                 // alternative way using levels ($parents would have both the parent node and his level)
-                
+
                 // previous parent is the first one with a level minor than ours
                 if ($parents[count($parents)-1][1] >= $level) {
                     // remove all the previous subtree "parents" until our real parent
@@ -1094,7 +684,7 @@ class Baobab  {
                 */
             }
         }
-        
+
         return $root;
     }
 
@@ -1115,7 +705,8 @@ class Baobab  {
      *       subtrees and want to update the numbering just once
      *       (see :class:`Baobab.closeGaps`)
      */
-    public function deleteNode($id_node,$close_gaps=TRUE) {
+    public function deleteNode($id_node, $close_gaps=TRUE)
+    {
         $id_node = intval($id_node);
         $close_gaps = $close_gaps ? 1 : 0;
 
@@ -1125,12 +716,12 @@ class Baobab  {
             ':close_gaps' => $close_gaps
             ));
         $stmt->closeCursor();
-        
+
     }
-    
+
     /**!
      * .. method:: closeGaps
-     *    
+     *
      *    Update right and left values of each node to ensure there are no
      *    gaps in the tree.
      *
@@ -1150,18 +741,18 @@ class Baobab  {
 
     /**!
      * .. method:: getTreeHeight()
-     *    
+     *
      *    Calculate the height of the tree
      *
      *    :return: the height of the tree
      *    :rtype:  int
-     *    
+     *
      *    .. note::
      *       A tree with one node has height 1.
-     * 
+     *
      */
-    public function getTreeHeight(){
-        
+    public function getTreeHeight()
+    {
         $query = "
         SELECT MAX(level)+1 as height
         FROM (SELECT T2.id as id,(COUNT(T1.id)-1) as level
@@ -1170,7 +761,7 @@ class Baobab  {
               WHERE T2.lft  BETWEEN T1.lft AND T1.rgt
               GROUP BY T2.id
              ) as ID_LEVELS";
-        
+
         $stmt = $this->pdo->prepare($query);
         $stmt->execute(array(
                     ":tree_id" => $this->tree_id,
@@ -1183,7 +774,7 @@ class Baobab  {
 
     /**!
      * .. method:: updateNode($id_node,$fields_values)
-     *    
+     *
      *    Update data associeted to a node
      *
      *    :param $id_node: id of the node to update
@@ -1191,13 +782,14 @@ class Baobab  {
      *    :param $fields_values: mapping fields => values to update
      *                     (only supported types are string, int, float, boolean)
      *    :type $fields_values:  array
-     * 
+     *
      */
-    public function updateNode($id_node,$fields_values){
+    public function updateNode($id_node, $fields_values)
+    {
         $id_node = intval($id_node);
-        
+
         if (empty($fields_values)) throw new BaobabException("\$fields_values cannot be empty");
-        
+
         $fields = array_keys($fields_values);
         $this->_sql_check_fields($fields);
 
@@ -1208,7 +800,7 @@ class Baobab  {
         }
 
         $prepareFields = join($prepareFields, ', ');
-        
+
         $query = "".
          " UPDATE {$this->forest_name}".
          " SET $prepareFields".
@@ -1220,12 +812,12 @@ class Baobab  {
 
         $stmt->execute($prepareFieldsValues);
     }
-    
+
     /**!
      * .. method:: getNodeData($id_node[,$fields=NULL])
-     *    
+     *
      *    Retrieve informations about a node.
-     *    
+     *
      *    :param $id_node: id of the node
      *    :type $id_node:  int
      *    :param $fields: fields' names to read values from
@@ -1233,13 +825,14 @@ class Baobab  {
      *
      *    :return: the informations found
      *    :rtype:  array
-     * 
+     *
      */
-    public function getNodeData($id_node,$fields=NULL){
+    public function getNodeData($id_node, $fields=NULL)
+    {
         $id_node = intval($id_node);
-        
+
         if (!empty($fields)) $this->_sql_check_fields($fields);
-        
+
         $query = "".
         " SELECT ".($fields === NULL ? "*" : join(",", $fields)).
         " FROM {$this->forest_name} ".
@@ -1250,14 +843,14 @@ class Baobab  {
             ':id_node' => $id_node
             ));
 
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);;
-        
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);;
+
         return $row;
     }
-    
+
     /**!
      * .. method:: appendChild([$id_parent=NULL[,$fields_values=NULL]])
-     *    
+     *
      *    Create and append a node as last child of a parent node. If no
      *    parent is given, the new node will become the root node.
      *
@@ -1265,15 +858,15 @@ class Baobab  {
      *    :type $id_parent: int or NULL
      *    :param $fields_values: mapping fields => values to assign to the new node
      *    :type $fields_values: array or NULL
-     *    
+     *
      *    :return: id of new node
      *    :rtype:  int
      *
      */
-    public function appendChild($id_parent=NULL,$fields_values=NULL){
-
-        // add tree_marks (if not yet added) as fields values 
-        $fields_values = (array)$fields_values + (array)$this->tree_marks;
+    public function appendChild($id_parent=NULL, $fields_values=NULL)
+    {
+        // add tree_marks (if not yet added) as fields values
+        $fields_values = (array) $fields_values + (array) $this->tree_marks;
 
         $id_parent = intval($id_parent);
 
@@ -1287,16 +880,15 @@ class Baobab  {
         $stmt->closeCursor();
 
         $output = $this->pdo->query("SELECT @new_id as new_id, @cur_tree_id as tree_id");
-        $output = $output->fetch(PDO::FETCH_ASSOC);
+        $output = $output->fetch(\PDO::FETCH_ASSOC);
         $id = intval($output['new_id']);
         $this->tree_id = intval($output['tree_id']);
-        
+
         //update the node if needed
         if (!empty($fields_values)) $this->updateNode($id, $fields_values);
-        
         return $id;
     }
-    
+
     /**!
      * .. method:: insertAfter($id_sibling[,$fields_values=NULL])
      *
@@ -1310,9 +902,10 @@ class Baobab  {
      *
      *    :return: id of the new node
      *    :rtype:  int
-     * 
+     *
      */
-    public function insertAfter($id_sibling,$fields_values=NULL) {
+    public function insertAfter($id_sibling, $fields_values=NULL)
+    {
         $id_sibling = intval($id_sibling);
 
         //this will break if node does not exist
@@ -1327,13 +920,12 @@ class Baobab  {
         $stmt->closeCursor();
 
         $output = $this->pdo->query("SELECT @new_id as new_id, @error_code as error_code");
-        $output = $output->fetch(PDO::FETCH_ASSOC);
+        $output = $output->fetch(\PDO::FETCH_ASSOC);
 
         $this->_checkForErrors($output['error_code']);
 
         //update the node if needed
         if ($fields_values !== NULL) $this->updateNode($output['new_id'], $fields_values);
-
         return intval($output['new_id']);
     }
 
@@ -1350,9 +942,10 @@ class Baobab  {
      *
      *    :return: id of the new node
      *    :rtype:  int
-     * 
+     *
      */
-    public function insertBefore($id_sibling,$fields_values=NULL) {
+    public function insertBefore($id_sibling, $fields_values=NULL)
+    {
         $id_sibling = intval($id_sibling);
 
         //this will break if node does not exist
@@ -1367,13 +960,12 @@ class Baobab  {
         $stmt->closeCursor();
 
         $output = $this->pdo->query("SELECT @new_id as new_id, @error_code as error_code");
-        $output = $output->fetch(PDO::FETCH_ASSOC);
+        $output = $output->fetch(\PDO::FETCH_ASSOC);
 
         $this->_checkForErrors($output['error_code']);
 
         //update the node if needed
         if ($fields_values !== NULL) $this->updateNode($output['new_id'], $fields_values);
-
         return intval($output['new_id']);
     }
 
@@ -1392,11 +984,12 @@ class Baobab  {
      *    :type $index:  int
      *    :param $fields_values: mapping fields => values to assign to the new node
      *    :type $fields_values:  array or NULL
-     *    
+     *
      *    :return: id of the new node
      *    :rtype:  int
      */
-    public function insertChildAtIndex($id_parent,$index,$fields_values=NULL) {
+    public function insertChildAtIndex($id_parent, $index, $fields_values=NULL)
+    {
         $id_parent = intval($id_parent);
         $index = intval($index);
 
@@ -1412,16 +1005,15 @@ class Baobab  {
         $stmt->closeCursor();
 
         $output = $this->pdo->query("SELECT @new_id as new_id, @error_code as error_code");
-        $output = $output->fetch(PDO::FETCH_ASSOC);
-        
+        $output = $output->fetch(\PDO::FETCH_ASSOC);
+
         $this->_checkForErrors($output['error_code']);
 
         //update the node if needed
         if ($fields_values !== NULL) $this->updateNode($output['new_id'], $fields_values);
-
         return intval($output['new_id']);
     }
-    
+
     /**!
      * .. method:: moveAfter($id_to_move,$reference_node)
      *
@@ -1432,13 +1024,14 @@ class Baobab  {
      *    :param $reference_node: the node that will become the left sibling
      *                              of $id_to_move
      *    :type $reference_node:  int
-     *    
+     *
      *    .. warning:
      *       Moving a subtree after/before root or as a child of hisself will
      *         throw a BaobabException exception
-     * 
+     *
      */
-    public function moveAfter($id_to_move,$reference_node) {
+    public function moveAfter($id_to_move, $reference_node)
+    {
         $id_to_move = intval($id_to_move);
         $reference_node = intval($reference_node);
 
@@ -1456,7 +1049,7 @@ class Baobab  {
 
         $this->_checkForErrors();
     }
-    
+
     /**!
      * .. method:: moveBefore($id_to_move,$reference_node)
      *
@@ -1467,13 +1060,14 @@ class Baobab  {
      *    :param $reference_node: the node that will become the left sibling
      *                              of $id_to_move
      *    :type $reference_node:  int
-     *    
+     *
      *    .. warning:
      *       Moving a subtree after/before root or as a child of hisself will
      *         throw a BaobabError exception
-     * 
+     *
      */
-    public function moveBefore($id_to_move,$reference_node) {
+    public function moveBefore($id_to_move,$reference_node)
+    {
         $id_to_move = intval($id_to_move);
         $reference_node = intval($reference_node);
 
@@ -1491,7 +1085,7 @@ class Baobab  {
 
         $this->_checkForErrors();
     }
-    
+
     /**!
      * .. method:: moveNodeAtIndex($id_to_move,$id_parent,$index)
      *
@@ -1505,13 +1099,14 @@ class Baobab  {
      *                   Negative indexes are allowed (-1 is the position before
      *                   the last sibling).
      *    :type $index:  int
-     *    
+     *
      *    .. warning:
      *       Moving a subtree after/before root or as a child of hisself will
      *         throw a BaobabError exception
-     * 
+     *
      */
-    public function moveNodeAtIndex($id_to_move,$id_parent,$index) {
+    public function moveNodeAtIndex($id_to_move,$id_parent,$index)
+    {
         $id_to_move = intval($id_to_move);
         $id_parent = intval($id_parent);
         $index = intval($index);
@@ -1531,15 +1126,15 @@ class Baobab  {
 
         $this->_checkForErrors();
     }
-    
+
     /**
      * TODO documentation
      */
-    private function _checkForErrors($error_code = NULL){
-
+    private function _checkForErrors($error_code = NULL)
+    {
         if ($error_code === NULL) {
             $output = $this->pdo->query("SELECT @error_code as error_code");
-            $output = $output->fetch(PDO::FETCH_ASSOC);
+            $output = $output->fetch(\PDO::FETCH_ASSOC);
 
             if (!isset($output['error_code'])) {
                 return;
@@ -1550,346 +1145,17 @@ class Baobab  {
 
         switch ($error_code) {
             case 'ROOT_ERROR':
-                throw new InsertOutsideRoot('Cannot add or move a node next to root');
+                throw new Exception\InsertOutsideRoot('Cannot add or move a node next to root');
             case 'INDEX_OUT_OF_RANGE':
-                throw new IndexOutOfRange('The index is out of range');
+                throw new Exception\IndexOutOfRange('The index is out of range');
             case 'NODE_DOES_NOT_EXIST':
-                throw new NodeNotFound('Node doesn\'t exist');
+                throw new Exception\NodeNotFound('Node doesn\'t exist');
             case 'CHILD_OF_YOURSELF_ERROR':
-                throw new ChildOfYourself('Cannot move a node inside his own subtree');
+                throw new Exception\ChildOfYourself('Cannot move a node inside his own subtree');
             default:
-                throw new BaobabException('Error code: '.$error_code);
+                throw new Exception\BaobabException('Error code: '.$error_code);
             break;
         }
     }
-    
-    /**!
-     * .. staticmethod:: import($forest_name,$data)
-     *    
-     *    Load data about a single tree (as generated by the export method).
-     *    
-     *    :param $db: mysqli database connection in object oriented style
-     *    :type $db:  an instance of mysqli_connect
-     *    :param $forest_name: name of the forest, equals to the name of the table
-     *                       holding the data
-     *    :type $forest_name:  string
-     *    :param $data: data to import
-     *    :type $data:  string (JSON) or array
-     *    
-     *    :return: an array of Baobab tree instances
-     *    :rtype:  array
-     *    
-     *    $data JSON format is like the following
-     *    
-     *    .. code-block:: json
-     *       
-     *       [
-     *        {
-     *          "tree_id": 6, //optional, it could also be one of the fields, or none at all
-     *          "fields" : ["id", "lft", "rgt"],
-     *          "values" : 
-     *              [1,1,4,[
-     *                  [2,2,3,[]]
-     *              ]]
-     *        }
-     *        // more could follow ...
-     *       ]
-     *    
-     *    .. note::
-     *       If "id" field is used and the nodes values are not NULL, mustn't
-     *       exist in the table a record with that same value.
-     *      
-     *    .. note::
-     *       If "tree_id" is used (as attribute or field) and not NULL, mustn't
-     *       exist in the table records belonging to that same tree.
-     */
-    public static function &import($pdo, $forest_name, $data){
-        //$db = $pdo;
-        if (is_string($data)) $data = json_decode($data, TRUE);
-        if (!$data || empty($data)) {$x = NULL;return $x;} // nothing to import
-        
-        // check if the table exists before doing anything else
-        $sql_utils = new sp_SQLUtils( $pdo);
-        if ( ! $sql_utils->table_exists($forest_name)){
-            throw new BaobabException("Table `{$forest_name}` does not exist");
-        }
-        
-        $ar_out = array();
-        
-        $pdo->beginTransaction();
-        
-        try {
-            
-            foreach($data as $tmp_data) {
-                
-                if (empty($tmp_data["values"])) continue;
-                
-                // get the tree id, if any
-                $tree_id = NULL;
-                if (isset($tmp_data["tree_id"])) $tree_id = intval($tmp_data["tree_id"]);
-                else {
-                    $idx = array_search("tree_id", $tmp_data["fields"]);
-                    if (FALSE !== $idx) {
-                        // all the tree ids are equals, get the first
-                        $tree_id = intval($tmp_data["values"][0][$idx]);
-                    }
-                }
-                
-                if (!$tree_id) { // check both NULL and 0
-                    // there isn't a tree_id, we must get one
-                    
-                    // find a new tree_id
-                    $query = "SELECT IFNULL(MAX(tree_id),0)+1 as new_id FROM {$forest_name}";
-                    $result = $pdo->query($query);
-                    if (!$result) throw new BaobabError($db);
-                    $row = $result->fetch();
-                    $tree_id = intval($row[0]);
-                    
-                } else {
-                    // ensure the tree_id isn't in use
-                    $query = "SELECT DISTINCT tree_id FROM {$forest_name} WHERE tree_id={$tree_id}";
-                    $result = $pdo->query($query);
-                    if (!$result) throw new BaobabError($db);
-                    $tree_exists = $result->fetch();
-                    
-                    if ($tree_exists) throw new BaobabException("ImportError: tree_id {$tree_id} yet in use");
-                }
-                
-                $tree = new Baobab( $pdo, $forest_name, $tree_id);
-                
-                // if there are only standard fields we can also try to build the table
-                //   (otherwise it must yet exist because we can't guess field types)
-                
-                $standard_fields = array("id", "lft", "rgt", "tree_id");
-                if (count($tmp_data["fields"]) <= 4) {
-                    $is_standard = TRUE;
-                    foreach($tmp_data["fields"] as $fieldName) {
-                        if (FALSE === array_search($fieldName, $standard_fields)) {
-                            $is_standard = FALSE;
-                            break;
-                        }
-                    }
-                    if ($is_standard) {
-                        try{
-                            $tree->build(); // if yet exists is harmless
-                        } catch (BaobabError $e) {
-                            if ($e->getCode() != '42S01') throw $e; // 1050 is "table exists"
-                        }
-                    }
-                }
-                
-                // check that the table has the involved fields
-                $tree->_sql_check_fields($tmp_data["fields"]);
-                
-                $values = array();
-                
-                $nodes = array($tmp_data["values"]);
-                
-                while (!empty($nodes)) {
-                    // get data of current node
-                    $last_node = array_pop($nodes);
-                     //save his children's array
-                    $children = array_pop($last_node);
-                    // append the children to the nodes to iterate over
-                    if (count($children)) $nodes = array_merge($nodes, $children);
-                    
-                    // keep the data
-                    $values[] = $last_node;
-                }
-                
-                // get the tree_id to use
-                
-                if (FALSE === array_search("tree_id", $tmp_data["fields"])) {
-                    // add tree_id to fields
-                    $tmp_data["fields"][] = "tree_id";
-                    
-                    // add tree_id to the each row
-                    foreach($values as &$row){
-                        $row[] = $tree_id;
-                    }
-                }
-
-                // make unique prepare field ID for each value in rows
-                // group prepare field ID in row, and then combine them like that:
-                // ((:fieldRow1, :fieldRow1), (:fieldRow2, :fieldRow2))
-                $prepareFields = '(';
-                foreach ($values as $rowKey => $valuesRow) {
-                    $prepareFieldsRow = array();
-                    foreach ($tmp_data["fields"] as $fieldKey => $field) {
-                        $prepareFieldsRow[] = ":$field$rowKey";
-                        $prepareFieldsValues[':'.$field.$rowKey] = $valuesRow[$fieldKey];
-                    }
-                    $prepareFieldsRows[] = join($prepareFieldsRow, ', ');
-                }
-                $prepareFields .= join($prepareFieldsRows, '), (');
-                $prepareFields .= ')';
-                
-                $query = "INSERT INTO {$forest_name}(".join(",", $tmp_data["fields"]).") VALUES $prepareFields";
-                $stmt = $pdo->prepare($query);
-                $stmt->execute($prepareFieldsValues);
-                
-                $ar_out[] = $tree;
-                
-            } // end foreach $data
-            $pdo->commit();
-        
-        } catch (Exception $e) {
-            // whatever happens we must rollback
-            $pdo->rollback();
-            throw $e;
-        }
-        
-        return $ar_out;
-    }
-    
-    /**
-     * .. staticmethod:: _traverse_tree_to_export_data($node,&$data,&$fieldsFlags,&$fieldsOrder)
-     *
-     *   Traverse a baobab tree and create an array holding the data about each node.
-     *   Each resulting node is represented as an array holding his values ordered as
-     *   $fieldsOrder, with an array as most right element holding children nodes
-     *   (in the same format).
-     *
-     *   :param $node: current node to retrieve values from
-     *   :type $node:  BaobabNode
-     */
-    private static function _traverse_tree_to_export_data($node,&$data,&$fieldsFlags,&$fieldsOrder){
-        
-        $len_data = count($data);
-        
-        $tmp_ar = array();
-        
-        //$i = 0;
-        
-        // get fields and values in the correct order
-        foreach($fieldsOrder as $fieldName) {
-            if ($fieldName == 'id') $value = $node->id;
-            else if ($fieldName == 'lft') $value = $node->lft;
-            else if ($fieldName == 'rgt') $value = $node->rgt;
-            else $value = $node->fields_values[$fieldName];
-            
-            //if ($fieldsFlags[$i++] & MYSQLI_NUM_FLAG) $value = floatval($value);
-            
-            $tmp_ar[] = $value;
-        }
-        
-        $tmp_ar[] = array(); // the last element holds the children
-        
-        // append the child data to parent data
-        $data[$len_data-1][] = &$tmp_ar;
-        
-        foreach($node->children as $childNode) {
-            self::_traverse_tree_to_export_data($childNode, $tmp_ar, $fieldsFlags, $fieldsOrder);
-        }
-        
-    }
-    
-    /**!
-     * .. staticmethod:: export($forest_name[,$fields=NULL[,$tree_id=NULL]])
-     *    
-     *    Create a JSON dump of one or more trees
-     *    
-     *    :param $db: mysqli database connection in object oriented style
-     *    :type $db:  an instance of mysqli_connect
-     *    :param $forest_name: name of the forest, equals to the name of the table
-     *                       holding the data
-     *    :type $forest_name:  string
-     *    :param $fields: optional, the fields to be exported
-     *    :type $fields:  array
-     *    :param $tree_id: optional, a single tree_id to be exported, or an array of them.
-     *                      If NULL all the trees in the table will be exported;
-     *    :type $tree_id:  array or int
-     *    
-     *    :return: a dump of the trees in JSON format
-     *    :rtype:  string
-     *
-     *    .. note::
-     *       if 'tree_id' is passed as field, it will not appear in the field
-     *       list because redundat (it will be present once in the tree_id attribute)
-     *    
-     *    Example of an exported tree
-     *    
-     *    .. code-block:: json
-     *
-     *       [
-     *        {
-     *          "tree_id": 6, 
-     *          "fields" : ["id", "lft", "rgt"], // tree_id is stripped if requested via fields because redundant
-     *          "values" : 
-     *              [1,1,4,[
-     *                  [2,2,3,[]]
-     *              ]]
-     *        }
-     *        // more could follow ...
-     *       ]
-     * 
-     */
-    public static function export($pdo, $forest_name,$fields=NULL,$tree_id=NULL){
-
-        // check if the table exists before doing anything else
-        $sql_utils = new sp_SQLUtils( $pdo);
-        if ( ! $sql_utils->table_exists($forest_name)){
-            throw new BaobabException("Table `Baobab_{$forest_name}` does not exist");
-        }
-        
-        // get all the fields to export or check if the passed fields are valid
-        $tree = new Baobab( $pdo, $forest_name, NULL); // use a unexistent tree in the right table
-        if ($fields !== NULL) $tree->_sql_check_fields($fields);
-        else $fields = array_keys($tree->_get_fields());
-        
-        // remove tree_id from $fields to avoid writing it n times
-        //   ( we give him a single property in the json format )
-        $idx_treeId_field = array_search("tree_id", $fields);
-        if (FALSE !== $idx_treeId_field) {
-            unset($fields[$idx_treeId_field]);
-            $fields = array_values($fields); // I want to mantain a correct index sequence
-        }
-        
-        // get the ids of the trees to export
-        $ar_tree_id = array();
-        if ($tree_id) {
-            if (!is_array($tree_id)) $tree_id = array($tree_id);
-            // ensure $tree_id contains numbers
-            foreach($tree_id as $tmp_id) $ar_tree_id[] = intval($tmp_id);
-        }
-        else {
-            $query = "SELECT DISTINCT tree_id FROM {$forest_name}";
-            $result = $pdo->query($query);
-            if (!$result) throw new BaobabException;
-            while ($row = $result->fetch()) $ar_tree_id[] = intval($row[0]);
-        }
-        
-        // get the type of the columns mainly to write numbers as ... numbers
-        $fieldsFlags = array(); // each index will have the field flag, to know his type
-        //$result = $db->query(
-        //    "SELECT ".join(",", $fields)." FROM {$forest_name} LIMIT 1", MYSQLI_STORE_RESULT);
-        //if (!$result)  throw new BaobabException;
-        // retrieve the column names and their types
-        //while ($finfo = $result->fetch_field()) {
-        //    $fieldsFlags[] = $finfo->flags;
-        //}
-        //$result->close();
-        
-        // parse each tree and build an array to jsonize later
-        $ar_out = array();
-        foreach ($ar_tree_id as $tree_id) {
-            $tmp_ar = array("tree_id" => $tree_id, "fields" => $fields, "values" => NULL);
-            
-            // retrieve the data
-            $tree = new Baobab( $pdo, $forest_name, $tree_id);
-            $root = $tree->getTree();
-            
-            if ($root !== NULL) {
-                $data = array(array()); // the inner array emulate a node to gain root as child
-                self::_traverse_tree_to_export_data($root, $data, $fieldsFlags, $tmp_ar["fields"]);
-                if (!empty($data[0][0])) $tmp_ar["values"] = &$data[0][0];
-                
-                $ar_out[] = $tmp_ar;
-            }
-        }
-        
-        return json_encode($ar_out);
-    }
-
 
 }

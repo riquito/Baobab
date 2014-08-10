@@ -1,0 +1,13 @@
+<?php
+
+$dsn = 'mysql:host=localhost;dbname=example';
+
+$options = array(
+    PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES UTF8',
+); 
+
+$pdo = new PDO($dsn, 'username', 'password', $options);
+
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+return $pdo;

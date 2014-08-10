@@ -55,7 +55,7 @@
         }
      ]
      ,
-     "error":"InsertOutsideRoot"
+     "error":"Exception\\InsertOutsideRoot"
     },
     {
      "comment":"move a node after a single leaf in a different tree",

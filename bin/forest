@@ -1,0 +1,43 @@
+#!/usr/bin/env php
+<?php // forest
+
+function includeIfExists($file)
+{
+	if (file_exists($file)) {
+		return include $file;
+	}
+}
+
+if ((!$loader = includeIfExists(__DIR__ . '/../vendor/autoload.php')) &&
+	(!$loader = includeIfExists(__DIR__ . '/../../../autoload.php'))) {
+		die('
+You must set up the project dependencies, run the following commands:
+$ wget http://getcomposer.org/composer.phar
+OR
+$ curl -sS https://getcomposer.org/installer | php
+$ php composer.phar install --dev
+
+');
+}
+
+if (!$pdoInstance = includeIfExists(__DIR__ . '/config.php')) {
+	die('
+You must set up your PDO connection instance in bin/config.php
+See bin/config.php.example for reference
+
+');
+}
+
+use Pimple\Container;
+use Baobab\CLI;
+
+$container = new Container();
+
+$container['pdoInstance'] = $pdoInstance;
+$container['baobab'] = function($c)
+{
+	return new \Baobab\Baobab($c['pdoInstance'], $c['forestName']);
+};
+
+$forest = new CLI\Forest($container);
+$forest->run();

@@ -1,1 +1,0 @@
-UPDATE Baobab_Errors SET msg="1.2.1" WHERE code=1000;
