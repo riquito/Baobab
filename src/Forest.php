@@ -2,6 +2,11 @@
 namespace Baobab;
 use Baobab\Exception;
 use Baobab\Baobab as Baobab;
+
+// define BAOBAB_SQL_DIR as the absolute path with no leading / pointing to
+// the root directory holding the sql files
+if (!defined("BAOBAB_SQL_DIR")) define("BAOBAB_SQL_DIR", dirname(__FILE__).DIRECTORY_SEPARATOR."sql");
+
 /**
 * 
 */

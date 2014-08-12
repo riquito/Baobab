@@ -6,9 +6,6 @@ use Symfony\Component\Console\Application as BaseApplication;
 use Pimple\Container as Pimple;
 
 class Forest extends BaseApplication {
-    /**
-     * Calculator constructor.
-     */
     public function __construct(Pimple $container) {
         parent::__construct('
 Welcome to BaobabPDO CLI Interface
@@ -18,14 +15,12 @@ Welcome to BaobabPDO CLI Interface
 ', '2.0.0');
  		
         $this->addCommands(array(
-            new Command\Build($container),
-            new Command\Destroy($container),
-            new Command\Clean($container),
-            new Command\CleanAll($container),
-            new Command\Import($container),
-            new Command\Export($container),
-            new Command\ListTrees($container),
-            new Command\DisplayTree($container)
+            new Command\Seed($container),
+            new Command\Cut($container),
+            new Command\Burn($container),
+            // new Command\Import($container),
+            // new Command\Export($container),
+            // new Command\Show($container)
         ));
     }
 }

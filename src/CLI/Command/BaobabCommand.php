@@ -16,4 +16,13 @@ class BaobabCommand extends BaseCommand
         parent::__construct();
         $this->container = $container;
     }
+
+    protected function configure(){
+    	$this
+    	    ->addArgument(
+    	        'forest-name',
+    	        InputArgument::REQUIRED,
+    	        'Specify forest name (table to be used by a command)'
+    	    );
+    }
 }
