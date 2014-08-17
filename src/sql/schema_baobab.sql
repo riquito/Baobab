@@ -654,7 +654,7 @@ DETERMINISTIC
                 SET ext_bound_2 = s_lft-1;
                 
                 END;
-            ELSEIF s_lft = ref_lft THEN BEGIN
+            ELSEIF s_lft = ref_lft and source_node_tree = ref_node_tree THEN BEGIN
                 /* we have been asked to move a node to his same position */
                 LEAVE main;
                 END;
