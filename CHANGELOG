@@ -1,4 +1,12 @@
-v1.3.0
+v1.3.1 (2014-08-17)
+
+* in certain conditions deleting a node in a tree was
+  modifying nodes in different trees (thanks to
+  Ramon Ackermann <ramon.ackermann@gmail.com>).
+* moving a node to a different tree at the same left
+  position was ineffective
+
+v1.3.0 (2014-03-09)
 
 * moveNodeAtIndex() didn't preserve the requested index when
   moving a node after a greater (at his right) sibling
