@@ -143,7 +143,7 @@ MODIFIES SQL DATA
           rgt = CASE WHEN rgt > drop_lft
                 THEN rgt - (drop_rgt - drop_lft + 1)
                 ELSE rgt END
-        WHERE tree_id=drop_tree_id AND lft > drop_lft OR rgt > drop_lft;
+        WHERE tree_id=drop_tree_id AND (lft > drop_lft OR rgt > drop_lft);
         
     END IF;
 
