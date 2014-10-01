@@ -804,6 +804,11 @@ class BaobabTest extends PHPUnit_Framework_TestCase {
     function testMoveNodeAtIndex_multiTree($whatToTest){ $this->_useTreeTestData($whatToTest); }
     function _provider_testMoveNodeAtIndex_multiTree(){ return $this->_getJsonTestData("moveNodeAtIndex_multiTree.json"); }
     
+    /**
+    * @dataProvider _provider_testDeleteNode_multiTree
+    */
+    function testDeleteNode_multiTree($whatToTest){ $this->_useTreeTestData($whatToTest); }
+    function _provider_testDeleteNode_multiTree(){ return $this->_getJsonTestData("deleteNode_multiTree.json"); }
     
     // clean the tree and insert a simple tree
     // require import to be yet tested
