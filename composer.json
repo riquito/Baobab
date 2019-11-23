@@ -4,7 +4,7 @@
     "description": "A library applying the nested set model",
     "keywords": ["nested set model", "tree", "sql", "mptt"],
     "homepage": "http://www.sideralis.org/baobab",
-    "license": "Apache 2.0",
+    "license": "Apache-2.0",
     "authors": [
         {
             "name": "Riccardo Attilio Galli",
