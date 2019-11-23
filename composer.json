@@ -1,5 +1,5 @@
 {
-    "name": "riquito/baobab",
+    "name": "isiblor/baobab-pdo",
     "type": "library",
     "description": "A library applying the nested set model",
     "keywords": ["nested set model", "tree", "sql", "mptt"],
